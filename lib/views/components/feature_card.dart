@@ -16,6 +16,7 @@ class FeatureCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.cyan),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.shade200,
@@ -23,10 +24,9 @@ class FeatureCard extends StatelessWidget {
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade100),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(model.icon, size: 40, color: Colors.blue.shade700),
           const SizedBox(height: 16),

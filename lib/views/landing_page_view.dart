@@ -38,7 +38,7 @@ class LandingPageView extends StatelessWidget {
   Widget _buildHeroSection(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 400),
       decoration: BoxDecoration(
         image: DecorationImage(
           image: const AssetImage(
@@ -46,7 +46,7 @@ class LandingPageView extends StatelessWidget {
           ), // Asegúrate de tener este asset
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
-            Colors.blue.shade900.withOpacity(0.1),
+            Colors.blue.shade900.withOpacity(1),
             BlendMode.overlay,
           ),
         ),
@@ -169,7 +169,7 @@ class LandingPageView extends StatelessWidget {
             'Funcionalidades Poderosas para Proyectos Exitosos',
             style: TextStyle(
               fontSize: 36,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w900,
               color: Colors.blue.shade900,
             ),
             textAlign: TextAlign.center,
@@ -186,6 +186,8 @@ class LandingPageView extends StatelessWidget {
           ),
           const SizedBox(height: 60),
           Wrap(
+            alignment: WrapAlignment.center,
+            runAlignment: WrapAlignment.center,
             spacing: 30,
             runSpacing: 30,
             // Usa los datos del controlador para construir las tarjetas
@@ -205,7 +207,7 @@ class LandingPageView extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Colors.blue.shade50, Colors.white],
+          colors: [Colors.blue.shade100, Colors.white],
         ),
       ),
       child: Column(
@@ -233,12 +235,14 @@ class LandingPageView extends StatelessWidget {
           Wrap(
             spacing: 30,
             runSpacing: 30,
+            alignment: WrapAlignment.center,
             // Usa los datos del controlador para construir las tarjetas
             children: _controller.benefits
                 .map((b) => BenefitCard(model: b))
                 .toList(),
           ),
           const SizedBox(height: 60),
+
           Text(
             'Resultados Comprobados',
             style: TextStyle(
@@ -264,8 +268,8 @@ class LandingPageView extends StatelessWidget {
             ),
             child: const Wrap(
               spacing: 40,
-              runSpacing: 20,
-              alignment: WrapAlignment.spaceAround,
+              runSpacing: 40,
+              alignment: WrapAlignment.spaceEvenly,
               children: [
                 ResultItem(
                   percentage: '40%',
@@ -319,6 +323,7 @@ class LandingPageView extends StatelessWidget {
           Wrap(
             spacing: 30,
             runSpacing: 30,
+            alignment: WrapAlignment.center,
             children: _controller.modules.map(_buildModuleCard).toList(),
           ),
         ],
@@ -333,6 +338,7 @@ class LandingPageView extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.cyan),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.shade200,
@@ -340,18 +346,22 @@ class LandingPageView extends StatelessWidget {
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade100),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            model.title,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.blue.shade900,
-            ),
+          Row(
+            children: [
+              Icon(Icons.lightbulb_outline, size: 30, color: Colors.amber),
+              Text(
+                model.title,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade900,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
@@ -445,6 +455,7 @@ class LandingPageView extends StatelessWidget {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
+
               OutlinedButton(
                 // Llama a la acción del controlador
                 onPressed: _controller.onViewFeaturesPressed,
