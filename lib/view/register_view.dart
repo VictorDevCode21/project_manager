@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:web_project_manager/widgets/name_widget.dart';
 
 class RegisterView extends StatelessWidget {
   const RegisterView({super.key});
@@ -36,6 +37,7 @@ class RegisterView extends StatelessWidget {
                           children: [
                             Column(
                               children: [
+                                //Logo
                                 Image.asset(
                                   'assets/images/ProlabIcon.png',
                                   width: 100,
@@ -44,6 +46,7 @@ class RegisterView extends StatelessWidget {
 
                                 SizedBox(height: 10),
 
+                                //Crear Cuenta
                                 Text(
                                   'Crear Cuenta',
                                   style: TextStyle(
@@ -52,6 +55,8 @@ class RegisterView extends StatelessWidget {
                                     color: Color(0xff253f8d),
                                   ),
                                 ),
+
+                                //Unete
                                 Text(
                                   'Únete a ProLab UNIMET',
                                   style: TextStyle(
@@ -62,58 +67,55 @@ class RegisterView extends StatelessWidget {
                                 ),
                                 SizedBox(height: 60, width: 40),
 
+                                //Campos
                                 SizedBox(
                                   width: 700,
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text('Nombre Completo'),
-                                      Text('Teléfono'),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(height: 10),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          SizedBox(
+                                            width: 320,
+                                            child: CustomTextField(
+                                              labelText: ('Nombre Completo'),
+                                              hintText: 'Jhon Doe',
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          SizedBox(
+                                            width: 320,
 
-                                SizedBox(
-                                  width: 700,
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                  ),
-                                ),
-                                SizedBox(
-                                  width: 700,
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      SizedBox(
-                                        width: 320,
-                                        child: TextField(
-                                          decoration: InputDecoration(
-                                            hintText: 'Ej. Jhon Doe',
-                                            border: OutlineInputBorder(),
+                                            // child: TextField(
+                                            //   decoration: InputDecoration(
+                                            //     hintText: 'Jhon Doe',
+                                            //     border: OutlineInputBorder(),
+                                            //   ),
+                                            // ),
                                           ),
-                                        ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(
-                                  width: 700,
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      SizedBox(
-                                        width: 320,
-                                        child: TextField(
-                                          decoration: InputDecoration(
-                                            hintText: 'Ej. 0414 1234567',
-                                            border: OutlineInputBorder(),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Teléfono'),
+                                          const SizedBox(height: 10),
+                                          SizedBox(
+                                            width: 320,
+                                            child: TextField(
+                                              decoration: InputDecoration(
+                                                hintText: 'Ej. 0414 1234567',
+                                                border: OutlineInputBorder(),
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                        ],
                                       ),
                                     ],
                                   ),
