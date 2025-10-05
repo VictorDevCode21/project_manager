@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:web_project_manager/widgets/name_widget.dart';
+import 'package:web_project_manager/widgets/customTextField_Widget.dart';
 
 class RegisterView extends StatelessWidget {
   const RegisterView({super.key});
@@ -21,7 +21,7 @@ class RegisterView extends StatelessWidget {
                   const SizedBox(height: 20),
                   Card(
                     elevation: 6,
-                    margin: EdgeInsets.all(16),
+                    margin: EdgeInsets.all(10),
                     color: Color(0xffffffff),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
@@ -76,30 +76,43 @@ class RegisterView extends StatelessWidget {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
+                                      //Column 1
                                       Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
+                                          Text('Nombre Completo'),
+                                          const SizedBox(height: 10),
+
                                           SizedBox(
                                             width: 320,
+                                            height: 40,
                                             child: CustomTextField(
-                                              labelText: ('Nombre Completo'),
+                                              labelText: ('Nombre'),
                                               hintText: 'Jhon Doe',
+                                              iconData: Icons.person_2_outlined,
                                             ),
                                           ),
+                                          const SizedBox(height: 30),
+
+                                          Text('Correo Electrónico'),
                                           const SizedBox(height: 10),
+                                          SizedBox(width: 320),
                                           SizedBox(
                                             width: 320,
-
-                                            // child: TextField(
-                                            //   decoration: InputDecoration(
-                                            //     hintText: 'Jhon Doe',
-                                            //     border: OutlineInputBorder(),
-                                            //   ),
-                                            // ),
+                                            height: 40,
+                                            child: CustomTextField(
+                                              labelText: ('Email'),
+                                              hintText: 'tu@email.com',
+                                              iconData: Icons.email_outlined,
+                                              keyboardType:
+                                                  TextInputType.emailAddress,
+                                            ),
                                           ),
                                         ],
                                       ),
+
+                                      //Column 2
                                       Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
@@ -108,11 +121,28 @@ class RegisterView extends StatelessWidget {
                                           const SizedBox(height: 10),
                                           SizedBox(
                                             width: 320,
-                                            child: TextField(
-                                              decoration: InputDecoration(
-                                                hintText: 'Ej. 0414 1234567',
-                                                border: OutlineInputBorder(),
-                                              ),
+                                            height: 40,
+                                            child: CustomTextField(
+                                              labelText: ('Teléfono'),
+                                              hintText: '0414 1234567',
+                                              iconData:
+                                                  Icons.phone_android_outlined,
+                                              keyboardType:
+                                                  TextInputType.number,
+                                            ),
+                                          ),
+                                          Text('Teléfono'),
+                                          const SizedBox(height: 10),
+                                          SizedBox(
+                                            width: 320,
+                                            height: 40,
+                                            child: CustomTextField(
+                                              labelText: ('Teléfono'),
+                                              hintText: '0414 1234567',
+                                              iconData:
+                                                  Icons.phone_android_outlined,
+                                              keyboardType:
+                                                  TextInputType.number,
                                             ),
                                           ),
                                         ],
