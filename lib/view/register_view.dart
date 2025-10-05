@@ -73,13 +73,49 @@ class RegisterView extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                                SizedBox(height: 40),
+                                SizedBox(height: 10),
 
                                 SizedBox(
                                   width: 700,
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 700,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      SizedBox(
+                                        width: 320,
+                                        child: TextField(
+                                          decoration: InputDecoration(
+                                            hintText: 'Ej. Jhon Doe',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 700,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      SizedBox(
+                                        width: 320,
+                                        child: TextField(
+                                          decoration: InputDecoration(
+                                            hintText: 'Ej. 0414 1234567',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
