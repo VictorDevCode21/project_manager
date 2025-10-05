@@ -1,20 +1,23 @@
+// lib/main.dart
+
 import 'package:flutter/material.dart';
+import 'views/landing_page_view.dart';
 
 void main() {
-  runApp(const MainApp());
+  runApp(const MyApp());
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
-      ),
+    return MaterialApp(
+      title: 'ProLab UNIMET',
+      theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Arial'),
+      // La vista se convierte en la home
+      home: LandingPageView(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
