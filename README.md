@@ -1,3 +1,3 @@
-# web_project_manager
+# flutter_login_register
 
 A new Flutter project.

@@ -1,6 +1,6 @@
 {
-    "name": "web_project_manager",
-    "short_name": "web_project_manager",
+    "name": "flutter_login_register",
+    "short_name": "flutter_login_register",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
