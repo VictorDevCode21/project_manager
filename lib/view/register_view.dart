@@ -122,7 +122,16 @@ class _RegisterViewState extends State<RegisterView> {
                                                           CrossAxisAlignment
                                                               .start,
                                                       children: [
-                                                        Text('Nombre Completo'),
+                                                        Text(
+                                                          'Nombre Completo',
+                                                          style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            color: Color(
+                                                              0xff707a72,
+                                                            ),
+                                                          ),
+                                                        ),
                                                         const SizedBox(
                                                           height: 6,
                                                         ),
@@ -158,6 +167,13 @@ class _RegisterViewState extends State<RegisterView> {
 
                                                         Text(
                                                           'Correo Electrónico',
+                                                          style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            color: Color(
+                                                              0xff707a72,
+                                                            ),
+                                                          ),
                                                         ),
                                                         const SizedBox(
                                                           height: 6,
@@ -198,7 +214,16 @@ class _RegisterViewState extends State<RegisterView> {
                                                         const SizedBox(
                                                           height: 30,
                                                         ),
-                                                        Text('Contraseña'),
+                                                        Text(
+                                                          'Contraseña',
+                                                          style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            color: Color(
+                                                              0xff707a72,
+                                                            ),
+                                                          ),
+                                                        ),
                                                         const SizedBox(
                                                           height: 6,
                                                         ),
@@ -236,6 +261,13 @@ class _RegisterViewState extends State<RegisterView> {
 
                                                         Text(
                                                           'Confirmar Contraseña',
+                                                          style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            color: Color(
+                                                              0xff707a72,
+                                                            ),
+                                                          ),
                                                         ),
                                                         const SizedBox(
                                                           height: 6,
@@ -280,7 +312,16 @@ class _RegisterViewState extends State<RegisterView> {
                                                   crossAxisAlignment:
                                                       CrossAxisAlignment.start,
                                                   children: [
-                                                    Text('Teléfono'),
+                                                    Text(
+                                                      'Teléfono',
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: Color(
+                                                          0xff707a72,
+                                                        ),
+                                                      ),
+                                                    ),
                                                     const SizedBox(height: 6),
                                                     SizedBox(
                                                       height: 41,
@@ -309,20 +350,69 @@ class _RegisterViewState extends State<RegisterView> {
 
                                                     const SizedBox(height: 30),
 
-                                                    Text('Tipo de usuario'),
+                                                    Text(
+                                                      'Tipo de Usuario',
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: Color(
+                                                          0xff707a72,
+                                                        ),
+                                                      ),
+                                                    ),
                                                     const SizedBox(height: 6),
                                                     SizedBox(
                                                       height: 41,
                                                       child: DropdownButtonFormField<String>(
-                                                        decoration: const InputDecoration(
+                                                        decoration: InputDecoration(
                                                           prefixIcon: Icon(
                                                             Icons
                                                                 .person_4_outlined,
                                                           ),
                                                           hintText:
                                                               'Selecciona un rol',
-                                                          border:
-                                                              OutlineInputBorder(),
+                                                          enabledBorder: OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8,
+                                                                ),
+                                                            borderSide:
+                                                                const BorderSide(
+                                                                  color: Color(
+                                                                    0xffc3e7db,
+                                                                  ),
+                                                                  width: 1.3,
+                                                                ),
+                                                          ),
+                                                          focusedBorder: OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8,
+                                                                ),
+                                                            borderSide:
+                                                                const BorderSide(
+                                                                  color:
+                                                                      Color.fromARGB(
+                                                                        255,
+                                                                        164,
+                                                                        205,
+                                                                        191,
+                                                                      ),
+                                                                  width: 1.5,
+                                                                ),
+                                                          ),
+                                                          errorBorder: OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8,
+                                                                ),
+                                                            borderSide:
+                                                                const BorderSide(
+                                                                  color: Colors
+                                                                      .red,
+                                                                  width: 1.5,
+                                                                ),
+                                                          ),
                                                         ),
                                                         items: const [
                                                           DropdownMenuItem(
@@ -356,7 +446,16 @@ class _RegisterViewState extends State<RegisterView> {
 
                                                     const SizedBox(height: 30),
 
-                                                    Text('Cédula'),
+                                                    Text(
+                                                      'Cédula',
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: Color(
+                                                          0xff707a72,
+                                                        ),
+                                                      ),
+                                                    ),
                                                     const SizedBox(height: 6),
                                                     SizedBox(
                                                       height: 41,
@@ -381,16 +480,93 @@ class _RegisterViewState extends State<RegisterView> {
                                                     ),
                                                     const SizedBox(height: 30),
 
-                                                    Text('Fecha de Nacimiento'),
+                                                    Text(
+                                                      'Fecha de Nacimiento',
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: Color(
+                                                          0xff707a72,
+                                                        ),
+                                                      ),
+                                                    ),
                                                     const SizedBox(height: 6),
                                                     SizedBox(
                                                       height: 41,
-                                                      child: MaterialButton(
-                                                        onPressed:
-                                                            _ShowDatePicker,
-                                                        child: Text(
-                                                          'Selecciona tu fecha de nacimiento',
+                                                      child: TextFormField(
+                                                        readOnly: true,
+                                                        onTap: _ShowDatePicker,
+                                                        decoration: InputDecoration(
+                                                          hintText:
+                                                              'dd/mm/yyyy',
+                                                          prefixIcon: const Icon(
+                                                            Icons
+                                                                .calendar_today_outlined,
+                                                          ),
+                                                          border: OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8,
+                                                                ),
+                                                          ),
+                                                          enabledBorder: OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8,
+                                                                ),
+                                                            borderSide:
+                                                                const BorderSide(
+                                                                  color: Color(
+                                                                    0xffc3e7db,
+                                                                  ),
+                                                                  width: 1.3,
+                                                                ),
+                                                          ),
+                                                          focusedBorder: OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8,
+                                                                ),
+                                                            borderSide:
+                                                                const BorderSide(
+                                                                  color:
+                                                                      Color.fromARGB(
+                                                                        255,
+                                                                        164,
+                                                                        205,
+                                                                        191,
+                                                                      ),
+                                                                  width: 1.5,
+                                                                ),
+                                                          ),
+                                                          errorBorder: OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8,
+                                                                ),
+                                                            borderSide:
+                                                                const BorderSide(
+                                                                  color: Colors
+                                                                      .red,
+                                                                  width: 1.5,
+                                                                ),
+                                                          ),
                                                         ),
+                                                        controller:
+                                                            TextEditingController(
+                                                              text:
+                                                                  selectedDate ==
+                                                                      null
+                                                                  ? ''
+                                                                  : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+                                                            ),
+                                                        validator: (value) {
+                                                          if (selectedDate ==
+                                                              null) {
+                                                            return 'Selecciona una fecha';
+                                                          }
+                                                          return null;
+                                                        },
                                                       ),
                                                     ),
                                                   ],
@@ -402,7 +578,13 @@ class _RegisterViewState extends State<RegisterView> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              Text('Nombre Completo'),
+                                              Text(
+                                                'Nombre Completo',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xff707a72),
+                                                ),
+                                              ),
                                               const SizedBox(height: 6),
                                               CustomTextField(
                                                 labelText: 'Nombre',
@@ -417,8 +599,16 @@ class _RegisterViewState extends State<RegisterView> {
                                                   return null;
                                                 },
                                               ),
+
                                               const SizedBox(height: 20),
-                                              Text('Correo Electrónico'),
+
+                                              Text(
+                                                'Correo Electrónico',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xff707a72),
+                                                ),
+                                              ),
                                               const SizedBox(height: 6),
                                               CustomTextField(
                                                 labelText: 'Correo',
@@ -437,8 +627,16 @@ class _RegisterViewState extends State<RegisterView> {
                                                   return null;
                                                 },
                                               ),
-                                              const SizedBox(height: 30),
-                                              Text('Contraseña'),
+
+                                              const SizedBox(height: 20),
+
+                                              Text(
+                                                'Contraseña',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xff707a72),
+                                                ),
+                                              ),
                                               const SizedBox(height: 6),
                                               //SizedBox(width: 320),
                                               SizedBox(
@@ -462,9 +660,16 @@ class _RegisterViewState extends State<RegisterView> {
                                                   },
                                                 ),
                                               ),
-                                              const SizedBox(height: 30),
 
-                                              Text('Confirmar Contraseña'),
+                                              const SizedBox(height: 20),
+
+                                              Text(
+                                                'Confirmar Contraseña',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xff707a72),
+                                                ),
+                                              ),
                                               const SizedBox(height: 6),
                                               //SizedBox(width: 320),
                                               SizedBox(
@@ -491,8 +696,16 @@ class _RegisterViewState extends State<RegisterView> {
                                                   },
                                                 ),
                                               ),
+
                                               const SizedBox(height: 20),
-                                              Text('Teléfono'),
+
+                                              Text(
+                                                'Teléfono',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xff707a72),
+                                                ),
+                                              ),
                                               const SizedBox(height: 6),
                                               CustomTextField(
                                                 labelText: 'Teléfono',
@@ -512,24 +725,69 @@ class _RegisterViewState extends State<RegisterView> {
                                                   return null;
                                                 },
                                               ),
+
                                               const SizedBox(height: 20),
-                                              Text('Tipo de usuario'),
+
+                                              Text(
+                                                'Tipo de Usuario',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xff707a72),
+                                                ),
+                                              ),
                                               const SizedBox(height: 6),
                                               SizedBox(
-                                                //width: 340,
                                                 height: 41,
                                                 child: DropdownButtonFormField<String>(
-                                                  decoration:
-                                                      const InputDecoration(
-                                                        prefixIcon: Icon(
-                                                          Icons
-                                                              .person_4_outlined,
+                                                  decoration: InputDecoration(
+                                                    prefixIcon: Icon(
+                                                      Icons.person_4_outlined,
+                                                    ),
+                                                    hintText:
+                                                        'Selecciona un rol',
+                                                    enabledBorder:
+                                                        OutlineInputBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                8,
+                                                              ),
+                                                          borderSide:
+                                                              const BorderSide(
+                                                                color: Color(
+                                                                  0xffc3e7db,
+                                                                ),
+                                                                width: 1.3,
+                                                              ),
                                                         ),
-                                                        hintText:
-                                                            'Selecciona un rol',
-                                                        border:
-                                                            OutlineInputBorder(),
-                                                      ),
+                                                    focusedBorder: OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                            color:
+                                                                Color.fromARGB(
+                                                                  255,
+                                                                  164,
+                                                                  205,
+                                                                  191,
+                                                                ),
+                                                            width: 1.5,
+                                                          ),
+                                                    ),
+                                                    errorBorder: OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                            color: Colors.red,
+                                                            width: 1.5,
+                                                          ),
+                                                    ),
+                                                  ),
                                                   items: const [
                                                     DropdownMenuItem(
                                                       value: 'Coordinador',
@@ -555,9 +813,16 @@ class _RegisterViewState extends State<RegisterView> {
                                                   },
                                                 ),
                                               ),
-                                              const SizedBox(height: 30),
 
-                                              Text('Cédula'),
+                                              const SizedBox(height: 20),
+
+                                              Text(
+                                                'Cédula',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xff707a72),
+                                                ),
+                                              ),
                                               const SizedBox(height: 6),
                                               SizedBox(
                                                 height: 41,
@@ -574,6 +839,90 @@ class _RegisterViewState extends State<RegisterView> {
                                                       r'^\d{7,8}$',
                                                     ).hasMatch(value)) {
                                                       return 'Ingrese correctamente su cédula ';
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                              ),
+
+                                              const SizedBox(height: 20),
+
+                                              Text(
+                                                'Fecha de Nacimiento',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xff707a72),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              SizedBox(
+                                                height: 41,
+                                                child: TextFormField(
+                                                  readOnly: true,
+                                                  onTap: _ShowDatePicker,
+                                                  decoration: InputDecoration(
+                                                    hintText: 'dd/mm/yyyy',
+                                                    prefixIcon: const Icon(
+                                                      Icons
+                                                          .calendar_today_outlined,
+                                                    ),
+                                                    border: OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                    ),
+                                                    enabledBorder:
+                                                        OutlineInputBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                8,
+                                                              ),
+                                                          borderSide:
+                                                              const BorderSide(
+                                                                color: Color(
+                                                                  0xffc3e7db,
+                                                                ),
+                                                                width: 1.3,
+                                                              ),
+                                                        ),
+                                                    focusedBorder: OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                            color:
+                                                                Color.fromARGB(
+                                                                  255,
+                                                                  164,
+                                                                  205,
+                                                                  191,
+                                                                ),
+                                                            width: 1.5,
+                                                          ),
+                                                    ),
+                                                    errorBorder: OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                            color: Colors.red,
+                                                            width: 1.5,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  controller: TextEditingController(
+                                                    text: selectedDate == null
+                                                        ? ''
+                                                        : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+                                                  ),
+                                                  validator: (value) {
+                                                    if (selectedDate == null) {
+                                                      return 'Selecciona una fecha';
                                                     }
                                                     return null;
                                                   },

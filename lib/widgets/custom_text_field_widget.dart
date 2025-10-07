@@ -32,12 +32,7 @@ class CustomTextField extends StatelessWidget {
           labelText: labelText,
           hintText: hintText,
           prefixIcon: iconData != null ? Icon(iconData) : null,
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 16,
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: Color(0xffc3e7db), width: 1.5),
@@ -45,19 +40,14 @@ class CustomTextField extends StatelessWidget {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(
-              color: Color.fromARGB(255, 144, 198, 180),
-              width: 1.8,
+              color: Color.fromARGB(255, 164, 205, 191),
+              width: 1.5,
             ),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            //borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: Colors.red, width: 1.5),
           ),
-          errorStyle: const TextStyle(height: 0, fontSize: 0),
         ),
         validator: validator,
       ),
