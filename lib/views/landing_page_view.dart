@@ -9,7 +9,7 @@ import 'components/footer_column.dart';
 import '../models/feature_model.dart';
 
 class LandingPageView extends StatelessWidget {
-  LandingPageView({Key? key}) : super(key: key);
+  LandingPageView({super.key});
 
   // Instancia del controlador para acceder a los datos y acciones
   final LandingController _controller = LandingController();
