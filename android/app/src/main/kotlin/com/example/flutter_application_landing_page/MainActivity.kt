@@ -1,4 +1,4 @@
-package com.example.web_project_manager
+package com.example.flutter_application_landing_page
 
 import io.flutter.embedding.android.FlutterActivity
 
