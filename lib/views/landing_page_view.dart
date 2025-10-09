@@ -101,7 +101,8 @@ class LandingPageView extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton(
                         // Llama a la acción del controlador
-                        onPressed: _controller.onStartProjectPressed,
+                        onPressed: () =>
+                            _controller.onStartProjectPressed(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.yellow.shade800,
                           foregroundColor: Colors.white,

@@ -1,6 +1,7 @@
 // lib/controllers/landing_controller.dart
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/feature_model.dart';
 
 class LandingController {
@@ -137,9 +138,9 @@ class LandingController {
 
   // --- Lógica de Acciones (Simuladas) ---
 
-  void onStartProjectPressed() {
+  void onStartProjectPressed(BuildContext context) {
     // Lógica para navegar a la página de creación de proyecto o registrar
-    debugPrint('Acción: Iniciar primer proyecto');
+    context.push('/register');
   }
 
   void onLoginPressed() {
