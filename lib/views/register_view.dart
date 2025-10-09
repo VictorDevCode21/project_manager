@@ -19,7 +19,7 @@ class _RegisterViewState extends State<RegisterView> {
   final _formkey = GlobalKey<FormState>();
   DateTime? selectedDate;
 
-  void _ShowDatePicker() async {
+  void _showDatePicker() async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
       firstDate: DateTime(1950),
@@ -495,7 +495,7 @@ class _RegisterViewState extends State<RegisterView> {
                                                       height: 41,
                                                       child: TextFormField(
                                                         readOnly: true,
-                                                        onTap: _ShowDatePicker,
+                                                        onTap: _showDatePicker,
                                                         decoration: InputDecoration(
                                                           hintText:
                                                               'dd/mm/yyyy',
@@ -859,7 +859,7 @@ class _RegisterViewState extends State<RegisterView> {
                                                 height: 41,
                                                 child: TextFormField(
                                                   readOnly: true,
-                                                  onTap: _ShowDatePicker,
+                                                  onTap: _showDatePicker,
                                                   decoration: InputDecoration(
                                                     hintText: 'dd/mm/yyyy',
                                                     prefixIcon: const Icon(
