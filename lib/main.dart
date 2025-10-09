@@ -5,6 +5,16 @@ import 'views/landing_page_view.dart';
 
 void main() {
   runApp(const MyApp());
+import 'package:firebase_core/firebase_core.dart';
+import 'package:web_project_manager/core/routes/app_routes.dart';
+import 'services/firebase_options.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  runApp(const MainApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -17,6 +27,9 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Arial'),
       // La vista se convierte en la home
       home: LandingPageView(),
+    return MaterialApp.router(
+      routerConfig: appRouter,
+      title: 'Project Manager',
       debugShowCheckedModeBanner: false,
     );
   }
