@@ -1,9 +1,15 @@
-import 'package:flutter/material.dart';
-import 'views/login_view.dart';
-import 'views/home_view.dart';
-//import 'views/register_view.dart';
+// lib/main.dart
 
-void main() {
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_application_landing_page/core/routes/app_routes.dart';
+import 'services/firebase_options.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(const MyApp());
 }
 
@@ -17,8 +23,9 @@ class MyApp extends StatelessWidget {
     const Color greenBorder = Color(0xFFA5D6A7);
     const Color greenFocus = Color(0xFF66BB6A);
 
-    return MaterialApp(
-      title: 'ProLab UNIMET Auth Local',
+    return MaterialApp.router(
+      title: 'ProLab UNIMET',
+      routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: const Color(0xFF0D47A1),
@@ -75,12 +82,5 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => LoginView(),
-        //'/register': (context) => RegisterView(),
-        '/home': (context) => const HomeView(),
-      },
-    );
   }
 }
