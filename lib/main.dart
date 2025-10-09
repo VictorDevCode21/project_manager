@@ -1,26 +1,8 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
-import 'package:web_project_manager/view/register_view.dart';
-
-void main() {
-  runApp(const ProjectManagerWeb());
-}
-
-class ProjectManagerWeb extends StatelessWidget {
-  const ProjectManagerWeb({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: RegisterView(),
-import 'views/landing_page_view.dart';
-
-void main() {
-  runApp(const MyApp());
 import 'package:firebase_core/firebase_core.dart';
-import 'package:web_project_manager/core/routes/app_routes.dart';
+import 'package:flutter_application_landing_page/core/routes/app_routes.dart';
 import 'services/firebase_options.dart';
 
 void main() async {
@@ -28,7 +10,7 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const MainApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -36,14 +18,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'ProLab UNIMET',
       theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Arial'),
-      // La vista se convierte en la home
-      home: LandingPageView(),
-    return MaterialApp.router(
+      // This view becomes home
       routerConfig: appRouter,
-      title: 'Project Manager',
       debugShowCheckedModeBanner: false,
     );
   }
