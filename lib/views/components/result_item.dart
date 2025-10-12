@@ -7,10 +7,10 @@ class ResultItem extends StatelessWidget {
   final String description;
 
   const ResultItem({
-    Key? key,
+    super.key,
     required this.percentage,
     required this.description,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
