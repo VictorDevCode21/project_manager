@@ -32,9 +32,20 @@ class RegisterController {
   }
 
   String? validateEmail(String? value) {
-    if (value == null || value.isEmpty) return 'Ingresa tu correo electrónico';
-    final regex = RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$');
-    if (!regex.hasMatch(value)) return 'Correo inválido';
+    if (value == null || value.isEmpty) {
+      return 'Ingresa tu correo electrónico';
+    }
+
+    // Allow only UNIMET institutional emails
+    final regex = RegExp(
+      r'^[\w\.-]+@(correo\.unimet\.edu\.ve|unimet\.edu\.ve)$',
+      caseSensitive: false,
+    );
+
+    if (!regex.hasMatch(value.trim())) {
+      return 'Solo se permiten correos institucionales de la UNIMET';
+    }
+
     return null;
   }
 
