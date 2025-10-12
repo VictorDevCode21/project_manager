@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../controllers/login_controller.dart';
 
@@ -37,7 +38,7 @@ class LoginView extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
                           // Logo
-                          Image.asset('assets/Logo.png', height: 80),
+                          Image.asset('Logo.png', height: 80),
                           const SizedBox(height: 20),
 
                           // Títulos
@@ -167,7 +168,7 @@ class LoginView extends StatelessWidget {
                               ),
                               TextButton(
                                 onPressed: () {
-                                  Navigator.of(context).pushNamed('/register');
+                                  context.go('/register');
                                 },
                                 child: const Text(
                                   'Regístrate aquí',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_landing_page/controllers/register_controller.dart';
 import 'package:flutter_application_landing_page/widgets/custom_text_field_widget.dart';
+import 'package:go_router/go_router.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -136,9 +137,19 @@ class _RegisterViewState extends State<RegisterView> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      '¿Ya tienes cuenta? Inicia sesión aquí',
-                      textAlign: TextAlign.center,
+
+                    Center(
+                      child: TextButton(
+                        onPressed: () =>
+                            context.go('/login'), // o context.push('/login')
+                        child: const Text(
+                          '¿Ya tienes cuenta? Inicia sesión aquí',
+                          style: TextStyle(
+                            color: Color(0xff253f8d),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
