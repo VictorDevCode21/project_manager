@@ -44,7 +44,7 @@ class LoginView extends StatelessWidget {
                             fit: BoxFit.contain,
                           ),
 
-                          // Títulos
+                          // Titles
                           const Text(
                             'Iniciar Sesión',
                             style: TextStyle(
@@ -59,7 +59,7 @@ class LoginView extends StatelessWidget {
                           ),
                           const SizedBox(height: 30),
 
-                          // Etiqueta Correo
+                          // Email tag
                           const Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -72,7 +72,7 @@ class LoginView extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 5),
-                          // Campo de Email
+                          // Email field
                           TextFormField(
                             controller: controller.emailController,
                             decoration: const InputDecoration(
@@ -84,7 +84,7 @@ class LoginView extends StatelessWidget {
                           ),
                           const SizedBox(height: 20),
 
-                          // Etiqueta Contraseña
+                          // Password tag
                           const Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -97,7 +97,7 @@ class LoginView extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 5),
-                          // Campo de Contraseña - CON VISIBILIDAD
+                          // Password field
                           TextFormField(
                             controller: controller.passwordController,
                             obscureText: !controller.isPasswordVisible,
@@ -105,7 +105,7 @@ class LoginView extends StatelessWidget {
                               hintText: '••••••••',
                               prefixIcon: const Icon(
                                 Icons.lock,
-                              ), // Usa color del tema global
+                              ), // Global theme
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   controller.isPasswordVisible
@@ -122,7 +122,7 @@ class LoginView extends StatelessWidget {
                           ),
                           const SizedBox(height: 30),
 
-                          // Mensaje de Error
+                          // Error message
                           if (controller.errorMessage != null)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 20.0),
@@ -133,7 +133,7 @@ class LoginView extends StatelessWidget {
                               ),
                             ),
 
-                          // Botón de Iniciar Sesión
+                          // Login Button
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
@@ -161,7 +161,7 @@ class LoginView extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
 
-                          // Link a Registro
+                          // Link to Register
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
