@@ -105,21 +105,59 @@ class _RegisterViewState extends State<RegisterView> {
                     SizedBox(
                       height: 45,
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           setState(() {
                             _autoValidateMode = AutovalidateMode.always;
                           });
 
-                          if (_controller.validateForm()) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Cuenta creada con éxito'),
-                              ),
-                            );
-                          } else {
-                            setState(() {});
+                          if (!_controller.validateForm()) return;
+
+                          // Capture NavigatorState, ScaffoldMessengerState and GoRouter before the async gap
+                          final navigator = Navigator.of(context);
+                          final messenger = ScaffoldMessenger.of(context);
+                          final router = GoRouter.of(context);
+
+                          // Show loading dialog without awaiting so registration runs while dialog is visible
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (_) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+
+                          try {
+                            // Perform registration (pass State.context directly)
+                            await _controller.registerUser(context);
+
+                            // If the state was disposed while registering, stop safely
+                            if (!mounted) {
+                              _controller.dispose();
+                              return;
+                            }
+
+                            // Close the dialog using the captured NavigatorState
+                            if (navigator.canPop()) {
+                              navigator.pop();
+                            }
+
+                            // Navigate using the captured GoRouter instance
+                            router.go('/admin-dashboard');
+                          } catch (e) {
+                            // Try to close dialog even if an error happens
+                            if (navigator.canPop()) {
+                              navigator.pop();
+                            }
+
+                            // Only show snackbar if the State is still mounted (use captured messenger)
+                            if (mounted) {
+                              messenger.showSnackBar(
+                                SnackBar(content: Text(e.toString())),
+                              );
+                            }
                           }
                         },
+
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xff253f8d),
                           shape: RoundedRectangleBorder(

@@ -1,5 +1,4 @@
 // lib/main.dart
-
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:prolab_unimet/core/routes/app_routes.dart';
@@ -10,7 +9,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   setUrlStrategy(const HashUrlStrategy());
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  try {
+    final app = await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint('✅ Firebase inicializado correctamente: ${app.name}');
+  } catch (e, st) {
+    debugPrint('❌ Error al inicializar Firebase: $e');
+    debugPrintStack(stackTrace: st);
+  }
 
   runApp(const MyApp());
 }
