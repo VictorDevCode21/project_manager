@@ -13,6 +13,7 @@ class AuthService {
     required String phoneNumber,
     required String role,
     required DateTime birthDate,
+    required String personId,
   }) async {
     try {
       // 1️⃣ Create user in Firebase Auth
@@ -30,6 +31,7 @@ class AuthService {
         'email': email.trim(),
         'phone_number': phoneNumber,
         'role': role,
+        'personId': personId,
         'birth_date': birthDate.toIso8601String(),
         'created_at': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),

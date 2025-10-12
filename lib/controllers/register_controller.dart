@@ -8,6 +8,7 @@ class RegisterController {
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
+  final personIdController = TextEditingController();
 
   String? selectedRole;
   DateTime? selectedDate;
@@ -16,8 +17,17 @@ class RegisterController {
 
   // ===== FIELD VALIDATORS =====
   String? validateName(String? value) {
-    if (value == null || value.trim().isEmpty)
+    if (value == null || value.trim().isEmpty) {
       return 'Por favor, ingresa tu nombre';
+    }
+
+    return null;
+  }
+
+  String? validatePersonId(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return "Por favor, ingresa tu cédula";
+    }
     return null;
   }
 
@@ -71,6 +81,7 @@ class RegisterController {
         phoneNumber: phoneController.text,
         role: selectedRole ?? 'USER',
         birthDate: selectedDate!,
+        personId: personIdController.text,
       );
 
       if (user != null) {

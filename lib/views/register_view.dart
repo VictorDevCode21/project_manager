@@ -280,21 +280,15 @@ class _RegisterViewState extends State<RegisterView> {
               setState(() => _controller.selectedRole = value),
           validator: (_) => _controller.validateRole(),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 38),
 
         _label('Cédula'),
         CustomTextField(
           labelText: 'Cédula',
           hintText: 'Número de cédula',
           iconData: Icons.assignment_ind_outlined,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Ingresa tu cédula';
-            } else if (!RegExp(r'^\d{7,8}$').hasMatch(value)) {
-              return 'Ingrese correctamente su cédula';
-            }
-            return null;
-          },
+          controller: _controller.personIdController,
+          validator: _controller.validatePersonId,
         ),
         const SizedBox(height: 20),
 
