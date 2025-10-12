@@ -38,8 +38,11 @@ class LoginView extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
                           // Logo
-                          Image.asset('Logo.png', height: 80),
-                          const SizedBox(height: 20),
+                          Image.asset(
+                            '/images/ProlabIcon.png',
+                            height: 80,
+                            fit: BoxFit.contain,
+                          ),
 
                           // Títulos
                           const Text(
