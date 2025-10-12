@@ -226,7 +226,7 @@ class _RegisterViewState extends State<RegisterView> {
             DropdownMenuItem(value: 'Coordinador', child: Text('Coordinador')),
             DropdownMenuItem(value: 'Usuario', child: Text('Usuario')),
           ],
-          value: _controller.selectedRole,
+          initialValue: _controller.selectedRole,
           onChanged: (value) =>
               setState(() => _controller.selectedRole = value),
           validator: (_) => _controller.validateRole(),

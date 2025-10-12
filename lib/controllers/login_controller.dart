@@ -47,12 +47,12 @@ class LoginController extends ChangeNotifier {
     await Future.delayed(const Duration(seconds: 1));
 
     // Constantes de "autenticación" local para la simulación
-    const String _VALID_EMAIL = 'admin@correo.unimet.edu.ve';
-    const String _VALID_PASSWORD = 'password123';
+    const String VALID_EMAIL = 'admin@correo.unimet.edu.ve';
+    const String VALID_PASSWORD = 'password123';
 
     // Lógica de "Inicio de Sesión" LOCAL
-    if (emailController.text.trim() == _VALID_EMAIL &&
-        passwordController.text == _VALID_PASSWORD) {
+    if (emailController.text.trim() == VALID_EMAIL &&
+        passwordController.text == VALID_PASSWORD) {
       Navigator.of(context).pushReplacementNamed('/home');
     } else {
       _errorMessage =
