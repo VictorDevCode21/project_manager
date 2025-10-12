@@ -143,9 +143,9 @@ class LandingController {
     context.go('/register');
   }
 
-  void onLoginPressed() {
+  void onLoginPressed(BuildContext context) {
     // Lógica para navegar a la página de inicio de sesión
-    debugPrint('Acción: Iniciar Sesión');
+    context.go('/login');
   }
 
   void onCTAPressed() {
