@@ -272,8 +272,8 @@ class _RegisterViewState extends State<RegisterView> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
           items: const [
-            DropdownMenuItem(value: 'Coordinador', child: Text('Coordinador')),
-            DropdownMenuItem(value: 'Usuario', child: Text('Usuario')),
+            DropdownMenuItem(value: 'COORDINATOR', child: Text('Coordinador')),
+            DropdownMenuItem(value: 'USER', child: Text('Usuario')),
           ],
           initialValue: _controller.selectedRole,
           onChanged: (value) =>
