@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_landing_page/controllers/register_controller.dart';
-import 'package:flutter_application_landing_page/widgets/custom_text_field_widget.dart';
+import 'package:prolab_unimet/controllers/register_controller.dart';
+import 'package:prolab_unimet/widgets/custom_text_field_widget.dart';
 import 'package:go_router/go_router.dart';
 
 class RegisterView extends StatefulWidget {

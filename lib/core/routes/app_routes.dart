@@ -1,6 +1,6 @@
-import 'package:flutter_application_landing_page/views/landing_page_view.dart';
-import 'package:flutter_application_landing_page/views/login_view.dart';
-import 'package:flutter_application_landing_page/views/register_view.dart';
+import 'package:prolab_unimet/views/landing_page_view.dart';
+import 'package:prolab_unimet/views/login_view.dart';
+import 'package:prolab_unimet/views/register_view.dart';
 import 'package:go_router/go_router.dart';
 
 final appRouter = GoRouter(
