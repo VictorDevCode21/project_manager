@@ -54,32 +54,32 @@ class AdminLayout extends StatelessWidget {
                 _NavButton(
                   icon: Icons.home,
                   label: 'Inicio',
-                  route: 'admin-dashboard',
+                  route: '/admin-dashboard',
                 ),
                 _NavButton(
                   icon: Icons.folder_outlined,
                   label: 'Proyectos',
-                  route: 'admin-projects',
+                  route: '/admin-projects',
                 ),
                 _NavButton(
                   icon: Icons.calendar_today_outlined,
                   label: 'Tareas',
-                  route: 'admin-tasks',
+                  route: '/admin-tasks',
                 ),
                 _NavButton(
                   icon: Icons.people_outline,
                   label: 'Recursos',
-                  route: 'admin-resources',
+                  route: '/admin-resources',
                 ),
                 _NavButton(
                   icon: Icons.bar_chart_outlined,
                   label: 'Dashboard',
-                  route: 'admin-dashboard',
+                  route: '/admin-dashboard',
                 ),
                 _NavButton(
                   icon: Icons.description_outlined,
                   label: 'Reportes',
-                  route: 'admin-reports',
+                  route: '/admin-reports',
                 ),
                 const Spacer(),
 
