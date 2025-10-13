@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_landing_page/controllers/register_controller.dart';
-import 'package:flutter_application_landing_page/widgets/custom_text_field_widget.dart';
+import 'package:prolab_unimet/controllers/register_controller.dart';
+import 'package:prolab_unimet/widgets/custom_text_field_widget.dart';
+import 'package:go_router/go_router.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -104,21 +105,59 @@ class _RegisterViewState extends State<RegisterView> {
                     SizedBox(
                       height: 45,
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           setState(() {
                             _autoValidateMode = AutovalidateMode.always;
                           });
 
-                          if (_controller.validateForm()) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Cuenta creada con éxito'),
-                              ),
-                            );
-                          } else {
-                            setState(() {});
+                          if (!_controller.validateForm()) return;
+
+                          // Capture NavigatorState, ScaffoldMessengerState and GoRouter before the async gap
+                          final navigator = Navigator.of(context);
+                          final messenger = ScaffoldMessenger.of(context);
+                          final router = GoRouter.of(context);
+
+                          // Show loading dialog without awaiting so registration runs while dialog is visible
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (_) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+
+                          try {
+                            // Perform registration (pass State.context directly)
+                            await _controller.registerUser(context);
+
+                            // If the state was disposed while registering, stop safely
+                            if (!mounted) {
+                              _controller.dispose();
+                              return;
+                            }
+
+                            // Close the dialog using the captured NavigatorState
+                            if (navigator.canPop()) {
+                              navigator.pop();
+                            }
+
+                            // Navigate using the captured GoRouter instance
+                            router.go('admin-dashboard');
+                          } catch (e) {
+                            // Try to close dialog even if an error happens
+                            if (navigator.canPop()) {
+                              navigator.pop();
+                            }
+
+                            // Only show snackbar if the State is still mounted (use captured messenger)
+                            if (mounted) {
+                              messenger.showSnackBar(
+                                SnackBar(content: Text(e.toString())),
+                              );
+                            }
                           }
                         },
+
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xff253f8d),
                           shape: RoundedRectangleBorder(
@@ -136,9 +175,19 @@ class _RegisterViewState extends State<RegisterView> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      '¿Ya tienes cuenta? Inicia sesión aquí',
-                      textAlign: TextAlign.center,
+
+                    Center(
+                      child: TextButton(
+                        onPressed: () =>
+                            context.go('/login'), // o context.push('/login')
+                        child: const Text(
+                          '¿Ya tienes cuenta? Inicia sesión aquí',
+                          style: TextStyle(
+                            color: Color(0xff253f8d),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -223,29 +272,23 @@ class _RegisterViewState extends State<RegisterView> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
           items: const [
-            DropdownMenuItem(value: 'Coordinador', child: Text('Coordinador')),
-            DropdownMenuItem(value: 'Usuario', child: Text('Usuario')),
+            DropdownMenuItem(value: 'COORDINATOR', child: Text('Coordinador')),
+            DropdownMenuItem(value: 'USER', child: Text('Usuario')),
           ],
-          value: _controller.selectedRole,
+          initialValue: _controller.selectedRole,
           onChanged: (value) =>
               setState(() => _controller.selectedRole = value),
           validator: (_) => _controller.validateRole(),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 38),
 
         _label('Cédula'),
         CustomTextField(
           labelText: 'Cédula',
           hintText: 'Número de cédula',
           iconData: Icons.assignment_ind_outlined,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Ingresa tu cédula';
-            } else if (!RegExp(r'^\d{7,8}$').hasMatch(value)) {
-              return 'Ingrese correctamente su cédula';
-            }
-            return null;
-          },
+          controller: _controller.personIdController,
+          validator: _controller.validatePersonId,
         ),
         const SizedBox(height: 20),
 

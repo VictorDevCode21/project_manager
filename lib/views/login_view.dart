@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../controllers/login_controller.dart';
 
@@ -37,10 +38,13 @@ class LoginView extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
                           // Logo
-                          Image.asset('assets/Logo.png', height: 80),
-                          const SizedBox(height: 20),
+                          Image.asset(
+                            '/images/ProlabIcon.png',
+                            height: 80,
+                            fit: BoxFit.contain,
+                          ),
 
-                          // Títulos
+                          // Titles
                           const Text(
                             'Iniciar Sesión',
                             style: TextStyle(
@@ -55,7 +59,7 @@ class LoginView extends StatelessWidget {
                           ),
                           const SizedBox(height: 30),
 
-                          // Etiqueta Correo
+                          // Email tag
                           const Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -68,7 +72,7 @@ class LoginView extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 5),
-                          // Campo de Email
+                          // Email field
                           TextFormField(
                             controller: controller.emailController,
                             decoration: const InputDecoration(
@@ -80,7 +84,7 @@ class LoginView extends StatelessWidget {
                           ),
                           const SizedBox(height: 20),
 
-                          // Etiqueta Contraseña
+                          // Password tag
                           const Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -93,7 +97,7 @@ class LoginView extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 5),
-                          // Campo de Contraseña - CON VISIBILIDAD
+                          // Password field
                           TextFormField(
                             controller: controller.passwordController,
                             obscureText: !controller.isPasswordVisible,
@@ -101,7 +105,7 @@ class LoginView extends StatelessWidget {
                               hintText: '••••••••',
                               prefixIcon: const Icon(
                                 Icons.lock,
-                              ), // Usa color del tema global
+                              ), // Global theme
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   controller.isPasswordVisible
@@ -118,7 +122,7 @@ class LoginView extends StatelessWidget {
                           ),
                           const SizedBox(height: 30),
 
-                          // Mensaje de Error
+                          // Error message
                           if (controller.errorMessage != null)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 20.0),
@@ -129,7 +133,7 @@ class LoginView extends StatelessWidget {
                               ),
                             ),
 
-                          // Botón de Iniciar Sesión
+                          // Login Button
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
@@ -157,7 +161,7 @@ class LoginView extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
 
-                          // Link a Registro
+                          // Link to Register
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -167,7 +171,7 @@ class LoginView extends StatelessWidget {
                               ),
                               TextButton(
                                 onPressed: () {
-                                  Navigator.of(context).pushNamed('/register');
+                                  context.go('/register');
                                 },
                                 child: const Text(
                                   'Regístrate aquí',

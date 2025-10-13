@@ -128,7 +128,7 @@ class LandingPageView extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton(
                         // Llama a la acción del controlador
-                        onPressed: _controller.onLoginPressed,
+                        onPressed: () => _controller.onLoginPressed(context),
                         style: ElevatedButton.styleFrom(
                           side: const BorderSide(color: Colors.white, width: 2),
                           backgroundColor: Colors.transparent,

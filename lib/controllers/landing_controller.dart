@@ -140,12 +140,12 @@ class LandingController {
 
   void onStartProjectPressed(BuildContext context) {
     // Lógica para navegar a la página de creación de proyecto o registrar
-    context.push('/register');
+    context.go('/register');
   }
 
-  void onLoginPressed() {
+  void onLoginPressed(BuildContext context) {
     // Lógica para navegar a la página de inicio de sesión
-    debugPrint('Acción: Iniciar Sesión');
+    context.go('/login');
   }
 
   void onCTAPressed() {
