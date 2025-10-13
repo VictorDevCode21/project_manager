@@ -1,13 +1,14 @@
+// lib/controllers/login_controller.dart
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../providers/auth_provider.dart';
 
-/// Handles user login logic, form validation and Firebase authentication.
+/// Handles user login logic, form validation and session management.
 class LoginController extends ChangeNotifier {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  final AuthService _authService = AuthService();
   bool _isLoading = false;
   String? _errorMessage;
   bool _isPasswordVisible = false;
@@ -21,13 +22,10 @@ class LoginController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Validates that the email is a valid UNIMET institutional address.
+  /// Validates institutional UNIMET email format
   String? validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'El correo es obligatorio';
-    }
+    if (value == null || value.isEmpty) return 'El correo es obligatorio';
 
-    // Allow both institutional domains
     final regex = RegExp(
       r'^[\w\.-]+@(correo\.unimet\.edu\.ve|unimet\.edu\.ve)$',
       caseSensitive: false,
@@ -40,15 +38,13 @@ class LoginController extends ChangeNotifier {
     return null;
   }
 
-  /// Validates password field.
+  /// Validates password field
   String? validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'La contraseña es obligatoria';
-    }
+    if (value == null || value.isEmpty) return 'La contraseña es obligatoria';
     return null;
   }
 
-  /// Handles the full Firebase login process.
+  /// Performs login through AuthProvider and redirects by role
   Future<void> login(BuildContext context, GlobalKey<FormState> formKey) async {
     if (!formKey.currentState!.validate()) {
       _errorMessage = null;
@@ -61,37 +57,33 @@ class LoginController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1️⃣ Authenticate user using AuthService
-      final result = await _authService.loginUser(
-        email: emailController.text,
-        password: passwordController.text,
+      // 1️⃣ Access AuthProvider
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      // 2️⃣ Execute login
+      await authProvider.login(
+        emailController.text.trim(),
+        passwordController.text.trim(),
       );
 
-      // 2️⃣ Extract useful user info
-      final String name = result['name'];
-      final String role = result['role'];
-      final String token = result['token'];
+      // 3️⃣ Get user info from provider
+      final role = authProvider.role;
+      final name = authProvider.name;
 
-      // 3️⃣ (Optional) Save session locally or log it
-      debugPrint('✅ Usuario autenticado: $name');
-      debugPrint('Rol: $role');
-      debugPrint('Token length: ${token.length}');
-
-      // 4️⃣ Show success message
+      // 4️⃣ Show welcome message and navigate based on role
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Bienvenido $name')));
 
-        // 5️⃣ Navigate based on role (customize this later)
-        if (role == 'COORDINATOR' || role == "USER" || role == "ADMIN") {
+        if (role == 'ADMIN' || role == 'COORDINATOR' || role == 'USER') {
           context.go('/admin-dashboard');
         } else {
           context.go('/');
         }
       }
     } catch (e) {
-      // Handle errors gracefully
+      // Handle login error gracefully
       _errorMessage = e.toString();
       if (context.mounted) {
         ScaffoldMessenger.of(

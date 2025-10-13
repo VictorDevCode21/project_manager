@@ -1,6 +1,8 @@
 // lib/layouts/admin_layout.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:prolab_unimet/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class AdminLayout extends StatelessWidget {
   final Widget
@@ -52,32 +54,32 @@ class AdminLayout extends StatelessWidget {
                 _NavButton(
                   icon: Icons.home,
                   label: 'Inicio',
-                  route: '/admin-dashboard',
+                  route: 'admin-dashboard',
                 ),
                 _NavButton(
                   icon: Icons.folder_outlined,
                   label: 'Proyectos',
-                  route: '/admin-projects',
+                  route: 'admin-projects',
                 ),
                 _NavButton(
                   icon: Icons.calendar_today_outlined,
                   label: 'Tareas',
-                  route: '/admin-tasks',
+                  route: 'admin-tasks',
                 ),
                 _NavButton(
                   icon: Icons.people_outline,
                   label: 'Recursos',
-                  route: '/admin-resources',
+                  route: 'admin-resources',
                 ),
                 _NavButton(
                   icon: Icons.bar_chart_outlined,
                   label: 'Dashboard',
-                  route: '/admin-dashboard',
+                  route: 'admin-dashboard',
                 ),
                 _NavButton(
                   icon: Icons.description_outlined,
                   label: 'Reportes',
-                  route: '/admin-reports',
+                  route: 'admin-reports',
                 ),
                 const Spacer(),
 
@@ -97,8 +99,24 @@ class AdminLayout extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  onPressed: () {
-                    context.go('/login');
+                  onPressed: () async {
+                    final authProvider = Provider.of<AuthProvider>(
+                      context,
+                      listen: false,
+                    );
+
+                    await authProvider.logout();
+
+                    if (context.mounted) {
+                      context.go(
+                        '/login',
+                      ); // ✅ Navega solo después de cerrar sesión
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Sesión cerrada correctamente'),
+                        ),
+                      );
+                    }
                   },
                   icon: const Icon(Icons.logout, color: Colors.white),
                 ),

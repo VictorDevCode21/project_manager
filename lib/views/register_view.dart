@@ -142,7 +142,7 @@ class _RegisterViewState extends State<RegisterView> {
                             }
 
                             // Navigate using the captured GoRouter instance
-                            router.go('/admin-dashboard');
+                            router.go('admin-dashboard');
                           } catch (e) {
                             // Try to close dialog even if an error happens
                             if (navigator.canPop()) {
