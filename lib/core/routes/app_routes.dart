@@ -4,6 +4,7 @@ import 'package:prolab_unimet/views/dashboard_view.dart';
 import 'package:prolab_unimet/views/landing_page_view.dart';
 import 'package:prolab_unimet/views/layouts/admin_layout.dart';
 import 'package:prolab_unimet/views/login_view.dart';
+import 'package:prolab_unimet/views/profile_page.dart';
 import 'package:prolab_unimet/views/projects_view.dart';
 import 'package:prolab_unimet/views/register_view.dart';
 import 'package:go_router/go_router.dart';
@@ -39,7 +40,8 @@ final appRouter = GoRouter(
 
     // ===== PROTECTED ROUTES =====
     ShellRoute(
-      builder: (context, state, child) => AdminLayout(child: child),
+      builder: (context, state, child) =>
+          AdminLayout(isExpanded: false, child: child),
       routes: [
         GoRoute(
           path: '/admin-dashboard',
@@ -49,6 +51,11 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/admin-projects',
           builder: (context, state) => const ProjectsView(),
+          redirect: (context, state) => _requireAuth(context, userRoles),
+        ),
+        GoRoute(
+          path: '/admin-profile',
+          builder: (context, state) => const ProfileView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
       ],

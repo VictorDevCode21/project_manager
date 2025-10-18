@@ -4,12 +4,19 @@ import 'package:go_router/go_router.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
-class AdminLayout extends StatelessWidget {
+class AdminLayout extends StatefulWidget {
+  bool isExpanded;
   final Widget
   child; // 👈 Aquí se mostrará el contenido dinámico debajo del navbar
 
-  const AdminLayout({super.key, required this.child});
+  AdminLayout({super.key, required this.child, required this.isExpanded});
 
+  @override
+  State<AdminLayout> createState() => _AdminLayoutState();
+}
+
+class _AdminLayoutState extends State<AdminLayout> {
+  bool isExpanded = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,13 +98,56 @@ class AdminLayout extends StatelessWidget {
                     color: Colors.white,
                   ),
                 ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.settings_outlined,
-                    color: Colors.white,
-                  ),
+
+                //ESTO ES TEMPORAL
+                _NavButton(
+                  icon: Icons.person,
+                  label: 'Mi Perfil',
+                  route: '/admin-profile',
                 ),
+
+                /*MouseRegion(
+                  onEnter: (_) {
+                    isExpanded = true;
+                  },
+                  onExit: (_) {
+                    isExpanded = false;
+                  },
+                  child: Stack(
+                    children: [
+                      // Botón principal (icono)
+                      if (!isExpanded)
+                        IconButton(
+                          icon: const Icon(Icons.settings_outlined),
+                          color: Colors.white,
+                          onPressed: () {
+                            isExpanded = true;
+                          },
+                        ),
+                      // Botones secundarios (pueden estar dentro de una fila o columna)
+                      if (isExpanded == true)
+                        Container(
+                          width: 100,
+                          height: 200,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _NavButton(
+                                icon: Icons.description_outlined,
+                                label: 'Perfil',
+                                route: '/admin-reports',
+                              ),
+                              _NavButton(
+                                icon: Icons.description_outlined,
+                                label: 'Configuracion',
+                                route: '/admin-reports',
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),*/
                 IconButton(
                   onPressed: () async {
                     final authProvider = Provider.of<AuthProvider>(
@@ -131,7 +181,7 @@ class AdminLayout extends StatelessWidget {
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1200),
-                child: child,
+                child: widget.child,
               ),
             ),
           ),
