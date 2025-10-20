@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+/*import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:prolab_unimet/services/auth_service.dart';
@@ -13,6 +13,7 @@ class ProfileController {
   final newphoneController = TextEditingController();
   final newpasswordController = TextEditingController();
   final newpersonIdController = TextEditingController();
+  final descController = TextEditingController();
 
   DateTime? selectedDate;
   final formKey = GlobalKey<FormState>();
@@ -70,17 +71,17 @@ class ProfileController {
     return valid != null && selectedDate != null;
   }
 
-  /*Future<User> modifyUser({
-    required String name,
-    required String email,
-    required String password,
-    required String phoneNumber,
-    required String role,
-    required DateTime birthDate,
-    required String personId,
+  Future<User> modifyUser({
+     String? name,
+     String? email,
+     String? password,
+     String? phoneNumber,
+     DateTime? birthDate,
+     String? personId,
   }) async {
-    var user = FirebaseAuth.instance.currentUser;
+    User? user = await ;
+    user.email = 
     
     
-  }*/
-}
+  }
+}*/

@@ -85,7 +85,7 @@ class RegisterController {
     if (!context.mounted) return;
 
     try {
-      final user = await _authService.registerUser(
+      var user = await _authService.registerUser(
         name: nameController.text,
         email: emailController.text,
         password: passwordController.text,

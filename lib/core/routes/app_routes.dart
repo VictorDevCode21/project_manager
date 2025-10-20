@@ -8,6 +8,7 @@ import 'package:prolab_unimet/views/profile_page.dart';
 import 'package:prolab_unimet/views/projects_view.dart';
 import 'package:prolab_unimet/views/register_view.dart';
 import 'package:go_router/go_router.dart';
+import 'package:prolab_unimet/views/resources_view.dart';
 import 'package:provider/provider.dart';
 
 // Define user roles for authorization
@@ -56,6 +57,11 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/admin-profile',
           builder: (context, state) => const ProfileView(),
+          redirect: (context, state) => _requireAuth(context, userRoles),
+        ),
+        GoRoute(
+          path: '/admin-resources',
+          builder: (context, state) => const ResourcesView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
       ],
