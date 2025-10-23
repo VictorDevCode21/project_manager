@@ -6,6 +6,8 @@ class CustomTextField extends StatelessWidget {
   final IconData iconData;
   final TextEditingController? controller;
   final bool obscureText;
+  // final bool? isPasswordField;
+  // final VoidCallback? togglePasswordVisibility;
   final TextInputType? keyboardType;
   final String? Function(String?)? validator;
 
@@ -18,6 +20,8 @@ class CustomTextField extends StatelessWidget {
     this.obscureText = false,
     this.keyboardType,
     this.validator,
+    // this.isPasswordField,
+    // this.togglePasswordVisibility,
   });
 
   @override
