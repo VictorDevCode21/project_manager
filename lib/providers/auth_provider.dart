@@ -13,6 +13,7 @@ class AuthProvider extends ChangeNotifier {
   String? get token => _userData?['token'];
   String? get role => _userData?['role'];
   String? get name => _userData?['name'];
+  String? get email => _userData?['email']; // <-- AÑADIR ESTA LÍNEA
   bool get isAuthenticated => _userData != null;
   bool _isInitializing = true;
   bool get isInitializing => _isInitializing;
@@ -37,7 +38,7 @@ class AuthProvider extends ChangeNotifier {
         final data = doc.data()!;
         _userData = {
           'uid': user.uid,
-          'email': user.email,
+          'email': user.email, // El email se obtiene de Firebase Auth
           'name': data['name'],
           'role': data['role'],
           'token': token,
@@ -56,10 +57,16 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Handles logout and clears all stored user data
+  /// Handles user logout
   Future<void> logout() async {
-    await _authService.logout();
-    _userData = null;
-    notifyListeners();
+    try {
+      await _authService.logout(); // Llama al servicio de auth
+    } catch (e) {
+      // Opcional: manejar error de logout, aunque es raro
+      debugPrint('Error al cerrar sesión: $e');
+    } finally {
+      _userData = null; // Limpia los datos del usuario
+      notifyListeners(); // Notifica a los widgets que el usuario ya no está autenticado
+    }
   }
 }
