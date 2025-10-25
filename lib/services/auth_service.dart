@@ -77,6 +77,7 @@ class AuthService {
         'email': email.trim(),
         'phone_number': phoneNumber,
         'role': role,
+        'description': '',
         'personId': personId,
         'birth_date': birthDate.toIso8601String(),
         'created_at': FieldValue.serverTimestamp(),

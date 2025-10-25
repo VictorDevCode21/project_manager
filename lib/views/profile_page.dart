@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:prolab_unimet/views/layouts/admin_layout.dart';
 import 'package:prolab_unimet/widgets/custom_text_field_widget.dart';
 import 'package:prolab_unimet/controllers/register_controller.dart';
+import 'package:prolab_unimet/controllers/profile_controller.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
@@ -83,6 +84,7 @@ class ProfileManager extends StatefulWidget {
 }
 
 class _ProfileManagerState extends State<ProfileManager> {
+  ProfileController controller = ProfileController();
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -158,6 +160,8 @@ class _ProfileManagerState extends State<ProfileManager> {
           labelText: 'nombre',
           hintText: 'Tu nombre completo',
           iconData: Icons.person,
+          controller: controller.newnameController,
+          validator: controller.validarNombre,
         ),
         SizedBox(height: 10),
         Text('Correo electronico'),
@@ -165,6 +169,8 @@ class _ProfileManagerState extends State<ProfileManager> {
           labelText: 'correo',
           hintText: 'tu@email.com',
           iconData: Icons.mail,
+          controller: controller.newemailController,
+          validator: controller.validarCorreo,
         ),
         SizedBox(height: 10),
         Text('Telefono'),
@@ -172,6 +178,8 @@ class _ProfileManagerState extends State<ProfileManager> {
           labelText: 'telefono',
           hintText: '+58 123 456 789',
           iconData: Icons.phone,
+          controller: controller.newpersonIdController,
+          validator: controller.validarPhone,
         ),
       ],
     );
@@ -186,6 +194,8 @@ class _ProfileManagerState extends State<ProfileManager> {
           labelText: 'nombre',
           hintText: '123456789',
           iconData: Icons.password,
+          controller: controller.newpasswordController,
+          validator: controller.validarPassword,
         ),
         SizedBox(height: 10),
         Text('Cedula'),
@@ -193,6 +203,8 @@ class _ProfileManagerState extends State<ProfileManager> {
           labelText: 'cedula',
           hintText: 'Numero de cedula',
           iconData: Icons.info,
+          controller: controller.newpersonIdController,
+          validator: controller.validarCedula,
         ),
         SizedBox(height: 10),
         Text('Fecha de nacimiento'),
@@ -205,7 +217,21 @@ class _ProfileManagerState extends State<ProfileManager> {
               initialDate: DateTime(2000),
               lastDate: DateTime.now(),
             );
+            if (pickedDate != null) {
+              setState(() => controller.selectedDate = pickedDate);
+            }
           },
+          controller: TextEditingController(
+            text: controller.selectedDate == null
+                ? ''
+                : '${controller.selectedDate!.day}/${controller.selectedDate!.month}/${controller.selectedDate!.year}',
+          ),
+          validator: (_) => controller.validarDate(),
+          decoration: InputDecoration(
+            hintText: 'dd/mm/yyyy',
+            prefixIcon: const Icon(Icons.calendar_today_outlined),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
         ),
       ],
     );
@@ -219,18 +245,40 @@ class _ProfileManagerState extends State<ProfileManager> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [Text('Descripcion personal'), TextField()],
+        children: [
+          Text('Descripcion personal'),
+          TextField(controller: controller.descController),
+        ],
       ),
     );
   }
 
   Widget cancel1() {
-    return OutlinedButton(onPressed: () {}, child: Text('Cancelar'));
+    return OutlinedButton(
+      onPressed: () {
+        setState(() {
+          try {
+            controller.cancelarAccion(context);
+          } catch (e) {
+            debugPrint(e.toString());
+          }
+        });
+      },
+      child: Text('Cancelar'),
+    );
   }
 
   Widget saveChanges() {
     return TextButton.icon(
-      onPressed: () {},
+      onPressed: () {
+        setState(() {
+          try {
+            controller.modificarPerfil(context);
+          } catch (e) {
+            debugPrint(e.toString());
+          }
+        });
+      },
       icon: Icon(Icons.save, color: Colors.white),
       label: Text(
         'Guardar cambios',

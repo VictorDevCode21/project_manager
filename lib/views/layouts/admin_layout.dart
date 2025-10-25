@@ -106,48 +106,44 @@ class _AdminLayoutState extends State<AdminLayout> {
                   route: '/admin-profile',
                 ),
 
-                /*MouseRegion(
-                  onEnter: (_) {
-                    isExpanded = true;
-                  },
-                  onExit: (_) {
-                    isExpanded = false;
-                  },
-                  child: Stack(
-                    children: [
-                      // Botón principal (icono)
-                      if (!isExpanded)
-                        IconButton(
-                          icon: const Icon(Icons.settings_outlined),
-                          color: Colors.white,
-                          onPressed: () {
-                            isExpanded = true;
-                          },
-                        ),
-                      // Botones secundarios (pueden estar dentro de una fila o columna)
-                      if (isExpanded == true)
-                        Container(
-                          width: 100,
-                          height: 200,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _NavButton(
-                                icon: Icons.description_outlined,
-                                label: 'Perfil',
-                                route: '/admin-reports',
-                              ),
-                              _NavButton(
-                                icon: Icons.description_outlined,
-                                label: 'Configuracion',
-                                route: '/admin-reports',
-                              ),
-                            ],
+                /*PopupMenuButton<String>(
+                      tooltip: 'Opciones de perfil',
+                      color: indigo, // Fondo del menú igual al navbar
+                      offset: const Offset(0, 55), // Ajusta la posición vertical
+                      onSelected: (value) async {
+                        // Lógica de navegación
+                        switch (value) {
+                          case 'settings':
+                            context.go('/admin-settings');
+                            break;
+                          case 'logout':
+                            await authProvider.logout();
+                            if (context.mounted) {
+                              context.go('/login');
+                            }
+                            break;
+                        }
+                      },
+                      itemBuilder: (BuildContext context) => [
+                        // Opción 1: Ajustes
+                        PopupMenuItem<String>(
+                          value: 'settings',
+                          child: ListTile(
+                            leading:
+                            Icon(Icons.settings_outlined, color: iconColor),
+                            title:
+                            Text('Ajustes', style: TextStyle(color: textColor)),
                           ),
                         ),
-                    ],
-                  ),
-                ),*/
+                        // Opción 2: Cerrar Sesión
+                        PopupMenuItem<String>(
+                          value: 'logout',
+                          child: ListTile(
+                            leading: Icon(Icons.logout, color: iconColor),
+                            title: Text('Cerrar Sesión',
+                                style: TextStyle(color: textColor)),
+                          ),
+                        ),*/
                 IconButton(
                   onPressed: () async {
                     final authProvider = Provider.of<AuthProvider>(
