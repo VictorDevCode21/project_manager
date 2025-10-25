@@ -4,19 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
-class AdminLayout extends StatefulWidget {
-  bool isExpanded;
+class AdminLayout extends StatelessWidget {
   final Widget
   child; // 👈 Aquí se mostrará el contenido dinámico debajo del navbar
 
-  AdminLayout({super.key, required this.child, required this.isExpanded});
+  const AdminLayout({super.key, required this.child});
 
-  @override
-  State<AdminLayout> createState() => _AdminLayoutState();
-}
-
-class _AdminLayoutState extends State<AdminLayout> {
-  bool isExpanded = false;
   @override
   Widget build(BuildContext context) {
     // Necesitamos el AuthProvider para el logout
@@ -158,7 +151,7 @@ class _AdminLayoutState extends State<AdminLayout> {
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1200),
-                child: widget.child,
+                child: child,
               ),
             ),
           ),
