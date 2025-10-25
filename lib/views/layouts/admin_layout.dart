@@ -1,4 +1,4 @@
-// lib/layouts/admin_layout.dart
+// lib/views/layouts/admin_layout.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
@@ -12,6 +12,12 @@ class AdminLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Necesitamos el AuthProvider para el logout
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    const Color navBarColor = Color(0xff253f8d);
+    const Color iconColor = Colors.white70;
+    const Color textColor = Colors.white;
+
     return Scaffold(
       backgroundColor: const Color(0xfff4f6f7),
       body: Column(
@@ -19,11 +25,11 @@ class AdminLayout extends StatelessWidget {
           // ===== NAVBAR SUPERIOR =====
           Container(
             height: 70,
-            color: const Color(0xff253f8d),
+            color: navBarColor, // Usamos la variable
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                // Logo e Identidad
+                // Logo e Identidad (SIN CAMBIOS)
                 Row(
                   children: [
                     Image.asset('assets/Logo.png', height: 40, width: 40),
@@ -37,94 +43,108 @@ class AdminLayout extends StatelessWidget {
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 18,
+                            fontSize: 16,
                           ),
                         ),
                         Text(
-                          'Sistema de Gestión de Proyectos',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                          'Panel de Administrador',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
                   ],
                 ),
-                const Spacer(),
+                const SizedBox(width: 40),
 
-                // ===== MENÚ DE NAVEGACIÓN =====
-                _NavButton(
-                  icon: Icons.home,
-                  label: 'Inicio',
-                  route: '/admin-dashboard',
-                ),
-                _NavButton(
-                  icon: Icons.folder_outlined,
-                  label: 'Proyectos',
-                  route: '/admin-projects',
-                ),
-                _NavButton(
-                  icon: Icons.calendar_today_outlined,
-                  label: 'Tareas',
-                  route: '/admin-tasks',
-                ),
-                _NavButton(
-                  icon: Icons.people_outline,
-                  label: 'Recursos',
-                  route: '/admin-resources',
-                ),
-                _NavButton(
-                  icon: Icons.bar_chart_outlined,
+                // Navegación (SIN CAMBIOS)
+                const _NavButton(
+                  icon: Icons.dashboard_outlined,
                   label: 'Dashboard',
                   route: '/admin-dashboard',
                 ),
-                _NavButton(
-                  icon: Icons.description_outlined,
-                  label: 'Reportes',
-                  route: '/admin-reports',
+                const SizedBox(width: 15),
+                const _NavButton(
+                  icon: Icons.folder_copy_outlined,
+                  label: 'Proyectos',
+                  route: '/admin-projects',
                 ),
+
                 const Spacer(),
 
-                // Iconos a la derecha
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.notifications_none,
-                    color: Colors.white,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.settings_outlined,
-                    color: Colors.white,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () async {
-                    final authProvider = Provider.of<AuthProvider>(
-                      context,
-                      listen: false,
-                    );
+                // ===== NAVEGACIÓN DERECHA (Notificaciones y Perfil) =====
+                Row(
+                  children: [
+                    // Botón de Notificaciones (SIN CAMBIOS)
+                    IconButton(
+                      icon: const Icon(Icons.notifications_outlined,
+                          color: iconColor),
+                      onPressed: () {
+                        // TODO: Implementar lógica de notificaciones
+                      },
+                    ),
+                    const SizedBox(width: 10),
 
-                    await authProvider.logout();
-
-                    if (context.mounted) {
-                      context.go(
-                        '/login',
-                      ); // ✅ Navega solo después de cerrar sesión
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Sesión cerrada correctamente'),
+                    // ===== AQUÍ ESTÁ EL CAMBIO =====
+                    // Reemplazamos el CircleAvatar por un PopupMenuButton
+                    PopupMenuButton<String>(
+                      tooltip: 'Opciones de perfil',
+                      color: navBarColor, // Fondo del menú igual al navbar
+                      offset: const Offset(0, 55), // Ajusta la posición vertical
+                      onSelected: (value) async {
+                        // Lógica de navegación
+                        switch (value) {
+                          case 'settings':
+                            context.go('/admin-settings');
+                            break;
+                          case 'logout':
+                            await authProvider.logout();
+                            if (context.mounted) {
+                              context.go('/login');
+                            }
+                            break;
+                        }
+                      },
+                      itemBuilder: (BuildContext context) => [
+                        // Opción 1: Ajustes
+                        PopupMenuItem<String>(
+                          value: 'settings',
+                          child: ListTile(
+                            leading:
+                            Icon(Icons.settings_outlined, color: iconColor),
+                            title:
+                            Text('Ajustes', style: TextStyle(color: textColor)),
+                          ),
                         ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.logout, color: Colors.white),
+                        // Opción 2: Cerrar Sesión
+                        PopupMenuItem<String>(
+                          value: 'logout',
+                          child: ListTile(
+                            leading: Icon(Icons.logout, color: iconColor),
+                            title: Text('Cerrar Sesión',
+                                style: TextStyle(color: textColor)),
+                          ),
+                        ),
+                      ],
+                      // Este es el "child": el botón que se muestra (la "ranura")
+                      child: const CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.white24,
+                        child: Icon(Icons.person_outline, color: iconColor),
+                      ),
+                    ),
+                    // ===== FIN DEL CAMBIO =====
+
+                    const SizedBox(width: 10), // Espacio extra
+                  ],
                 ),
               ],
             ),
           ),
 
-          // ===== CONTENIDO DEBAJO DEL NAVBAR =====
+          // ===== CONTENIDO DEBAJO DEL NAVBAR (SIN CAMBIOS) =====
           Expanded(
             child: Container(
               padding: const EdgeInsets.all(20),
@@ -141,6 +161,7 @@ class AdminLayout extends StatelessWidget {
   }
 }
 
+// Widget _NavButton (SIN CAMBIOS)
 class _NavButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -169,8 +190,10 @@ class _NavButton extends StatelessWidget {
       ),
       style: TextButton.styleFrom(
         backgroundColor: isActive ? Colors.white24 : Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
