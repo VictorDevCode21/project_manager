@@ -2,160 +2,218 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
+import 'package:prolab_unimet/providers/notification_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:prolab_unimet/models/notification_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
+// (Función auxiliar para mostrar la hora - No requiere paquetes nuevos)
+String _formatTimeAgo(Timestamp timestamp) {
+  final now = DateTime.now();
+  final difference = now.difference(timestamp.toDate());
+
+  if (difference.inMinutes < 1) return 'Hace segundos';
+  if (difference.inHours < 1) return 'Hace ${difference.inMinutes} min';
+  if (difference.inDays < 1) return 'Hace ${difference.inHours} hrs';
+  if (difference.inDays < 7) return 'Hace ${difference.inDays} días';
+  return 'Más de 1 sem';
+}
+
+
+// (Este Consumer es para los toasts de *notificaciones de BD*, lo dejamos)
 class AdminLayout extends StatelessWidget {
-  final Widget
-  child; // 👈 Aquí se mostrará el contenido dinámico debajo del navbar
+  final Widget child;
 
   const AdminLayout({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) {
-    // Necesitamos el AuthProvider para el logout
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  Widget build(BuildContext buildContext) {
+    final authProvider = Provider.of<AuthProvider>(buildContext, listen: false);
     const Color navBarColor = Color(0xff253f8d);
     const Color iconColor = Colors.white70;
     const Color textColor = Colors.white;
 
-    return Scaffold(
-      backgroundColor: const Color(0xfff4f6f7),
-      body: Column(
-        children: [
-          // ===== NAVBAR SUPERIOR =====
-          Container(
-            height: 70,
-            color: navBarColor, // Usamos la variable
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                // Logo e Identidad (SIN CAMBIOS)
-                Row(
-                  children: [
-                    Image.asset('assets/Logo.png', height: 40, width: 40),
-                    const SizedBox(width: 10),
-                    const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'ProLab UNIMET',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text(
-                          'Panel de Administrador',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 40),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: Provider.of<NotificationProvider>(buildContext)),
+        ChangeNotifierProvider.value(value: authProvider),
+      ],
+      child: Consumer2<NotificationProvider, AuthProvider>(
+        builder: (context, notifProvider, auth, layoutChild) {
 
-                // Navegación (SIN CAMBIOS)
-                const _NavButton(
-                  icon: Icons.dashboard_outlined,
-                  label: 'Dashboard',
-                  route: '/admin-dashboard',
-                ),
-                const SizedBox(width: 15),
-                const _NavButton(
-                  icon: Icons.folder_copy_outlined,
-                  label: 'Proyectos',
-                  route: '/admin-projects',
-                ),
-
-                const Spacer(),
-
-                // ===== NAVEGACIÓN DERECHA (Notificaciones y Perfil) =====
-                Row(
-                  children: [
-                    // Botón de Notificaciones (SIN CAMBIOS)
-                    IconButton(
-                      icon: const Icon(Icons.notifications_outlined,
-                          color: iconColor),
-                      onPressed: () {
-                        // TODO: Implementar lógica de notificaciones
-                      },
-                    ),
-                    const SizedBox(width: 10),
-
-                    // ===== AQUÍ ESTÁ EL CAMBIO =====
-                    // Reemplazamos el CircleAvatar por un PopupMenuButton
-                    PopupMenuButton<String>(
-                      tooltip: 'Opciones de perfil',
-                      color: navBarColor, // Fondo del menú igual al navbar
-                      offset: const Offset(0, 55), // Ajusta la posición vertical
-                      onSelected: (value) async {
-                        // Lógica de navegación
-                        switch (value) {
-                          case 'settings':
-                            context.go('/admin-settings');
-                            break;
-                          case 'logout':
-                            await authProvider.logout();
-                            if (context.mounted) {
-                              context.go('/login');
-                            }
-                            break;
-                        }
-                      },
-                      itemBuilder: (BuildContext context) => [
-                        // Opción 1: Ajustes
-                        PopupMenuItem<String>(
-                          value: 'settings',
-                          child: ListTile(
-                            leading:
-                            Icon(Icons.settings_outlined, color: iconColor),
-                            title:
-                            Text('Ajustes', style: TextStyle(color: textColor)),
-                          ),
-                        ),
-                        // Opción 2: Cerrar Sesión
-                        PopupMenuItem<String>(
-                          value: 'logout',
-                          child: ListTile(
-                            leading: Icon(Icons.logout, color: iconColor),
-                            title: Text('Cerrar Sesión',
-                                style: TextStyle(color: textColor)),
-                          ),
-                        ),
-                      ],
-                      // Este es el "child": el botón que se muestra (la "ranura")
-                      child: const CircleAvatar(
-                        radius: 18,
-                        backgroundColor: Colors.white24,
-                        child: Icon(Icons.person_outline, color: iconColor),
+          // Lógica para el toast de *notificación de BD* (la dejamos)
+          if (notifProvider.toastNotification != null) {
+            final notification = notifProvider.toastNotification!;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        notification.title,
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                       ),
-                    ),
-                    // ===== FIN DEL CAMBIO =====
+                      Text(
+                        notification.body,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: navBarColor,
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.all(10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              );
+              notifProvider.clearToast();
+            });
+          }
 
-                    const SizedBox(width: 10), // Espacio extra
+          // Lógica para el toast de *bienvenida*
+          if (auth.newLoginUserName != null) {
+            final name = auth.newLoginUserName;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('¡Bienvenido de nuevo, $name!')),
+              );
+              auth.clearNewLoginUser();
+            });
+          }
+
+          return layoutChild!;
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xfff4f6f7),
+          body: Column(
+            children: [
+              // ===== NAVBAR SUPERIOR =====
+              Container(
+                height: 70,
+                color: navBarColor,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    // Logo (Sin cambios)
+                    Row(
+                      children: [
+                        Image.asset('assets/Logo.png', height: 40, width: 40),
+                        const SizedBox(width: 10),
+                        const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'ProLab UNIMET',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              'Panel de Administrador',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 40),
+
+                    // Navegación (Sin cambios)
+                    const _NavButton(
+                      icon: Icons.dashboard_outlined,
+                      label: 'Dashboard',
+                      route: '/admin-dashboard',
+                    ),
+                    const SizedBox(width: 15),
+                    const _NavButton(
+                      icon: Icons.folder_copy_outlined,
+                      label: 'Proyectos',
+                      route: '/admin-projects',
+                    ),
+
+                    const Spacer(),
+
+                    // ===== NAVEGACIÓN DERECHA =====
+                    Row(
+                      children: [
+                        // Campana de Notificación (USAMOS EL CONTEXTO ORIGINAL buildContext)
+                        _NotificationBell(originalContext: buildContext),
+                        const SizedBox(width: 10),
+
+                        // Botón de Perfil
+                        PopupMenuButton<String>(
+                          tooltip: 'Opciones de perfil',
+                          color: navBarColor,
+                          offset: const Offset(0, 55),
+                          onSelected: (value) async {
+                            final messenger = ScaffoldMessenger.of(buildContext);
+                            final router = GoRouter.of(buildContext);
+
+                            switch (value) {
+                              case 'settings':
+                                router.go('/admin-settings');
+                                break;
+
+                              case 'logout':
+                                await authProvider.logout();
+                                messenger.showSnackBar(
+                                  const SnackBar(content: Text('Has cerrado sesión.')),
+                                );
+                                router.go('/login');
+                                break;
+                            }
+                          },
+                          itemBuilder: (BuildContext context) => [
+                            PopupMenuItem<String>(
+                              value: 'settings',
+                              child: ListTile(
+                                leading: Icon(Icons.settings_outlined, color: iconColor),
+                                title: Text('Ajustes', style: TextStyle(color: textColor)),
+                              ),
+                            ),
+                            PopupMenuItem<String>(
+                              value: 'logout',
+                              child: ListTile(
+                                leading: Icon(Icons.logout, color: iconColor),
+                                title: Text('Cerrar Sesión',
+                                    style: TextStyle(color: textColor)),
+                              ),
+                            ),
+                          ],
+                          child: const CircleAvatar(
+                            radius: 18,
+                            backgroundColor: Colors.white24,
+                            child: Icon(Icons.person_outline, color: iconColor),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
-          ),
-
-          // ===== CONTENIDO DEBAJO DEL NAVBAR (SIN CAMBIOS) =====
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1200),
-                child: child,
               ),
-            ),
+
+              // ===== CONTENIDO DEBAJO DEL NAVBAR =====
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1200),
+                    child: child,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -194,6 +252,122 @@ class _NavButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+  }
+}
+
+// _NotificationBell (MODIFICADO)
+class _NotificationBell extends StatelessWidget {
+  // Recibe el contexto original para poder llamar a los Providers
+  final BuildContext originalContext;
+
+  const _NotificationBell({required this.originalContext});
+
+  // Usamos el contexto local para el PopupMenuButton, pero el original para los Providers
+  @override
+  Widget build(BuildContext context) {
+    const Color navBarColor = Color(0xff253f8d);
+    const Color iconColor = Colors.white70;
+    const Color textColor = Colors.white;
+
+    // Usamos el contexto original para leer el provider
+    final provider = Provider.of<NotificationProvider>(originalContext);
+    final notifications = provider.notifications;
+    final unreadCount = provider.unreadCount;
+
+    return PopupMenuButton<String>(
+      tooltip: 'Notificaciones',
+      color: navBarColor,
+      offset: const Offset(0, 55),
+
+      // Al abrir el menú, NO marcamos todo como leído automáticamente.
+      onOpened: () {
+        // Opcional: mostrar un mensaje si está vacío
+      },
+
+      // ===== INICIO DE LA LÓGICA DE SELECCIÓN INDIVIDUAL =====
+      onSelected: (value) {
+        if (value == 'history') {
+          // Si hace clic en "Ver historial"
+          GoRouter.of(context).go('/admin-notifications'); // (Ruta que debes crear)
+        } else {
+          // Si hace clic en una notificación
+          provider.markAsRead(value); // Marcamos solo esa como leída
+          // Opcional: Redirigir a la vista de detalle del proyecto (ej. /admin-projects/$value)
+        }
+      },
+      // ===== FIN DE LA LÓGICA DE SELECCIÓN INDIVIDUAL =====
+
+      itemBuilder: (BuildContext context) {
+
+        List<PopupMenuEntry<String>> items = [];
+
+        if (provider.isLoading) {
+          items.add(
+            const PopupMenuItem(
+              child: Center(child: CircularProgressIndicator(color: Colors.white)),
+            ),
+          );
+        } else if (notifications.isEmpty) {
+          items.add(
+            const PopupMenuItem(
+              enabled: false,
+              child: ListTile(
+                leading: Icon(Icons.check_circle_outline, color: iconColor),
+                title: Text('No hay notificaciones', style: TextStyle(color: textColor)),
+              ),
+            ),
+          );
+        } else {
+          // Construir la lista de notificaciones
+          items.addAll(notifications.map((notification) {
+            final isUnread = !notification.isRead;
+            return PopupMenuItem<String>(
+              value: notification.id,
+              child: ListTile(
+                leading: Icon(
+                  isUnread ? Icons.notifications_active : Icons.notifications,
+                  color: isUnread ? Colors.yellow.shade700 : iconColor,
+                ),
+                title: Text(
+                  notification.title,
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                subtitle: Text(
+                  // Mostramos el tiempo transcurrido
+                  _formatTimeAgo(notification.createdAt),
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ),
+            );
+          }).toList());
+        }
+
+        // ===== Botón para el Historial Completo =====
+        items.add(
+          PopupMenuItem<String>(
+            value: 'history',
+            child: ListTile(
+              leading: const Icon(Icons.archive_outlined, color: Colors.blue),
+              title: Text('Ver Historial Completo (${notifications.length})',
+                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        );
+        // ===========================================
+
+        return items;
+      },
+      child: Badge(
+        label: Text(unreadCount.toString()),
+        isLabelVisible: unreadCount > 0,
+        backgroundColor: Colors.red.shade600,
+        child: const Icon(Icons.notifications_outlined, color: iconColor),
       ),
     );
   }
