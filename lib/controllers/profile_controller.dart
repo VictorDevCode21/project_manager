@@ -1,10 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:prolab_unimet/services/auth_service.dart';
-import 'package:go_router/go_router.dart';
-import '../providers/auth_provider.dart';
 
 class ProfileController {
   TextEditingController newnameController = TextEditingController();
@@ -15,8 +11,18 @@ class ProfileController {
   TextEditingController descController = TextEditingController();
 
   DateTime? selectedDate;
-  final formKey = GlobalKey<FormState>();
-  final AuthService _authService = AuthService();
+
+  Future<String> getName() async {
+    var user = FirebaseAuth.instance.currentUser;
+    String uid = user!.uid;
+    var snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+    var usermod = snapshot.data();
+    String newname = usermod!['name'];
+    return newname;
+  }
 
   String? validarNombre(String? value) {
     if (value == null || value.trim().isEmpty) {
@@ -86,21 +92,19 @@ class ProfileController {
   Future<void> modificarPerfil(BuildContext context) async {
     if (validarCedula(newpersonIdController.text) == null &&
         validarCorreo(newemailController.text) == null &&
-        validarPassword(newpasswordController.text) == null &&
         validarNombre(newnameController.text) == null &&
         validarPhone(newphoneController.text) == null) {
       try {
         var user = FirebaseAuth.instance.currentUser;
+
         String uid = user!.uid;
         var snapshot = await FirebaseFirestore.instance
             .collection('users')
             .doc(uid)
             .get();
         var usermod = snapshot.data();
-        newnameController.text = usermod!['name'];
-
-        var rol = usermod['role'];
-        var creadoen = usermod['created-at'];
+        var rol = usermod!['role'];
+        final creadoen = usermod['created-at'];
         await FirebaseFirestore.instance.collection('users').doc(uid).set({
           'id': uid,
           'name': newnameController.text,
@@ -110,18 +114,49 @@ class ProfileController {
           'description': descController.text,
           'personId': newpersonIdController.text,
           'birth_date': selectedDate?.toIso8601String(),
-          'created_at': FieldValue.serverTimestamp(), //Cambiar luego
+          'created_at': creadoen,
           'updated_at': FieldValue.serverTimestamp(),
         });
+        user.verifyBeforeUpdateEmail(newemailController.text.trim());
         if (newpasswordController.text != '') {
-          user.updatePassword(newpasswordController.text);
+          if (validarCedula(newpasswordController.text) == null) {
+            user.updatePassword(newpasswordController.text);
+          } else {
+            cancelarAccion(context);
+          }
+        } else {
+          debugPrint('Guardado sin contraseña');
         }
         debugPrint('Accion exitosa');
-      } catch (e) {
-        debugPrint(e.toString());
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Se han realizado los cambios correctamente'),
+          ),
+        );
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'requires-recent-login') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Debe loguearse de nuevo para proceder con la accion',
+              ),
+            ),
+          );
+        } else if (e.code == 'email-already-in-use') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: Este correo ya existe')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error en la modificacion de perfil')),
+          );
+        }
       }
     } else {
       cancelarAccion(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: algun campo no esta bien puesto')),
+      );
     }
   }
 }

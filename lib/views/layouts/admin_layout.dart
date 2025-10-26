@@ -106,44 +106,6 @@ class _AdminLayoutState extends State<AdminLayout> {
                   route: '/admin-profile',
                 ),
 
-                /*PopupMenuButton<String>(
-                      tooltip: 'Opciones de perfil',
-                      color: indigo, // Fondo del menú igual al navbar
-                      offset: const Offset(0, 55), // Ajusta la posición vertical
-                      onSelected: (value) async {
-                        // Lógica de navegación
-                        switch (value) {
-                          case 'settings':
-                            context.go('/admin-settings');
-                            break;
-                          case 'logout':
-                            await authProvider.logout();
-                            if (context.mounted) {
-                              context.go('/login');
-                            }
-                            break;
-                        }
-                      },
-                      itemBuilder: (BuildContext context) => [
-                        // Opción 1: Ajustes
-                        PopupMenuItem<String>(
-                          value: 'settings',
-                          child: ListTile(
-                            leading:
-                            Icon(Icons.settings_outlined, color: iconColor),
-                            title:
-                            Text('Ajustes', style: TextStyle(color: textColor)),
-                          ),
-                        ),
-                        // Opción 2: Cerrar Sesión
-                        PopupMenuItem<String>(
-                          value: 'logout',
-                          child: ListTile(
-                            leading: Icon(Icons.logout, color: iconColor),
-                            title: Text('Cerrar Sesión',
-                                style: TextStyle(color: textColor)),
-                          ),
-                        ),*/
                 IconButton(
                   onPressed: () async {
                     final authProvider = Provider.of<AuthProvider>(

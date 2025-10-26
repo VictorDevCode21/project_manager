@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:prolab_unimet/views/layouts/admin_layout.dart';
 import 'package:prolab_unimet/widgets/custom_text_field_widget.dart';
-import 'package:prolab_unimet/controllers/register_controller.dart';
 import 'package:prolab_unimet/controllers/profile_controller.dart';
 
 class ProfileView extends StatelessWidget {
@@ -9,8 +7,8 @@ class ProfileView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
+    return SingleChildScrollView(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextButton.icon(
@@ -87,6 +85,7 @@ class _ProfileManagerState extends State<ProfileManager> {
   ProfileController controller = ProfileController();
   @override
   Widget build(BuildContext context) {
+    controller.cancelarAccion(context);
     return Center(
       child: Container(
         width: 900,
@@ -120,14 +119,13 @@ class _ProfileManagerState extends State<ProfileManager> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(
-                  onPressed: () {},
-                  icon: Icon(Icons.account_circle),
-                  color: Colors.indigo,
-                  iconSize: 80,
+                CircleAvatar(
+                  radius: 55,
+                  child: Icon(Icons.person, size: 80, color: Colors.white),
                 ),
               ],
             ),
+            SizedBox(height: 20),
             Form(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,7 +176,7 @@ class _ProfileManagerState extends State<ProfileManager> {
           labelText: 'telefono',
           hintText: '+58 123 456 789',
           iconData: Icons.phone,
-          controller: controller.newpersonIdController,
+          controller: controller.newphoneController,
           validator: controller.validarPhone,
         ),
       ],
@@ -247,7 +245,7 @@ class _ProfileManagerState extends State<ProfileManager> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Descripcion personal'),
-          TextField(controller: controller.descController),
+          TextField(controller: controller.descController, maxLines: 10),
         ],
       ),
     );
@@ -275,7 +273,7 @@ class _ProfileManagerState extends State<ProfileManager> {
           try {
             controller.modificarPerfil(context);
           } catch (e) {
-            debugPrint(e.toString());
+            debugPrint('Error');
           }
         });
       },
