@@ -54,7 +54,7 @@ final appRouter = GoRouter(
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
 
-        // 2. AÑADIR LA NUEVA RUTA AQUÍ
+        // 2. ADD NEW ROUTE HERE
         GoRoute(
           path: '/admin-settings',
           builder: (context, state) => const SettingsView(),
