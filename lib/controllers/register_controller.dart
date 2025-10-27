@@ -21,12 +21,19 @@ class RegisterController {
       return 'Por favor, ingresa tu nombre';
     }
 
+    if (!RegExp(r'^[a-zA-ZÀ-ÿ\s]+$').hasMatch(value.trim())) {
+      return 'El nombre solo puede contener letras y espacios';
+    }
     return null;
   }
 
   String? validatePersonId(String? value) {
     if (value == null || value.trim().isEmpty) {
       return "Por favor, ingresa tu cédula";
+    }
+
+    if (!RegExp(r'^\d{6,10}$').hasMatch(value)) {
+      return "Cédula inválida (solo números, entre 6 y 10 dígitos)";
     }
     return null;
   }
@@ -69,8 +76,17 @@ class RegisterController {
 
   String? validateRole() =>
       selectedRole == null ? 'Selecciona un tipo de usuario' : null;
-  String? validateDate() =>
-      selectedDate == null ? 'Selecciona una fecha' : null;
+
+  // String? validateDate() =>
+  //     selectedDate == null ? 'Selecciona una fecha' : null;
+
+  String? validateDate() {
+    if (selectedDate == null) return 'Selecciona una fecha';
+    if (selectedDate!.isAfter(DateTime.now())) {
+      return 'Selecciona una fecha válida ';
+    }
+    return null;
+  }
 
   bool validateForm() {
     final valid = formKey.currentState?.validate() ?? false;
@@ -80,6 +96,12 @@ class RegisterController {
   /// Handles the registration process with Firebase Auth and Firestore.
   Future<void> registerUser(BuildContext context) async {
     if (!validateForm()) return;
+    //nameController.text = nameController.text.trim();
+    emailController.text = emailController.text.trim().toLowerCase();
+    //personIdController.text = personIdController.text.trim();
+    phoneController.text = phoneController.text.trim();
+    passwordController.text = passwordController.text.trim();
+    confirmPasswordController.text = confirmPasswordController.text.trim();
 
     // Avoid calling setState or using context if the widget was disposed
     if (!context.mounted) return;

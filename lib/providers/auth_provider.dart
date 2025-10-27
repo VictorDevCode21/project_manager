@@ -13,9 +13,21 @@ class AuthProvider extends ChangeNotifier {
   String? get token => _userData?['token'];
   String? get role => _userData?['role'];
   String? get name => _userData?['name'];
+  String? get email => _userData?['email']; // <-- AÑADIR ESTA LÍNEA
   bool get isAuthenticated => _userData != null;
   bool _isInitializing = true;
   bool get isInitializing => _isInitializing;
+
+  // ===== INICIO DE LA MODIFICACIÓN =====
+  String? _newLoginUserName;
+  /// Almacena temporalmente el nombre del usuario que acaba de iniciar sesión.
+  String? get newLoginUserName => _newLoginUserName;
+
+  /// Limpia el nombre después de que el toast de bienvenida se haya mostrado.
+  void clearNewLoginUser() {
+    _newLoginUserName = null;
+  }
+  // ===== FIN DE LA MODIFICACIÓN =====
 
   /// Constructor that automatically restores session if a user is already logged in
   AuthProvider() {
@@ -37,7 +49,7 @@ class AuthProvider extends ChangeNotifier {
         final data = doc.data()!;
         _userData = {
           'uid': user.uid,
-          'email': user.email,
+          'email': user.email, // El email se obtiene de Firebase Auth
           'name': data['name'],
           'role': data['role'],
           'token': token,
@@ -53,13 +65,25 @@ class AuthProvider extends ChangeNotifier {
   /// Handles login using AuthService and stores session data
   Future<void> login(String email, String password) async {
     _userData = await _authService.loginUser(email: email, password: password);
+
+    // ===== INICIO DE LA MODIFICACIÓN =====
+    // Guardamos el nombre del usuario para mostrar el toast en la siguiente pantalla
+    _newLoginUserName = _userData?['name'];
+    // ===== FIN DE LA MODIFICACIÓN =====
+
     notifyListeners();
   }
 
-  /// Handles logout and clears all stored user data
+  /// Handles user logout
   Future<void> logout() async {
-    await _authService.logout();
-    _userData = null;
-    notifyListeners();
+    try {
+      await _authService.logout(); // Llama al servicio de auth
+    } catch (e) {
+      // Opcional: manejar error de logout, aunque es raro
+      debugPrint('Error al cerrar sesión: $e');
+    } finally {
+      _userData = null; // Limpia los datos del usuario
+      notifyListeners(); // Notifica a los widgets que el usuario ya no está autenticado
+    }
   }
 }

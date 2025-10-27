@@ -217,7 +217,7 @@ class _RegisterViewState extends State<RegisterView> {
         _label('Correo Electrónico'),
         CustomTextField(
           labelText: 'Correo',
-          hintText: 'tucorreo@email.com',
+          hintText: 'johndoe@unimet.edu.ve',
           iconData: Icons.email_outlined,
           controller: _controller.emailController,
           validator: _controller.validateEmail,
@@ -256,7 +256,7 @@ class _RegisterViewState extends State<RegisterView> {
         _label('Teléfono'),
         CustomTextField(
           labelText: 'Teléfono',
-          hintText: '0414 1234567',
+          hintText: '04141234567',
           iconData: Icons.phone_android_outlined,
           keyboardType: TextInputType.number,
           controller: _controller.phoneController,
@@ -285,7 +285,7 @@ class _RegisterViewState extends State<RegisterView> {
         _label('Cédula'),
         CustomTextField(
           labelText: 'Cédula',
-          hintText: 'Número de cédula',
+          hintText: '30123456',
           iconData: Icons.assignment_ind_outlined,
           controller: _controller.personIdController,
           validator: _controller.validatePersonId,
