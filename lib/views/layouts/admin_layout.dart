@@ -19,7 +19,6 @@ String _formatTimeAgo(Timestamp timestamp) {
   return 'Más de 1 sem';
 }
 
-
 // (Este Consumer es para los toasts de *notificaciones de BD*, lo dejamos)
 class AdminLayout extends StatelessWidget {
   final Widget child;
@@ -35,12 +34,13 @@ class AdminLayout extends StatelessWidget {
 
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: Provider.of<NotificationProvider>(buildContext)),
+        ChangeNotifierProvider.value(
+          value: Provider.of<NotificationProvider>(buildContext),
+        ),
         ChangeNotifierProvider.value(value: authProvider),
       ],
       child: Consumer2<NotificationProvider, AuthProvider>(
         builder: (context, notifProvider, auth, layoutChild) {
-
           // Lógica para el toast de *notificación de BD* (la dejamos)
           if (notifProvider.toastNotification != null) {
             final notification = notifProvider.toastNotification!;
@@ -53,7 +53,10 @@ class AdminLayout extends StatelessWidget {
                     children: [
                       Text(
                         notification.title,
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                       Text(
                         notification.body,
@@ -64,7 +67,9 @@ class AdminLayout extends StatelessWidget {
                   backgroundColor: navBarColor,
                   behavior: SnackBarBehavior.floating,
                   margin: const EdgeInsets.all(10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               );
               notifProvider.clearToast();
@@ -153,7 +158,9 @@ class AdminLayout extends StatelessWidget {
                           color: navBarColor,
                           offset: const Offset(0, 55),
                           onSelected: (value) async {
-                            final messenger = ScaffoldMessenger.of(buildContext);
+                            final messenger = ScaffoldMessenger.of(
+                              buildContext,
+                            );
                             final router = GoRouter.of(buildContext);
 
                             switch (value) {
@@ -161,10 +168,16 @@ class AdminLayout extends StatelessWidget {
                                 router.go('/admin-settings');
                                 break;
 
+                              case 'profile':
+                                router.go('/admin-profile');
+                                break;
+
                               case 'logout':
                                 await authProvider.logout();
                                 messenger.showSnackBar(
-                                  const SnackBar(content: Text('Has cerrado sesión.')),
+                                  const SnackBar(
+                                    content: Text('Has cerrado sesión.'),
+                                  ),
                                 );
                                 router.go('/login');
                                 break;
@@ -172,18 +185,39 @@ class AdminLayout extends StatelessWidget {
                           },
                           itemBuilder: (BuildContext context) => [
                             PopupMenuItem<String>(
+                              value: 'profile',
+                              child: ListTile(
+                                leading: Icon(
+                                  Icons.account_circle,
+                                  color: iconColor,
+                                ),
+                                title: Text(
+                                  'Perfil',
+                                  style: TextStyle(color: textColor),
+                                ),
+                              ),
+                            ),
+                            PopupMenuItem<String>(
                               value: 'settings',
                               child: ListTile(
-                                leading: Icon(Icons.settings_outlined, color: iconColor),
-                                title: Text('Ajustes', style: TextStyle(color: textColor)),
+                                leading: Icon(
+                                  Icons.settings_outlined,
+                                  color: iconColor,
+                                ),
+                                title: Text(
+                                  'Ajustes',
+                                  style: TextStyle(color: textColor),
+                                ),
                               ),
                             ),
                             PopupMenuItem<String>(
                               value: 'logout',
                               child: ListTile(
                                 leading: Icon(Icons.logout, color: iconColor),
-                                title: Text('Cerrar Sesión',
-                                    style: TextStyle(color: textColor)),
+                                title: Text(
+                                  'Cerrar Sesión',
+                                  style: TextStyle(color: textColor),
+                                ),
                               ),
                             ),
                           ],
@@ -248,9 +282,7 @@ class _NavButton extends StatelessWidget {
       ),
       style: TextButton.styleFrom(
         backgroundColor: isActive ? Colors.white24 : Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
@@ -290,23 +322,26 @@ class _NotificationBell extends StatelessWidget {
       onSelected: (value) {
         if (value == 'history') {
           // Si hace clic en "Ver historial"
-          GoRouter.of(context).go('/admin-notifications'); // (Ruta que debes crear)
+          GoRouter.of(
+            context,
+          ).go('/admin-notifications'); // (Ruta que debes crear)
         } else {
           // Si hace clic en una notificación
           provider.markAsRead(value); // Marcamos solo esa como leída
           // Opcional: Redirigir a la vista de detalle del proyecto (ej. /admin-projects/$value)
         }
       },
+
       // ===== FIN DE LA LÓGICA DE SELECCIÓN INDIVIDUAL =====
-
       itemBuilder: (BuildContext context) {
-
         List<PopupMenuEntry<String>> items = [];
 
         if (provider.isLoading) {
           items.add(
             const PopupMenuItem(
-              child: Center(child: CircularProgressIndicator(color: Colors.white)),
+              child: Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
             ),
           );
         } else if (notifications.isEmpty) {
@@ -315,36 +350,43 @@ class _NotificationBell extends StatelessWidget {
               enabled: false,
               child: ListTile(
                 leading: Icon(Icons.check_circle_outline, color: iconColor),
-                title: Text('No hay notificaciones', style: TextStyle(color: textColor)),
+                title: Text(
+                  'No hay notificaciones',
+                  style: TextStyle(color: textColor),
+                ),
               ),
             ),
           );
         } else {
           // Construir la lista de notificaciones
-          items.addAll(notifications.map((notification) {
-            final isUnread = !notification.isRead;
-            return PopupMenuItem<String>(
-              value: notification.id,
-              child: ListTile(
-                leading: Icon(
-                  isUnread ? Icons.notifications_active : Icons.notifications,
-                  color: isUnread ? Colors.yellow.shade700 : iconColor,
-                ),
-                title: Text(
-                  notification.title,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+          items.addAll(
+            notifications.map((notification) {
+              final isUnread = !notification.isRead;
+              return PopupMenuItem<String>(
+                value: notification.id,
+                child: ListTile(
+                  leading: Icon(
+                    isUnread ? Icons.notifications_active : Icons.notifications,
+                    color: isUnread ? Colors.yellow.shade700 : iconColor,
+                  ),
+                  title: Text(
+                    notification.title,
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: isUnread
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                  subtitle: Text(
+                    // Mostramos el tiempo transcurrido
+                    _formatTimeAgo(notification.createdAt),
+                    style: const TextStyle(color: Colors.white70),
                   ),
                 ),
-                subtitle: Text(
-                  // Mostramos el tiempo transcurrido
-                  _formatTimeAgo(notification.createdAt),
-                  style: const TextStyle(color: Colors.white70),
-                ),
-              ),
-            );
-          }).toList());
+              );
+            }).toList(),
+          );
         }
 
         // ===== Botón para el Historial Completo =====
@@ -353,7 +395,8 @@ class _NotificationBell extends StatelessWidget {
             value: 'history',
             child: ListTile(
               leading: const Icon(Icons.archive_outlined, color: Colors.blue),
-              title: Text('Ver Historial Completo (${notifications.length})',
+              title: Text(
+                'Ver Historial Completo (${notifications.length})',
                 style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
               ),
             ),
