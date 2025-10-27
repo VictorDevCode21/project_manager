@@ -50,7 +50,7 @@ class AdminLayout extends StatelessWidget {
                 ),
                 const Spacer(),
 
-                // ===== MENÚ DE NAVEGACIÓN =====
+                // ===== NAVIGATION MENU =====
                 _NavButton(
                   icon: Icons.home,
                   label: 'Inicio',
