@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:prolab_unimet/models/notification_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// (Función auxiliar para mostrar la hora - No requiere paquetes nuevos)
 String _formatTimeAgo(Timestamp timestamp) {
   final now = DateTime.now();
   final difference = now.difference(timestamp.toDate());
@@ -19,7 +18,6 @@ String _formatTimeAgo(Timestamp timestamp) {
   return 'Más de 1 sem';
 }
 
-// (Este Consumer es para los toasts de *notificaciones de BD*, lo dejamos)
 class AdminLayout extends StatelessWidget {
   final Widget child;
 
@@ -41,7 +39,6 @@ class AdminLayout extends StatelessWidget {
       ],
       child: Consumer2<NotificationProvider, AuthProvider>(
         builder: (context, notifProvider, auth, layoutChild) {
-          // Lógica para el toast de *notificación de BD* (la dejamos)
           if (notifProvider.toastNotification != null) {
             final notification = notifProvider.toastNotification!;
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -76,7 +73,6 @@ class AdminLayout extends StatelessWidget {
             });
           }
 
-          // Lógica para el toast de *bienvenida*
           if (auth.newLoginUserName != null) {
             final name = auth.newLoginUserName;
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -93,14 +89,14 @@ class AdminLayout extends StatelessWidget {
           backgroundColor: const Color(0xfff4f6f7),
           body: Column(
             children: [
-              // ===== NAVBAR SUPERIOR =====
+              // ===== NAVBAR =====
               Container(
                 height: 70,
                 color: navBarColor,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   children: [
-                    // Logo (Sin cambios)
+                    // Logo
                     Row(
                       children: [
                         Image.asset('assets/Logo.png', height: 40, width: 40),
@@ -130,7 +126,7 @@ class AdminLayout extends StatelessWidget {
                     ),
                     const SizedBox(width: 40),
 
-                    // Navegación (Sin cambios)
+                    // Botones del navbar
                     const _NavButton(
                       icon: Icons.dashboard_outlined,
                       label: 'Dashboard',
@@ -142,144 +138,126 @@ class AdminLayout extends StatelessWidget {
                       label: 'Proyectos',
                       route: '/admin-projects',
                     ),
+                    const SizedBox(width: 15),
+                    const _NavButton(
+                      icon: Icons.folder_copy_outlined,
+                      label: 'Tareas',
+                      route: '/admin-projects',
+                    ),
+                    const SizedBox(width: 15),
+                    const _NavButton(
+                      icon: Icons.folder_copy_outlined,
+                      label: 'Recursos',
+                      route: '/admin-projects',
+                    ),
+                    const SizedBox(width: 15),
+                    const _NavButton(
+                      icon: Icons.folder_copy_outlined,
+                      label: 'Dashboard',
+                      route: '/admin-projects',
+                    ),
+                    const SizedBox(width: 15),
+                    const _NavButton(
+                      icon: Icons.folder_copy_outlined,
+                      label: 'Reportes',
+                      route: '/admin-projects',
+                    ),
 
                     const Spacer(),
 
-                    // ===== NAVEGACIÓN DERECHA =====
-                    Row(
-                      children: [
-                        // Campana de Notificación (USAMOS EL CONTEXTO ORIGINAL buildContext)
-                        _NotificationBell(originalContext: buildContext),
-                        const SizedBox(width: 10),
+                    // 🔔 Notificaciones + Perfil
+                    _NotificationBell(originalContext: buildContext),
+                    const SizedBox(width: 10),
+                    PopupMenuButton<String>(
+                      tooltip: 'Opciones de perfil',
+                      color: navBarColor,
+                      offset: const Offset(0, 55),
+                      onSelected: (value) async {
+                        final messenger = ScaffoldMessenger.of(buildContext);
+                        final router = GoRouter.of(buildContext);
 
-                        // Botón de Perfil
-                        PopupMenuButton<String>(
-                          tooltip: 'Opciones de perfil',
-                          color: navBarColor,
-                          offset: const Offset(0, 55),
-                          onSelected: (value) async {
-                            final messenger = ScaffoldMessenger.of(
-                              buildContext,
+                        switch (value) {
+                          case 'settings':
+                            router.go('/admin-settings');
+                            break;
+                          case 'profile':
+                            router.go('/admin-profile');
+                            break;
+                          case 'logout':
+                            await authProvider.logout();
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Has cerrado sesión.'),
+                              ),
                             );
-                            final router = GoRouter.of(buildContext);
-
-                            switch (value) {
-                              case 'settings':
-                                router.go('/admin-settings');
-                                break;
-
-                              case 'profile':
-                                router.go('/admin-profile');
-                                break;
-
-                              case 'logout':
-                                await authProvider.logout();
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Has cerrado sesión.'),
-                                  ),
-                                );
-                                router.go('/login');
-                                break;
-                            }
-                          },
-                          itemBuilder: (BuildContext context) => [
-                            PopupMenuItem<String>(
-                              value: 'profile',
-                              child: ListTile(
-                                leading: Icon(
-                                  Icons.account_circle,
-                                  color: iconColor,
-                                ),
-                                title: Text(
-                                  'Perfil',
-                                  style: TextStyle(color: textColor),
-                                ),
+                            router.go('/login');
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'profile',
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: ListTile(
+                              leading: Icon(
+                                Icons.account_circle,
+                                color: iconColor,
+                              ),
+                              title: Text(
+                                'Perfil',
+                                style: TextStyle(color: textColor),
                               ),
                             ),
-                            PopupMenuItem<String>(
-                              value: 'settings',
-                              child: ListTile(
-                                leading: Icon(
-                                  Icons.settings_outlined,
-                                  color: iconColor,
-                                ),
-                                title: Text(
-                                  'Ajustes',
-                                  style: TextStyle(color: textColor),
-                                ),
-                              ),
-                            ),
-                            PopupMenuItem<String>(
-                              value: 'logout',
-                              child: ListTile(
-                                leading: Icon(Icons.logout, color: iconColor),
-                                title: Text(
-                                  'Cerrar Sesión',
-                                  style: TextStyle(color: textColor),
-                                ),
-                              ),
-                            ),
-                          ],
-                          child: const CircleAvatar(
-                            radius: 18,
-                            backgroundColor: Colors.white24,
-                            child: Icon(Icons.person_outline, color: iconColor),
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        PopupMenuItem(
+                          value: 'settings',
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: ListTile(
+                              leading: Icon(
+                                Icons.settings_outlined,
+                                color: iconColor,
+                              ),
+                              title: Text(
+                                'Ajustes',
+                                style: TextStyle(color: textColor),
+                              ),
+                            ),
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'logout',
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: ListTile(
+                              leading: Icon(Icons.logout, color: iconColor),
+                              title: Text(
+                                'Cerrar Sesión',
+                                style: TextStyle(color: textColor),
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
+                      child: const CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.white24,
+                        child: Icon(Icons.person_outline, color: iconColor),
+                      ),
                     ),
                   ],
                 ),
               ),
 
-                // ===== NAVIGATION MENU =====
-                _NavButton(
-                  icon: Icons.home,
-                  label: 'Inicio',
-                  route: '/admin-dashboard',
-                ),
-                _NavButton(
-                  icon: Icons.folder_outlined,
-                  label: 'Proyectos',
-                  route: '/admin-projects',
-                ),
-                _NavButton(
-                  icon: Icons.calendar_today_outlined,
-                  label: 'Tareas',
-                  route: '/admin-tasks',
-                ),
-                _NavButton(
-                  icon: Icons.people_outline,
-                  label: 'Recursos',
-                  route: '/admin-resources',
-                ),
-                _NavButton(
-                  icon: Icons.bar_chart_outlined,
-                  label: 'Dashboard',
-                  route: '/admin-dashboard',
-                ),
-                _NavButton(
-                  icon: Icons.description_outlined,
-                  label: 'Reportes',
-                  route: '/admin-reports',
-                ),
-                const Spacer(),
-
-                // Iconos a la derecha
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.notifications_none,
-                    color: Colors.white,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.settings_outlined,
-                    color: Colors.white,
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1200),
+                    child: child,
                   ),
                 ),
               ),
@@ -291,7 +269,6 @@ class AdminLayout extends StatelessWidget {
   }
 }
 
-// Widget _NavButton (SIN CAMBIOS)
 class _NavButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -327,21 +304,17 @@ class _NavButton extends StatelessWidget {
   }
 }
 
-// _NotificationBell (MODIFICADO)
 class _NotificationBell extends StatelessWidget {
-  // Recibe el contexto original para poder llamar a los Providers
   final BuildContext originalContext;
 
   const _NotificationBell({required this.originalContext});
 
-  // Usamos el contexto local para el PopupMenuButton, pero el original para los Providers
   @override
   Widget build(BuildContext context) {
     const Color navBarColor = Color(0xff253f8d);
     const Color iconColor = Colors.white70;
     const Color textColor = Colors.white;
 
-    // Usamos el contexto original para leer el provider
     final provider = Provider.of<NotificationProvider>(originalContext);
     final notifications = provider.notifications;
     final unreadCount = provider.unreadCount;
@@ -351,26 +324,16 @@ class _NotificationBell extends StatelessWidget {
       color: navBarColor,
       offset: const Offset(0, 55),
 
-      // Al abrir el menú, NO marcamos todo como leído automáticamente.
-      onOpened: () {
-        // Opcional: mostrar un mensaje si está vacío
-      },
+      onOpened: () {},
 
-      // ===== INICIO DE LA LÓGICA DE SELECCIÓN INDIVIDUAL =====
       onSelected: (value) {
         if (value == 'history') {
-          // Si hace clic en "Ver historial"
-          GoRouter.of(
-            context,
-          ).go('/admin-notifications'); // (Ruta que debes crear)
+          GoRouter.of(context).go('/admin-notifications');
         } else {
-          // Si hace clic en una notificación
-          provider.markAsRead(value); // Marcamos solo esa como leída
-          // Opcional: Redirigir a la vista de detalle del proyecto (ej. /admin-projects/$value)
+          provider.markAsRead(value);
         }
       },
 
-      // ===== FIN DE LA LÓGICA DE SELECCIÓN INDIVIDUAL =====
       itemBuilder: (BuildContext context) {
         List<PopupMenuEntry<String>> items = [];
 
@@ -396,7 +359,6 @@ class _NotificationBell extends StatelessWidget {
             ),
           );
         } else {
-          // Construir la lista de notificaciones
           items.addAll(
             notifications.map((notification) {
               final isUnread = !notification.isRead;
@@ -417,7 +379,6 @@ class _NotificationBell extends StatelessWidget {
                     ),
                   ),
                   subtitle: Text(
-                    // Mostramos el tiempo transcurrido
                     _formatTimeAgo(notification.createdAt),
                     style: const TextStyle(color: Colors.white70),
                   ),
@@ -427,7 +388,6 @@ class _NotificationBell extends StatelessWidget {
           );
         }
 
-        // ===== Botón para el Historial Completo =====
         items.add(
           PopupMenuItem<String>(
             value: 'history',
@@ -440,7 +400,6 @@ class _NotificationBell extends StatelessWidget {
             ),
           ),
         );
-        // ===========================================
 
         return items;
       },
