@@ -1,31 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:prolab_unimet/views/layouts/admin_layout.dart';
 import 'package:prolab_unimet/widgets/custom_text_field_widget.dart';
-import 'package:prolab_unimet/controllers/register_controller.dart';
+import 'package:prolab_unimet/controllers/profile_controller.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
+    return SingleChildScrollView(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextButton.icon(
-            onPressed: () {},
-            icon: Icon(Icons.arrow_back, color: Colors.black),
-            label: Text(
-              'Volver al dashboard',
-              style: TextStyle(color: Colors.black, fontSize: 18),
-            ),
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-            ),
+          NavButton1(
+            icon: Icons.arrow_back,
+            label: 'Volver al dashboard',
+            route: '/admin-dashboard',
           ),
           Text(
             'Modificar Perfil',
@@ -83,8 +75,10 @@ class ProfileManager extends StatefulWidget {
 }
 
 class _ProfileManagerState extends State<ProfileManager> {
+  ProfileController controller = ProfileController();
   @override
   Widget build(BuildContext context) {
+    controller.cancelarAccion(context);
     return Center(
       child: Container(
         width: 900,
@@ -118,14 +112,13 @@ class _ProfileManagerState extends State<ProfileManager> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(
-                  onPressed: () {},
-                  icon: Icon(Icons.account_circle),
-                  color: Colors.indigo,
-                  iconSize: 80,
+                CircleAvatar(
+                  radius: 55,
+                  child: Icon(Icons.person, size: 80, color: Colors.white),
                 ),
               ],
             ),
+            SizedBox(height: 20),
             Form(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,6 +151,8 @@ class _ProfileManagerState extends State<ProfileManager> {
           labelText: 'nombre',
           hintText: 'Tu nombre completo',
           iconData: Icons.person,
+          controller: controller.newnameController,
+          validator: controller.validarNombre,
         ),
         SizedBox(height: 10),
         Text('Correo electronico'),
@@ -165,13 +160,17 @@ class _ProfileManagerState extends State<ProfileManager> {
           labelText: 'correo',
           hintText: 'tu@email.com',
           iconData: Icons.mail,
+          controller: controller.newemailController,
+          validator: controller.validarCorreo,
         ),
         SizedBox(height: 10),
         Text('Telefono'),
         CustomTextField(
           labelText: 'telefono',
-          hintText: '+58 123 456 789',
+          hintText: '01234567890',
           iconData: Icons.phone,
+          controller: controller.newphoneController,
+          validator: controller.validarPhone,
         ),
       ],
     );
@@ -186,6 +185,8 @@ class _ProfileManagerState extends State<ProfileManager> {
           labelText: 'nombre',
           hintText: '123456789',
           iconData: Icons.password,
+          controller: controller.newpasswordController,
+          validator: controller.validarPassword,
         ),
         SizedBox(height: 10),
         Text('Cedula'),
@@ -193,6 +194,8 @@ class _ProfileManagerState extends State<ProfileManager> {
           labelText: 'cedula',
           hintText: 'Numero de cedula',
           iconData: Icons.info,
+          controller: controller.newpersonIdController,
+          validator: controller.validarCedula,
         ),
         SizedBox(height: 10),
         Text('Fecha de nacimiento'),
@@ -205,7 +208,21 @@ class _ProfileManagerState extends State<ProfileManager> {
               initialDate: DateTime(2000),
               lastDate: DateTime.now(),
             );
+            if (pickedDate != null) {
+              setState(() => controller.selectedDate = pickedDate);
+            }
           },
+          controller: TextEditingController(
+            text: controller.selectedDate == null
+                ? ''
+                : '${controller.selectedDate!.day}/${controller.selectedDate!.month}/${controller.selectedDate!.year}',
+          ),
+          validator: (_) => controller.validarDate(),
+          decoration: InputDecoration(
+            hintText: 'dd/mm/yyyy',
+            prefixIcon: const Icon(Icons.calendar_today_outlined),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
         ),
       ],
     );
@@ -219,18 +236,42 @@ class _ProfileManagerState extends State<ProfileManager> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [Text('Descripcion personal'), TextField()],
+        children: [
+          Text('Descripcion personal'),
+          TextField(controller: controller.descController, maxLines: 10),
+        ],
       ),
     );
   }
 
   Widget cancel1() {
-    return OutlinedButton(onPressed: () {}, child: Text('Cancelar'));
+    return OutlinedButton(
+      onPressed: () {
+        setState(() {
+          try {
+            controller.cancelarAccion(context);
+          } catch (e) {
+            debugPrint(e.toString());
+          }
+        });
+      },
+      child: Text('Cancelar'),
+    );
   }
 
   Widget saveChanges() {
     return TextButton.icon(
-      onPressed: () {},
+      onPressed: () {
+        setState(() {
+          if (mounted) {
+            try {
+              controller.modificarPerfil(context);
+            } catch (e) {
+              debugPrint('Error');
+            }
+          }
+        });
+      },
       icon: Icon(Icons.save, color: Colors.white),
       label: Text(
         'Guardar cambios',
@@ -238,6 +279,36 @@ class _ProfileManagerState extends State<ProfileManager> {
       ),
       style: TextButton.styleFrom(
         backgroundColor: Colors.indigo,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+      ),
+    );
+  }
+}
+
+//Boton de navegación con algunos cambios
+class NavButton1 extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String route;
+
+  const NavButton1({
+    required this.icon,
+    required this.label,
+    required this.route,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: () => context.go(route),
+      icon: Icon(icon, color: Colors.black),
+      label: Text(
+        label,
+        style: TextStyle(color: Colors.black, fontWeight: FontWeight.normal),
+      ),
+      style: TextButton.styleFrom(
+        backgroundColor: Colors.white24,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 16),
       ),
