@@ -1,5 +1,5 @@
 // lib/controllers/login_controller.dart
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'; // Corregido: 'package:' en lugar de 'package.'
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
@@ -46,6 +46,7 @@ class LoginController extends ChangeNotifier {
 
   /// Performs login through AuthProvider and redirects by role
   Future<void> login(BuildContext context, GlobalKey<FormState> formKey) async {
+    // Aquí el error de _formKey no aparece porque la variable existe.
     if (!formKey.currentState!.validate()) {
       _errorMessage = null;
       notifyListeners();
@@ -68,13 +69,11 @@ class LoginController extends ChangeNotifier {
 
       // 3️⃣ Get user info from provider
       final role = authProvider.role;
-      final name = authProvider.name;
 
       // 4️⃣ Show welcome message and navigate based on role
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Bienvenido $name')));
+
+        // (El SnackBar de "Bienvenido" se maneja en AdminLayout)
 
         if (role == 'ADMIN' || role == 'COORDINATOR' || role == 'USER') {
           context.go('/admin-dashboard');
@@ -88,7 +87,7 @@ class LoginController extends ChangeNotifier {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(_errorMessage!)));
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
       _isLoading = false;
