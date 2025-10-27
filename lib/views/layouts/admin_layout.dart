@@ -234,14 +234,52 @@ class AdminLayout extends StatelessWidget {
                 ),
               ),
 
-              // ===== CONTENIDO DEBAJO DEL NAVBAR =====
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1200),
-                    child: child,
+                // ===== NAVIGATION MENU =====
+                _NavButton(
+                  icon: Icons.home,
+                  label: 'Inicio',
+                  route: '/admin-dashboard',
+                ),
+                _NavButton(
+                  icon: Icons.folder_outlined,
+                  label: 'Proyectos',
+                  route: '/admin-projects',
+                ),
+                _NavButton(
+                  icon: Icons.calendar_today_outlined,
+                  label: 'Tareas',
+                  route: '/admin-tasks',
+                ),
+                _NavButton(
+                  icon: Icons.people_outline,
+                  label: 'Recursos',
+                  route: '/admin-resources',
+                ),
+                _NavButton(
+                  icon: Icons.bar_chart_outlined,
+                  label: 'Dashboard',
+                  route: '/admin-dashboard',
+                ),
+                _NavButton(
+                  icon: Icons.description_outlined,
+                  label: 'Reportes',
+                  route: '/admin-reports',
+                ),
+                const Spacer(),
+
+                // Iconos a la derecha
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(
+                    Icons.notifications_none,
+                    color: Colors.white,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(
+                    Icons.settings_outlined,
+                    color: Colors.white,
                   ),
                 ),
               ),
