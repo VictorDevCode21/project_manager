@@ -24,46 +24,64 @@ class ProfileController {
     return newname;
   }
 
-  String? validarNombre(String? value) {
-    if (value == null || value.trim().isEmpty) {
+  String? validarNombre(String? v) {
+    if (v == null || v.trim().isEmpty) {
       return 'Por favor, ingresa tu nombre';
     }
     return null;
   }
 
-  String? validarCedula(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return "Por favor, ingresa tu cédula";
+  String? validarCedula(String? v) {
+    if (v == null || v.trim().isEmpty) {
+      return 'Ingresa tu cédula';
+    }
+    if (v.length > 8 || v.length < 6) {
+      return 'Cedula invalida';
     }
     return null;
   }
 
-  String? validarCorreo(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Ingresa tu correo electrónico';
-    }
-    // Allow only UNIMET institutional emails
-    final regex = RegExp(
+  String? validarCorreo(String? v) {
+    var regex1 = RegExp(
       r'^[\w\.-]+@(correo\.unimet\.edu\.ve|unimet\.edu\.ve)$',
       caseSensitive: false,
     );
-
-    if (!regex.hasMatch(value.trim())) {
+    if (v == null || v.isEmpty) {
+      return 'Ingresa tu correo electrónico';
+    }
+    if (!regex1.hasMatch(v.trim())) {
       return 'Solo se permiten correos institucionales de la UNIMET';
     }
-
     return null;
   }
 
-  String? validarPhone(String? value) {
-    if (value == null || value.isEmpty) return 'Ingresa tu número de teléfono';
-    if (!RegExp(r'^\d{7,11}$').hasMatch(value)) return 'Número inválido';
+  String? validarPhone(String? v) {
+    var regex2 = RegExp(r'^\d{7,11}$');
+    if (v == null || v.isEmpty) {
+      return 'Ingresa tu número de teléfono';
+    }
+    if (regex2.hasMatch(v)) {
+      return 'Número inválido';
+    }
     return null;
   }
 
-  String? validarPassword(String? value) {
-    if (value == null || value.isEmpty) return 'Ingresa una contraseña';
-    if (value.length < 6) return 'Debe tener al menos 6 caracteres';
+  String? validarPassword(String? v) {
+    if (v == null || v.isEmpty) {
+      return 'Ingresa una contraseña';
+    }
+    if (v.length < 6) {
+      return 'Debe tener al menos 6 caracteres';
+    }
+    if (v.length > 30) {
+      return 'Debe tener a lo sumo 30 caracteres';
+    }
+    if (v == '123456') {
+      return 'Contraseña muy debil';
+    }
+    if (v == 'password') {
+      return 'Contraseña muy debil';
+    }
     return null;
   }
 

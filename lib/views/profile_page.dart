@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:prolab_unimet/views/layouts/admin_layout.dart';
 import 'package:prolab_unimet/widgets/custom_text_field_widget.dart';
 import 'package:prolab_unimet/controllers/profile_controller.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
@@ -11,20 +14,10 @@ class ProfileView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextButton.icon(
-            onPressed: () {},
-            icon: Icon(Icons.arrow_back, color: Colors.black),
-            label: Text(
-              'Volver al dashboard',
-              style: TextStyle(color: Colors.black, fontSize: 18),
-            ),
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-            ),
+          NavButton1(
+            icon: Icons.arrow_back,
+            label: 'Volver al dashboard',
+            route: '/admin-dashboard',
           ),
           Text(
             'Modificar Perfil',
@@ -174,7 +167,7 @@ class _ProfileManagerState extends State<ProfileManager> {
         Text('Telefono'),
         CustomTextField(
           labelText: 'telefono',
-          hintText: '+58 123 456 789',
+          hintText: '01234567890',
           iconData: Icons.phone,
           controller: controller.newphoneController,
           validator: controller.validarPhone,
@@ -270,10 +263,12 @@ class _ProfileManagerState extends State<ProfileManager> {
     return TextButton.icon(
       onPressed: () {
         setState(() {
-          try {
-            controller.modificarPerfil(context);
-          } catch (e) {
-            debugPrint('Error');
+          if (mounted) {
+            try {
+              controller.modificarPerfil(context);
+            } catch (e) {
+              debugPrint('Error');
+            }
           }
         });
       },
@@ -284,6 +279,36 @@ class _ProfileManagerState extends State<ProfileManager> {
       ),
       style: TextButton.styleFrom(
         backgroundColor: Colors.indigo,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+      ),
+    );
+  }
+}
+
+//Boton de navegación con algunos cambios
+class NavButton1 extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String route;
+
+  const NavButton1({
+    required this.icon,
+    required this.label,
+    required this.route,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: () => context.go(route),
+      icon: Icon(icon, color: Colors.black),
+      label: Text(
+        label,
+        style: TextStyle(color: Colors.black, fontWeight: FontWeight.normal),
+      ),
+      style: TextButton.styleFrom(
+        backgroundColor: Colors.white24,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 16),
       ),
