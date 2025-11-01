@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:prolab_unimet/controllers/register_controller.dart';
 import 'package:prolab_unimet/widgets/custom_text_field_widget.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -230,6 +231,16 @@ class _RegisterViewState extends State<RegisterView> {
           iconData: Icons.person_outline,
           controller: _controller.nameController,
           validator: _controller.validateName,
+          // Allow only letters (including accents) and spaces; capitalize words
+          inputFormatters: [
+            FilteringTextInputFormatter.deny(
+              RegExp(r'[^a-zA-ZÀ-ÿ\s]'),
+            ), // block digits/symbols
+            LengthLimitingTextInputFormatter(60), // reasonable cap
+          ],
+          keyboardType: TextInputType.name,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 20),
 
@@ -240,6 +251,21 @@ class _RegisterViewState extends State<RegisterView> {
           iconData: Icons.email_outlined,
           controller: _controller.emailController,
           validator: _controller.validateEmail,
+          // Force lowercase and remove spaces as the user types
+          inputFormatters: [
+            FilteringTextInputFormatter.deny(RegExp(r'\s')), // no spaces
+            TextInputFormatter.withFunction((oldValue, newValue) {
+              // Convert to lowercase while typing
+              return newValue.copyWith(
+                text: newValue.text.toLowerCase(),
+                selection: newValue.selection,
+                composing: TextRange.empty,
+              );
+            }),
+            LengthLimitingTextInputFormatter(80),
+          ],
+          keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 20),
 
@@ -250,8 +276,15 @@ class _RegisterViewState extends State<RegisterView> {
           iconData: Icons.lock_outline,
           obscureText: true,
           controller: _controller.passwordController,
-          // inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
           validator: _controller.validatePassword,
+          // Block whitespace; no suggestions/autocorrect for passwords
+          inputFormatters: [
+            FilteringTextInputFormatter.deny(RegExp(r'\s')),
+            LengthLimitingTextInputFormatter(64), // cap for sanity
+          ],
+          enableSuggestions: false,
+          autocorrect: false,
+          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 20),
 
@@ -263,6 +296,13 @@ class _RegisterViewState extends State<RegisterView> {
           obscureText: true,
           controller: _controller.confirmPasswordController,
           validator: _controller.validateConfirmPassword,
+          inputFormatters: [
+            FilteringTextInputFormatter.deny(RegExp(r'\s')),
+            LengthLimitingTextInputFormatter(64),
+          ],
+          enableSuggestions: false,
+          autocorrect: false,
+          textInputAction: TextInputAction.done,
         ),
       ],
     );
@@ -278,9 +318,16 @@ class _RegisterViewState extends State<RegisterView> {
           labelText: 'Teléfono',
           hintText: '04141234567',
           iconData: Icons.phone_android_outlined,
-          keyboardType: TextInputType.number,
           controller: _controller.phoneController,
-          validator: _controller.validatePhone,
+          validator:
+              _controller.validatePhone, // usa el regex de 0+prefix+7 dígitos
+          // Only digits and exactly 11 characters (0 + 3-digit prefix + 7 digits)
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(11),
+          ],
+          keyboardType: TextInputType.phone,
+          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 20),
 
@@ -309,6 +356,13 @@ class _RegisterViewState extends State<RegisterView> {
           iconData: Icons.assignment_ind_outlined,
           controller: _controller.personIdController,
           validator: _controller.validatePersonId,
+          // Only digits; typical cap at 10 per your validator
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ],
+          keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 20),
 
