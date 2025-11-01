@@ -1,11 +1,10 @@
-// lib/views/layouts/admin_layout.dart
+// lib/layouts/admin_layout.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
 import 'package:prolab_unimet/providers/notification_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:prolab_unimet/models/notification_model.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 String _formatTimeAgo(Timestamp timestamp) {
   final now = DateTime.now();
@@ -19,7 +18,8 @@ String _formatTimeAgo(Timestamp timestamp) {
 }
 
 class AdminLayout extends StatelessWidget {
-  final Widget child;
+  final Widget
+  child; // 👈 Aquí se mostrará el contenido dinámico debajo del navbar
 
   const AdminLayout({super.key, required this.child});
 
@@ -247,10 +247,38 @@ class AdminLayout extends StatelessWidget {
                         child: Icon(Icons.person_outline, color: iconColor),
                       ),
                     ),
+                    IconButton(
+                      onPressed: () {},
+                      icon: const Icon(
+                        Icons.settings_outlined,
+                        color: Colors.white,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () async {
+                        final authProviderLocal = Provider.of<AuthProvider>(
+                          buildContext,
+                          listen: false,
+                        );
+
+                        await authProviderLocal.logout();
+
+                        if (buildContext.mounted) {
+                          GoRouter.of(buildContext).go('/login');
+                          ScaffoldMessenger.of(buildContext).showSnackBar(
+                            const SnackBar(
+                              content: Text('Sesión cerrada correctamente'),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.logout, color: Colors.white),
+                    ),
                   ],
                 ),
               ),
 
+              // ===== CONTENIDO DEBAJO DEL NAVBAR =====
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(20),

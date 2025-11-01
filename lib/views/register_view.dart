@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:prolab_unimet/controllers/register_controller.dart';
 import 'package:prolab_unimet/widgets/custom_text_field_widget.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -106,18 +107,41 @@ class _RegisterViewState extends State<RegisterView> {
                       height: 45,
                       child: ElevatedButton(
                         onPressed: () async {
-                          setState(() {
-                            _autoValidateMode = AutovalidateMode.always;
-                          });
+                          // Turn on autovalidation on first submit attempt
+                          setState(
+                            () => _autoValidateMode = AutovalidateMode.always,
+                          );
 
-                          if (!_controller.validateForm()) return;
+                          // Dismiss keyboard to ensure field values are up-to-date
+                          FocusScope.of(context).unfocus();
 
-                          // Capture NavigatorState, ScaffoldMessengerState and GoRouter before the async gap
-                          final navigator = Navigator.of(context);
-                          final messenger = ScaffoldMessenger.of(context);
-                          final router = GoRouter.of(context);
+                          // Validate the whole form now
+                          final isValid =
+                              _controller.formKey.currentState?.validate() ??
+                              false;
 
-                          // Show loading dialog without awaiting so registration runs while dialog is visible
+                          // Also validate role/date which live in controller state
+                          final roleError = _controller.validateRole();
+                          final dateError = _controller.validateDate();
+
+                          // If anything is wrong, just show errors in red and bail. No loader, no navigation.
+                          if (!isValid ||
+                              roleError != null ||
+                              dateError != null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Corrige los errores antes de continuar.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          // Optionally save
+                          _controller.formKey.currentState?.save();
+
+                          // Now show loader, because we are actually going to hit the network
                           showDialog(
                             context: context,
                             barrierDismissible: false,
@@ -126,32 +150,28 @@ class _RegisterViewState extends State<RegisterView> {
                             ),
                           );
 
+                          final navigator = Navigator.of(context);
+                          final router = GoRouter.of(context);
+
                           try {
-                            // Perform registration (pass State.context directly)
-                            await _controller.registerUser(context);
+                            // Make the controller return a bool indicating success
+                            final success = await _controller.registerUser(
+                              context,
+                            );
 
-                            // If the state was disposed while registering, stop safely
-                            if (!mounted) {
-                              _controller.dispose();
-                              return;
+                            if (context.mounted && navigator.canPop()) {
+                              navigator.pop(); // close loader
                             }
 
-                            // Close the dialog using the captured NavigatorState
-                            if (navigator.canPop()) {
-                              navigator.pop();
+                            if (context.mounted) {
+                              router.go(
+                                '/admin/dashboard',
+                              ); // only navigate if it really succeeded
                             }
-
-                            // Navigate using the captured GoRouter instance
-                            router.go('admin-dashboard');
                           } catch (e) {
-                            // Try to close dialog even if an error happens
-                            if (navigator.canPop()) {
-                              navigator.pop();
-                            }
-
-                            // Only show snackbar if the State is still mounted (use captured messenger)
-                            if (mounted) {
-                              messenger.showSnackBar(
+                            if (navigator.canPop()) navigator.pop();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text(e.toString())),
                               );
                             }
@@ -211,6 +231,16 @@ class _RegisterViewState extends State<RegisterView> {
           iconData: Icons.person_outline,
           controller: _controller.nameController,
           validator: _controller.validateName,
+          // Allow only letters (including accents) and spaces; capitalize words
+          inputFormatters: [
+            FilteringTextInputFormatter.deny(
+              RegExp(r'[^a-zA-ZÀ-ÿ\s]'),
+            ), // block digits/symbols
+            LengthLimitingTextInputFormatter(60), // reasonable cap
+          ],
+          keyboardType: TextInputType.name,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 20),
 
@@ -221,6 +251,21 @@ class _RegisterViewState extends State<RegisterView> {
           iconData: Icons.email_outlined,
           controller: _controller.emailController,
           validator: _controller.validateEmail,
+          // Force lowercase and remove spaces as the user types
+          inputFormatters: [
+            FilteringTextInputFormatter.deny(RegExp(r'\s')), // no spaces
+            TextInputFormatter.withFunction((oldValue, newValue) {
+              // Convert to lowercase while typing
+              return newValue.copyWith(
+                text: newValue.text.toLowerCase(),
+                selection: newValue.selection,
+                composing: TextRange.empty,
+              );
+            }),
+            LengthLimitingTextInputFormatter(80),
+          ],
+          keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 20),
 
@@ -232,6 +277,14 @@ class _RegisterViewState extends State<RegisterView> {
           obscureText: true,
           controller: _controller.passwordController,
           validator: _controller.validatePassword,
+          // Block whitespace; no suggestions/autocorrect for passwords
+          inputFormatters: [
+            FilteringTextInputFormatter.deny(RegExp(r'\s')),
+            LengthLimitingTextInputFormatter(64), // cap for sanity
+          ],
+          enableSuggestions: false,
+          autocorrect: false,
+          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 20),
 
@@ -243,6 +296,13 @@ class _RegisterViewState extends State<RegisterView> {
           obscureText: true,
           controller: _controller.confirmPasswordController,
           validator: _controller.validateConfirmPassword,
+          inputFormatters: [
+            FilteringTextInputFormatter.deny(RegExp(r'\s')),
+            LengthLimitingTextInputFormatter(64),
+          ],
+          enableSuggestions: false,
+          autocorrect: false,
+          textInputAction: TextInputAction.done,
         ),
       ],
     );
@@ -258,9 +318,16 @@ class _RegisterViewState extends State<RegisterView> {
           labelText: 'Teléfono',
           hintText: '04141234567',
           iconData: Icons.phone_android_outlined,
-          keyboardType: TextInputType.number,
           controller: _controller.phoneController,
-          validator: _controller.validatePhone,
+          validator:
+              _controller.validatePhone, // usa el regex de 0+prefix+7 dígitos
+          // Only digits and exactly 11 characters (0 + 3-digit prefix + 7 digits)
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(11),
+          ],
+          keyboardType: TextInputType.phone,
+          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 20),
 
@@ -289,6 +356,13 @@ class _RegisterViewState extends State<RegisterView> {
           iconData: Icons.assignment_ind_outlined,
           controller: _controller.personIdController,
           validator: _controller.validatePersonId,
+          // Only digits; typical cap at 10 per your validator
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ],
+          keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 20),
 
