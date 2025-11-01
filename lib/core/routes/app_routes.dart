@@ -1,4 +1,3 @@
-// lib/core/routes/app_routes.dart
 import 'package:flutter/material.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
 import 'package:prolab_unimet/views/dashboard_view.dart';
@@ -11,7 +10,6 @@ import 'package:prolab_unimet/views/register_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:prolab_unimet/views/resources_view.dart';
 import 'package:provider/provider.dart';
-import 'package:prolab_unimet/views/settings_view.dart'; // 1. IMPORTAR LA NUEVA VISTA
 
 // Define user roles for authorization
 const userRoles = ['USER', 'ADMIN', 'COORDINATOR'];
@@ -59,7 +57,7 @@ final appRouter = GoRouter(
         // 2. ADD NEW ROUTE HERE
         GoRoute(
           path: '/admin-settings',
-          builder: (context, state) => const SettingsView(),
+          // builder: (context, state) => const SettingsView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
         GoRoute(

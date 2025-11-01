@@ -106,18 +106,41 @@ class _RegisterViewState extends State<RegisterView> {
                       height: 45,
                       child: ElevatedButton(
                         onPressed: () async {
-                          setState(() {
-                            _autoValidateMode = AutovalidateMode.always;
-                          });
+                          // Turn on autovalidation on first submit attempt
+                          setState(
+                            () => _autoValidateMode = AutovalidateMode.always,
+                          );
 
-                          if (!_controller.validateForm()) return;
+                          // Dismiss keyboard to ensure field values are up-to-date
+                          FocusScope.of(context).unfocus();
 
-                          // Capture NavigatorState, ScaffoldMessengerState and GoRouter before the async gap
-                          final navigator = Navigator.of(context);
-                          final messenger = ScaffoldMessenger.of(context);
-                          final router = GoRouter.of(context);
+                          // Validate the whole form now
+                          final isValid =
+                              _controller.formKey.currentState?.validate() ??
+                              false;
 
-                          // Show loading dialog without awaiting so registration runs while dialog is visible
+                          // Also validate role/date which live in controller state
+                          final roleError = _controller.validateRole();
+                          final dateError = _controller.validateDate();
+
+                          // If anything is wrong, just show errors in red and bail. No loader, no navigation.
+                          if (!isValid ||
+                              roleError != null ||
+                              dateError != null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Corrige los errores antes de continuar.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          // Optionally save
+                          _controller.formKey.currentState?.save();
+
+                          // Now show loader, because we are actually going to hit the network
                           showDialog(
                             context: context,
                             barrierDismissible: false,
@@ -126,32 +149,28 @@ class _RegisterViewState extends State<RegisterView> {
                             ),
                           );
 
+                          final navigator = Navigator.of(context);
+                          final router = GoRouter.of(context);
+
                           try {
-                            // Perform registration (pass State.context directly)
-                            await _controller.registerUser(context);
+                            // Make the controller return a bool indicating success
+                            final success = await _controller.registerUser(
+                              context,
+                            );
 
-                            // If the state was disposed while registering, stop safely
-                            if (!mounted) {
-                              _controller.dispose();
-                              return;
+                            if (context.mounted && navigator.canPop()) {
+                              navigator.pop(); // close loader
                             }
 
-                            // Close the dialog using the captured NavigatorState
-                            if (navigator.canPop()) {
-                              navigator.pop();
+                            if (context.mounted) {
+                              router.go(
+                                '/admin/dashboard',
+                              ); // only navigate if it really succeeded
                             }
-
-                            // Navigate using the captured GoRouter instance
-                            router.go('admin-dashboard');
                           } catch (e) {
-                            // Try to close dialog even if an error happens
-                            if (navigator.canPop()) {
-                              navigator.pop();
-                            }
-
-                            // Only show snackbar if the State is still mounted (use captured messenger)
-                            if (mounted) {
-                              messenger.showSnackBar(
+                            if (navigator.canPop()) navigator.pop();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text(e.toString())),
                               );
                             }
@@ -231,6 +250,7 @@ class _RegisterViewState extends State<RegisterView> {
           iconData: Icons.lock_outline,
           obscureText: true,
           controller: _controller.passwordController,
+          // inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
           validator: _controller.validatePassword,
         ),
         const SizedBox(height: 20),

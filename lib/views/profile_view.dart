@@ -237,7 +237,7 @@ class _ProfileManagerState extends State<ProfileManager> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Descripcion personal'),
+          Text('Descripción personal'),
           TextField(controller: controller.descController, maxLines: 10),
         ],
       ),
