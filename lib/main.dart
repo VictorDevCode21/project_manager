@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:prolab_unimet/core/routes/app_routes.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
-// 1. IMPORTAR EL NUEVO PROVIDER DE NOTIFICACIONES
 import 'package:prolab_unimet/providers/notification_provider.dart';
 import 'package:prolab_unimet/views/splash_view.dart';
 import 'package:provider/provider.dart';
@@ -25,19 +24,16 @@ void main() async {
     debugPrintStack(stackTrace: st);
   }
 
-  // 2. CAMBIAR A MULTIPROVIDER
   runApp(
     MultiProvider(
       providers: [
-        // El AuthProvider que ya tenías
         ChangeNotifierProvider(create: (_) => AuthProvider()),
 
-        // El nuevo NotificationProvider que "depende" del AuthProvider
         ChangeNotifierProxyProvider<AuthProvider, NotificationProvider>(
           create: (_) => NotificationProvider(),
-          // Llama a 'listenToAuthChanges' cada vez que AuthProvider se actualiza
+
           update: (_, auth, previousNotifier) =>
-          previousNotifier!..listenToAuthChanges(auth),
+              previousNotifier!..listenToAuthChanges(auth),
         ),
       ],
       child: const MyApp(),
@@ -50,7 +46,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Color para el tema
     const Color softGrey = Color(0xFF424242);
     const Color greenBorder = Color(0xFFA5D6A7);
     const Color greenFocus = Color(0xFF66BB6A);
