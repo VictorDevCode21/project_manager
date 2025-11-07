@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:prolab_unimet/views/layouts/admin_layout.dart';
 import 'package:prolab_unimet/widgets/custom_text_field_widget.dart';
 import 'package:prolab_unimet/controllers/profile_controller.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class ProfileView extends StatelessWidget {

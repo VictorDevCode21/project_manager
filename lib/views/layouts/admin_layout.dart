@@ -171,9 +171,6 @@ class AdminLayout extends StatelessWidget {
                         final router = GoRouter.of(buildContext);
 
                         switch (value) {
-                          case 'settings':
-                            router.go('/admin-settings');
-                            break;
                           case 'profile':
                             router.go('/admin-profile');
                             break;
@@ -206,22 +203,6 @@ class AdminLayout extends StatelessWidget {
                           ),
                         ),
                         PopupMenuItem(
-                          value: 'settings',
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: ListTile(
-                              leading: Icon(
-                                Icons.settings_outlined,
-                                color: iconColor,
-                              ),
-                              title: Text(
-                                'Ajustes',
-                                style: TextStyle(color: textColor),
-                              ),
-                            ),
-                          ),
-                        ),
-                        PopupMenuItem(
                           value: 'logout',
                           child: MouseRegion(
                             cursor: SystemMouseCursors.click,
@@ -239,13 +220,6 @@ class AdminLayout extends StatelessWidget {
                         radius: 18,
                         backgroundColor: Colors.white24,
                         child: Icon(Icons.person_outline, color: iconColor),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(
-                        Icons.settings_outlined,
-                        color: Colors.white,
                       ),
                     ),
                     IconButton(
