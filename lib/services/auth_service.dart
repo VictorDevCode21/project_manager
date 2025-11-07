@@ -5,50 +5,36 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<Map<String, dynamic>> loginUser({
+  // -------------------------
+  // SCHEMA: users/{uid}
+  // {
+  //   id, name, email, role, phone, personId,
+  //   birthDate (Timestamp),
+  //   createdAt (serverTimestamp), updatedAt (serverTimestamp)
+  // }
+  // -------------------------
+
+  // Helper: create or update Firestore profile idempotently
+  Future<void> _ensureUserProfile({
+    required String uid,
     required String email,
-    required String password,
+    String? name,
+    String role = 'USER',
+    String? phone,
+    String? personId,
+    DateTime? birthDate,
   }) async {
-    try {
-      // 1️⃣ Authenticate user with Firebase Auth
-      final UserCredential cred = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
-
-      final User user = cred.user!;
-
-      // 2️⃣ Retrieve user data from Firestore
-      final DocumentSnapshot userDoc = await _firestore
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (!userDoc.exists) {
-        throw Exception('El perfil del usuario no existe en la base de datos.');
-      }
-
-      final data = userDoc.data() as Map<String, dynamic>;
-      final String name = data['name'] ?? 'Sin nombre';
-      final String role = data['role'] ?? 'Sin rol';
-
-      // 3️⃣ Retrieve a fresh ID token (JWT)
-      final String? token = await user.getIdToken();
-
-      // 4️⃣ Return a structured map containing all useful info
-      return {
-        'uid': user.uid,
-        'email': user.email,
-        'name': name,
-        'role': role,
-        'token': token,
-      };
-    } on FirebaseAuthException catch (e) {
-      // 5️⃣ Map Firebase-specific errors to friendly messages
-      throw Exception(_mapFirebaseLoginErrorToSpanish(e));
-    } catch (e) {
-      throw Exception('Error inesperado al iniciar sesión: ${e.toString()}');
-    }
+    await _firestore.collection('users').doc(uid).set({
+      'id': uid,
+      'email': email.toLowerCase(),
+      'name': name ?? '',
+      'role': role,
+      'phone': phone ?? '',
+      'personId': personId ?? '',
+      if (birthDate != null) 'birthDate': Timestamp.fromDate(birthDate),
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)); // merge = idempotent
   }
 
   // === REGISTER USER ===
@@ -62,41 +48,100 @@ class AuthService {
     required String personId,
   }) async {
     try {
-      // 1️⃣ Create user in Firebase Auth
-      final UserCredential cred = await _auth.createUserWithEmailAndPassword(
-        email: email.trim(),
+      // 1) Auth signup
+      final cred = await _auth.createUserWithEmailAndPassword(
+        email: email.trim().toLowerCase(),
         password: password,
       );
+      final user = cred.user;
+      if (user == null) return null;
 
-      final uid = cred.user!.uid;
+      // 2) Optional cosmetic update in Auth profile
+      await user.updateDisplayName(name);
 
-      // 2️⃣ Save user data to Firestore
-      await _firestore.collection('users').doc(uid).set({
-        'id': uid,
-        'name': name,
-        'email': email.trim(),
-        'phone_number': phoneNumber,
-        'role': role,
-        'description': '',
-        'personId': personId,
-        'birth_date': birthDate.toIso8601String(),
-        'created_at': FieldValue.serverTimestamp(),
-        'updated_at': FieldValue.serverTimestamp(),
-      });
+      // 3) Firestore profile (canonical, camelCase keys)
+      await _ensureUserProfile(
+        uid: user.uid,
+        email: email,
+        name: name,
+        role: role,
+        phone: phoneNumber,
+        personId: personId,
+        birthDate: birthDate,
+      );
 
-      // 3️⃣ Return the created user
-      return cred.user;
+      return user;
     } on FirebaseAuthException catch (e) {
-      // Use structured error handling instead of print
-      throw Exception(_mapFirebaseErrorToSpanish(e));
+      throw Exception(_mapFirebaseRegisterErrorEs(e));
+    } on FirebaseException catch (e) {
+      // Firestore/permission issues
+      throw Exception(_mapFirestoreErrorEs(e));
     } catch (e) {
-      // Catch any unexpected errors
-      throw Exception('Error desconocido: ${e.toString()}');
+      throw Exception('Error desconocido en registro.');
     }
   }
 
-  // === MAP FIREBASE ERROR TO USER-FRIENDLY MESSAGE ===
-  String _mapFirebaseErrorToSpanish(FirebaseAuthException e) {
+  // === LOGIN USER ===
+  Future<Map<String, dynamic>> loginUser({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      // 1) Auth signIn
+      final cred = await _auth.signInWithEmailAndPassword(
+        email: email.trim().toLowerCase(),
+        password: password,
+      );
+      final user = cred.user!;
+      final uid = user.uid;
+
+      // 2) Try to read profile
+      final ref = _firestore.collection('users').doc(uid);
+      var snap = await ref.get();
+
+      // 3) Backfill profile if missing (legacy users)
+      if (!snap.exists) {
+        await _ensureUserProfile(
+          uid: uid,
+          email: user.email ?? email,
+          name: user.displayName,
+          role: 'USER',
+        );
+        snap = await ref.get(); // read again
+      }
+
+      final data = snap.data() ?? {};
+      final name = (data['name'] as String?) ?? (user.displayName ?? '');
+      final role = (data['role'] as String?) ?? 'USER';
+      final freshToken = await user.getIdToken(true); // force refresh
+
+      return {
+        'uid': uid,
+        'email': user.email,
+        'name': name,
+        'role': role,
+        'token': freshToken,
+      };
+    } on FirebaseAuthException catch (e) {
+      throw Exception(_mapFirebaseLoginErrorEs(e));
+    } on FirebaseException catch (e) {
+      throw Exception(_mapFirestoreErrorEs(e));
+    } catch (_) {
+      throw Exception('Error inesperado al iniciar sesión.');
+    }
+  }
+
+  // === SIGN OUT ===
+  Future<void> logout() async => _auth.signOut();
+
+  // === TOKEN ===
+  Future<String?> getToken() async {
+    final user = _auth.currentUser;
+    return user != null ? await user.getIdToken() : null;
+  }
+
+  // === ERROR MAPPING (Auth) ===
+  String _mapFirebaseRegisterErrorEs(FirebaseAuthException e) {
     switch (e.code) {
       case 'email-already-in-use':
         return 'Este correo ya está registrado.';
@@ -105,41 +150,37 @@ class AuthService {
       case 'weak-password':
         return 'La contraseña es demasiado débil.';
       case 'operation-not-allowed':
-        return 'El registro con correo y contraseña no está habilitado.';
+        return 'Método de registro deshabilitado.';
       default:
-        return 'Ocurrió un error durante el registro. Intenta nuevamente.';
+        return 'No se pudo registrar. (${e.code})';
     }
   }
 
-  // === MAP LOGIN ERRORS ===
-  String _mapFirebaseLoginErrorToSpanish(FirebaseAuthException e) {
+  String _mapFirebaseLoginErrorEs(FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
-        return 'No existe una cuenta registrada con este correo.';
+        return 'No existe una cuenta con este correo.';
       case 'wrong-password':
         return 'La contraseña es incorrecta.';
       case 'invalid-email':
-        return 'El correo ingresado no es válido.';
+        return 'Correo inválido.';
       case 'user-disabled':
-        return 'Esta cuenta ha sido deshabilitada.';
+        return 'Esta cuenta está deshabilitada.';
       case 'too-many-requests':
-        return 'Demasiados intentos fallidos. Intenta más tarde.';
+        return 'Demasiados intentos. Intenta luego.';
       default:
-        return 'Error al iniciar sesión. Intenta nuevamente.';
+        return 'No se pudo iniciar sesión. (${e.code})';
     }
   }
 
-  // === GET USER TOKEN ===
-  Future<String?> getToken() async {
-    final user = _auth.currentUser;
-    return user != null ? await user.getIdToken() : null;
+  // === ERROR MAPPING (Firestore) ===
+  String _mapFirestoreErrorEs(FirebaseException e) {
+    if (e.code == 'permission-denied') {
+      return 'Acceso denegado en Firestore. Revisa reglas y dominios.';
+    }
+    if (e.code == 'unavailable') {
+      return 'Servicio de base de datos no disponible temporalmente.';
+    }
+    return 'Error de base de datos: ${e.code}';
   }
-
-  // === SIGN OUT ===
-  Future<void> logout() async {
-    await _auth.signOut();
-  }
-
-  // === SESSION LISTENER ===
-  Stream<User?> get userChanges => _auth.authStateChanges();
 }
