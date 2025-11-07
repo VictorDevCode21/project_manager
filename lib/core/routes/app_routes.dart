@@ -9,6 +9,7 @@ import 'package:prolab_unimet/views/projects_view.dart';
 import 'package:prolab_unimet/views/register_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:prolab_unimet/views/resources_view.dart';
+import 'package:prolab_unimet/views/settings_view.dart';
 import 'package:prolab_unimet/views/task_view.dart';
 import 'package:provider/provider.dart';
 
@@ -58,7 +59,7 @@ final appRouter = GoRouter(
         // 2. ADD NEW ROUTE HERE
         GoRoute(
           path: '/admin-settings',
-          // builder: (context, state) => const SettingsView(),
+          builder: (context, state) => const SettingsView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
         GoRoute(
