@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:prolab_unimet/controllers/project_controller.dart';
+import 'package:prolab_unimet/views/components/forms/create_project.dart';
+import 'package:provider/provider.dart';
 
 /// Displays the projects management view inside AdminLayout.
 class ProjectsView extends StatefulWidget {
@@ -46,8 +49,71 @@ class _ProjectsViewState extends State<ProjectsView> {
                     ],
                   ),
                   ElevatedButton.icon(
-                    onPressed: () {
-                      // TODO: Navigate to project creation form
+                    onPressed: () async {
+                      final nav = Navigator.of(context, rootNavigator: true);
+                      final messenger = ScaffoldMessenger.of(context);
+
+                      // 1) Abre el diálogo UI (solo recoge datos)
+                      final dto = await showDialog<ProjectCreateData>(
+                        context: context,
+                        barrierDismissible: false,
+                        useRootNavigator: true, // opcional, pero consistente
+                        builder: (_) => const CreateProjectDialog(),
+                      );
+                      if (dto == null) return;
+
+                      // Guard against using BuildContext across async gaps.
+                      if (!mounted) return;
+
+                      debugPrint(
+                        '[ProjectsView] DTO -> '
+                        'name=${dto.name}, client=${dto.client}, '
+                        'desc.len=${dto.description.length}, type=${dto.consultingType}, '
+                        'budget=${dto.budgetUsd}, priority=${dto.priority}, '
+                        'start=${dto.startDate.toIso8601String()}, '
+                        'end=${dto.endDate.toIso8601String()}',
+                      );
+
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        useRootNavigator: true,
+                        builder: (_) =>
+                            const Center(child: CircularProgressIndicator()),
+                      );
+
+                      try {
+                        final controller = ProjectController();
+                        final projectId = await controller.createProject(
+                          name: dto.name,
+                          client: dto.client,
+                          description: dto.description,
+                          consultingType: dto.consultingType,
+                          budgetUsd: dto.budgetUsd,
+                          priority: dto.priority,
+                          startDate: dto.startDate,
+                          endDate: dto.endDate,
+                        );
+
+                        if (!mounted) return;
+                        if (nav.canPop()) {
+                          nav.pop();
+                        }
+
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text('Proyecto creado: $projectId'),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!mounted) return;
+                        if (nav.canPop()) {
+                          nav.pop(); // cierra loader también en error
+                        }
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('Error al crear: $e')),
+                        );
+                      }
                     },
                     icon: const Icon(Icons.add, size: 18, color: Colors.white),
                     label: const Text(
