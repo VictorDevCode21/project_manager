@@ -54,6 +54,7 @@ class Project {
   final DateTime startDate;
   final DateTime endDate;
   final DateTime? createdAt; // server timestamp at creation
+  final List<String> visibleTo;
 
   Project({
     required this.id,
@@ -69,6 +70,7 @@ class Project {
     required this.startDate,
     required this.endDate,
     required this.createdAt,
+    required this.visibleTo,
   });
 
   /// Factory used by the controller when creating a new project.
@@ -99,6 +101,7 @@ class Project {
       startDate: startDate,
       endDate: endDate,
       createdAt: null, // will be set by server FieldValue.serverTimestamp()
+      visibleTo: <String>[ownerId],
     );
   }
 
@@ -120,6 +123,7 @@ class Project {
       'status': status.wire,
       'startDate': Timestamp.fromDate(startDate),
       'endDate': Timestamp.fromDate(endDate),
+      'visibleTo': visibleTo,
       // createdAt is set in the controller with FieldValue.serverTimestamp()
     };
   }
@@ -129,6 +133,9 @@ class Project {
     final tsStart = d['startDate'] as Timestamp?;
     final tsEnd = d['endDate'] as Timestamp?;
     final tsCreated = d['createdAt'] as Timestamp?;
+    final vt =
+        (d['visibleTo'] as List?)?.whereType<String>().toList() ??
+        const <String>[];
 
     return Project(
       id: d['id'] as String? ?? doc.id,
@@ -148,6 +155,7 @@ class Project {
       startDate: tsStart?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0),
       endDate: tsEnd?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0),
       createdAt: tsCreated?.toDate(),
+      visibleTo: vt,
     );
   }
 }

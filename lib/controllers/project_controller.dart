@@ -1,11 +1,9 @@
-// lib/controllers/project_controller.dart
-import 'dart:developer' as dev; // structured logging
+import 'dart:developer' as dev;
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:prolab_unimet/models/projects_model.dart';
 
-/// Coordinates project persistence and queries. No UI here.
 class ProjectController {
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
@@ -14,9 +12,6 @@ class ProjectController {
     : _db = firestore ?? FirebaseFirestore.instance,
       _auth = auth ?? FirebaseAuth.instance;
 
-  /// Creates a project owned by the current user.
-  /// Default status is PLANNING (rules also enforce this).
-  /// Adds search helpers: `nameLower` and `createdAt` (server timestamp).
   Future<String> createProject({
     required String name,
     required String client,
@@ -32,7 +27,6 @@ class ProjectController {
       throw Exception('No authenticated user found.');
     }
 
-    // 1) Normalize inputs
     final normalized = _normalizeInputs(
       name: name,
       client: client,
@@ -43,7 +37,6 @@ class ProjectController {
       endDate: endDate,
     );
 
-    // 2) Validate inputs
     _validateInputs(
       name: normalized.name,
       client: normalized.client,
@@ -54,11 +47,10 @@ class ProjectController {
       endDate: normalized.endDate,
     );
 
-    // 3) Prepare model and doc ref
     final projRef = _db.collection('projects').doc(); // auto-id
     final project = Project.newProject(
       id: projRef.id,
-      ownerId: user.uid, // must match rules
+      ownerId: user.uid,
       name: normalized.name,
       client: normalized.client,
       description: normalized.description,
@@ -67,21 +59,16 @@ class ProjectController {
       priority: priority,
       startDate: normalized.startDate,
       endDate: normalized.endDate,
-      // IMPORTANT: Project model may already set status; we still hard-set in payload below
     );
 
-    // 4) Log payload for debugging
     _logProjectPayload(stage: 'before_write', uid: user.uid, project: project);
 
     try {
-      // 5) Build raw map to inject enforced/default fields
       final data = project.toMap()
         ..addAll({
-          // Enforced by rules: must be PLANNING on create
-          'status': 'PLANNING',
-          // Lowercased name to support prefix search queries
+          'status': 'PLANNING', // enforced by rules
           'nameLower': project.name.toLowerCase(),
-          // Server timestamp for consistent ordering
+          'visibleTo': project.visibleTo, // <- ya incluye [ownerId]
           'createdAt': FieldValue.serverTimestamp(),
         });
 
@@ -99,11 +86,9 @@ class ProjectController {
         'message': e.message,
         'plugin': e.plugin,
       });
-
-      // Friendlier messages for UI
       if (e.code == 'permission-denied') {
         throw Exception(
-          '[permission-denied] You are not allowed to write this document. Check ownerId and Firestore rules.',
+          '[permission-denied] You are not allowed to write this document. Check ownerId, role claim and security rules.',
         );
       }
       if (e.code == 'failed-precondition') {
@@ -121,29 +106,6 @@ class ProjectController {
     }
   }
 
-  // ---------------- Queries ----------------
-
-  /// Wire values for status to avoid typos across app/rules.
-  /// Keep in sync with security rules and any backend code.
-  // enum ProjectStatus { planning, inProgress, completed, archived }
-
-  // extension ProjectStatusX on ProjectStatus {
-  //   String get wire {
-  //     switch (this) {
-  //       case ProjectStatus.planning:
-  //         return 'PLANNING';
-  //       case ProjectStatus.inProgress:
-  //         return 'IN_PROGRESS';
-  //       case ProjectStatus.completed:
-  //         return 'COMPLETED';
-  //       case ProjectStatus.archived:
-  //         return 'ARCHIVED';
-  //     }
-  //   }
-  // }
-
-  /// Streams projects owned by the current user ordered by recency.
-  /// Useful for simple lists without filters or search.
   Stream<List<Project>> streamOwnedProjects({int limit = 50}) {
     final user = _auth.currentUser;
     if (user == null) {
@@ -158,18 +120,6 @@ class ProjectController {
         .map((snap) => snap.docs.map(Project.fromDoc).toList());
   }
 
-  /// Streams projects with optional filters (status, consultingType) and
-  /// optional prefix search on project name (case-insensitive via `nameLower`).
-  ///
-  /// Indexes you will need (create them in console or firestore.indexes.json):
-  /// - ownerId ASC, createdAt DESC
-  /// - ownerId ASC, status ASC, createdAt DESC
-  /// - ownerId ASC, consultingType ASC, createdAt DESC
-  /// - ownerId ASC, status ASC, consultingType ASC, createdAt DESC
-  /// - ownerId ASC, nameLower ASC
-  /// - ownerId ASC, status ASC, nameLower ASC
-  /// - ownerId ASC, consultingType ASC, nameLower ASC
-  /// - ownerId ASC, status ASC, consultingType ASC, nameLower ASC
   Stream<QuerySnapshot<Map<String, dynamic>>> watchProjects({
     ProjectStatus? statusFilter,
     String? consultingTypeFilter,
@@ -198,7 +148,6 @@ class ProjectController {
     final hasSearch = s != null && s.isNotEmpty;
 
     if (hasSearch) {
-      // Range queries require ordering by the same field
       q = q.orderBy('nameLower').startAt([s]).endAt(['$s\uf8ff']);
     } else {
       q = q.orderBy('createdAt', descending: true);
@@ -207,9 +156,6 @@ class ProjectController {
     return q.limit(limit).snapshots();
   }
 
-  // --------------- Helpers: validation, normalization, logging ---------------
-
-  /// Normalizes text fields (trim) and returns a typed holder.
   _Normalized _normalizeInputs({
     required String name,
     required String client,
@@ -230,7 +176,6 @@ class ProjectController {
     );
   }
 
-  /// Validates input. Throws ArgumentError with a clear message.
   void _validateInputs({
     required String name,
     required String client,
@@ -252,14 +197,12 @@ class ProjectController {
     if (consultingType.isEmpty || consultingType.length < 3) {
       throw ArgumentError('Consulting type must be at least 3 characters.');
     }
-
     if (budgetUsd.isNaN || budgetUsd.isInfinite || budgetUsd <= 0) {
       throw ArgumentError('Budget must be a valid positive number.');
     }
     if (budgetUsd > 1e9) {
       throw ArgumentError('Budget looks unrealistically large.');
     }
-
     if (endDate.isBefore(startDate)) {
       throw ArgumentError('End date cannot be before start date.');
     }
@@ -270,7 +213,6 @@ class ProjectController {
     }
   }
 
-  /// Logs a compact snapshot of the project to help debug payload issues.
   void _logProjectPayload({
     required String stage,
     required String uid,
@@ -288,6 +230,7 @@ class ProjectController {
       'startDate': project.startDate.toIso8601String(),
       'endDate': project.endDate.toIso8601String(),
       'consultingType': project.consultingType,
+      'visibleTo': project.visibleTo, // <-- log útil para depurar reglas
       'desc_len': project.description.length,
     };
     debugPrint('[ProjectController] payload: $data');
@@ -305,7 +248,6 @@ class ProjectController {
   }
 }
 
-/// Internal normalized holder to keep code tidy.
 class _Normalized {
   final String name;
   final String client;

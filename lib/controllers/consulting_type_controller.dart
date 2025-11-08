@@ -4,11 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:prolab_unimet/models/consulting_types.dart';
 
 /// Catalog queries only (no UI here).
-class CatalogController {
+class ConsultingTypeController {
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
 
-  CatalogController({FirebaseFirestore? firestore, FirebaseAuth? auth})
+  ConsultingTypeController({FirebaseFirestore? firestore, FirebaseAuth? auth})
     : _db = firestore ?? FirebaseFirestore.instance,
       _auth = auth ?? FirebaseAuth.instance;
 

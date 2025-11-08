@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:prolab_unimet/models/projects_model.dart'; // where ProjectPriority lives
+import 'package:prolab_unimet/widgets/app_dropdown.dart'; // reusable dropdown
+import 'package:prolab_unimet/controllers/consulting_type_controller.dart'; // stream for consulting types
 
 // UI-only DTO that the View returns to Controller
 class ProjectCreateData {
@@ -44,12 +46,17 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
   final _clientCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _budgetCtrl = TextEditingController(text: '15000');
-  final _typeCtrl = TextEditingController(); // simple text for consulting type
 
   // --- Dropdowns & dates ---
   ProjectPriority? _priority;
   DateTime? _startDate;
   DateTime? _endDate;
+
+  // Selected consulting type value from dropdown
+  String? _selectedConsultingType;
+
+  // Controller to get consulting types from Firestore
+  final _ctController = ConsultingTypeController();
 
   @override
   void dispose() {
@@ -57,7 +64,6 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
     _clientCtrl.dispose();
     _descCtrl.dispose();
     _budgetCtrl.dispose();
-    _typeCtrl.dispose();
     super.dispose();
   }
 
@@ -190,19 +196,84 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                         ],
                       ),
                       const SizedBox(height: 12),
+
+                      // ---------- Consulting Type dropdown fed by Firestore ----------
                       Row(
                         children: [
                           Expanded(
-                            child: _input(
-                              label: 'Tipo de Consultoría *',
-                              controller: _typeCtrl,
-                              hint:
-                                  'Calidad Ambiental / Construcción / Tecnología...',
-                              validator: (v) => (v == null || v.trim().isEmpty)
-                                  ? 'Requerido'
-                                  : null,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.deny(RegExp(r'\n')),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Tipo de Consultoría *',
+                                  style: TextStyle(fontWeight: FontWeight.w500),
+                                ),
+                                const SizedBox(height: 6),
+                                StreamBuilder<List<String>>(
+                                  stream: _ctController
+                                      .streamConsultingTypeNames(),
+                                  builder: (context, snap) {
+                                    // Loading state
+                                    if (snap.connectionState ==
+                                            ConnectionState.waiting &&
+                                        !snap.hasData) {
+                                      return const SizedBox(
+                                        height: 52,
+                                        child: Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      );
+                                    }
+
+                                    // Error state with a minimal fallback
+                                    if (snap.hasError) {
+                                      return Text(
+                                        'Error cargando tipos: ${snap.error}',
+                                        style: const TextStyle(
+                                          color: Colors.red,
+                                        ),
+                                      );
+                                    }
+
+                                    final items = (snap.data ?? [])
+                                        .where((e) => e.trim().isNotEmpty)
+                                        .toList();
+
+                                    // If there are no items, show a disabled dropdown
+                                    if (items.isEmpty) {
+                                      return AppDropdown<String>(
+                                        items: const [],
+                                        value: null,
+                                        labelOf: (x) => x,
+                                        onChanged: null,
+                                        hintText: 'No hay tipos de consultoría',
+                                        validator: (_) =>
+                                            'No hay opciones disponibles',
+                                      );
+                                    }
+
+                                    // Keep selection if still present, otherwise null
+                                    if (_selectedConsultingType != null &&
+                                        !items.contains(
+                                          _selectedConsultingType,
+                                        )) {
+                                      _selectedConsultingType = null;
+                                    }
+
+                                    return AppDropdown<String>(
+                                      items: items,
+                                      value: _selectedConsultingType,
+                                      labelOf: (x) => x,
+                                      hintText: 'Selecciona una opción',
+                                      onChanged: (val) => setState(
+                                        () => _selectedConsultingType = val,
+                                      ),
+                                      validator: (v) => v == null
+                                          ? 'Selecciona el tipo de consultoría'
+                                          : null,
+                                    );
+                                  },
+                                ),
                               ],
                             ),
                           ),
@@ -337,28 +408,19 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                           );
                           return;
                         }
+                        if (_selectedConsultingType == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Selecciona el tipo de consultoría',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
 
                         final budget = double.parse(
                           _budgetCtrl.text.replaceAll(',', '.'),
-                        );
-
-                        // Debug prints (UI layer)
-                        debugPrint(
-                          '[CreateProjectDialog] name=${_nameCtrl.text}',
-                        );
-                        debugPrint(
-                          '[CreateProjectDialog] client=${_clientCtrl.text}',
-                        );
-                        debugPrint(
-                          '[CreateProjectDialog] description=${_descCtrl.text}',
-                        );
-                        debugPrint(
-                          '[CreateProjectDialog] consultingType=${_typeCtrl.text}',
-                        );
-                        debugPrint('[CreateProjectDialog] budget=$budget');
-                        debugPrint('[CreateProjectDialog] priority=$_priority');
-                        debugPrint(
-                          '[CreateProjectDialog] start=${_startDate!.toIso8601String()} end=${_endDate!.toIso8601String()}',
                         );
 
                         Navigator.of(context).pop(
@@ -366,7 +428,8 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                             name: _nameCtrl.text.trim(),
                             client: _clientCtrl.text.trim(),
                             description: _descCtrl.text.trim(),
-                            consultingType: _typeCtrl.text.trim(),
+                            consultingType: _selectedConsultingType!
+                                .trim(), // dropdown value
                             budgetUsd: budget,
                             priority: _priority!,
                             startDate: _startDate!,
@@ -460,17 +523,6 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
 
   /// Priority dropdown (enum -> human label).
   Widget _priorityDropdown() {
-    String label(ProjectPriority p) {
-      switch (p) {
-        case ProjectPriority.low:
-          return 'Baja';
-        case ProjectPriority.medium:
-          return 'Media';
-        case ProjectPriority.high:
-          return 'Alta';
-      }
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

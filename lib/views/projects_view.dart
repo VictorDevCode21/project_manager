@@ -282,8 +282,9 @@ class _ProjectsViewState extends State<ProjectsView> {
                       final projects = (snap.data ?? const <Project>[])
                           // Optional client-side filter by status
                           .where((p) {
-                            if (_selectedStatus == 'Todos los estados')
+                            if (_selectedStatus == 'Todos los estados') {
                               return true;
+                            }
                             switch (_selectedStatus) {
                               case 'Planificación':
                                 return p.status == ProjectStatus.planning;
