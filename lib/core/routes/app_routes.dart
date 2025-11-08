@@ -73,7 +73,7 @@ final appRouter = GoRouter(
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
         GoRoute(
-          path: '/admin-task',
+          path: '/admin-tasks',
           builder: (context, state) => const TaskView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
