@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:prolab_unimet/controllers/project_controller.dart';
+import 'package:prolab_unimet/models/projects_model.dart';
 import 'package:prolab_unimet/views/components/forms/create_project.dart';
 import 'package:provider/provider.dart';
 
@@ -239,48 +240,143 @@ class _ProjectsViewState extends State<ProjectsView> {
               LayoutBuilder(
                 builder: (context, constraints) {
                   final isWide = constraints.maxWidth > 900;
-                  return GridView.count(
-                    crossAxisCount: isWide ? 2 : 1,
-                    crossAxisSpacing: 20,
-                    mainAxisSpacing: 20,
-                    shrinkWrap: true,
-                    childAspectRatio: isWide ? 1.7 : 1.4,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      _buildProjectCard(
-                        title: 'Análisis de Calidad del Agua - Empresa ABC',
-                        description:
-                            'Evaluación completa de parámetros fisicoquímicos y microbiológicos del agua potable',
-                        tags: ['En Progreso', 'Calidad Ambiental'],
-                        progress: 0.65,
-                        client: 'Empresa ABC S.A.',
-                        team: '4 miembros',
-                        deadline: '14/12/2024',
-                        budget: '\$15,000',
-                      ),
-                      _buildProjectCard(
-                        title: 'Inspección de Obra Civil - Proyecto XYZ',
-                        description:
-                            'Supervisión técnica y control de calidad en construcción de edificio residencial',
-                        tags: ['Planificación', 'Construcción'],
-                        progress: 0.25,
-                        client: 'Constructora XYZ',
-                        team: '6 miembros',
-                        deadline: '19/01/2025',
-                        budget: '\$25,000',
-                      ),
-                      _buildProjectCard(
-                        title: 'Inspección de Obra Civil - Proyecto XYZ',
-                        description:
-                            'Supervisión técnica y control de calidad en construcción de edificio residencial',
-                        tags: ['Planificación', 'Construcción'],
-                        progress: 0.25,
-                        client: 'Constructora XYZ',
-                        team: '6 miembros',
-                        deadline: '19/01/2025',
-                        budget: '\$25,000',
-                      ),
-                    ],
+                  final controller = ProjectController();
+
+                  return StreamBuilder<List<Project>>(
+                    stream: controller.streamOwnedProjects(),
+                    builder: (context, snap) {
+                      // Loading state
+                      if (snap.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+
+                      // Error state
+                      if (snap.hasError) {
+                        // Log error details to the console for debugging.
+                        // Use debugPrint (non-blocking) instead of print for Flutter apps.
+                        debugPrint(
+                          '[ProjectsView] stream error: ${snap.error}',
+                        );
+                        if (snap.stackTrace != null) {
+                          debugPrint(
+                            '[ProjectsView] stack: ${snap.stackTrace}',
+                          );
+                        }
+
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              'Error cargando proyectos: ${snap.error}',
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        );
+                      }
+
+                      final projects = (snap.data ?? const <Project>[])
+                          // Optional client-side filter by status
+                          .where((p) {
+                            if (_selectedStatus == 'Todos los estados')
+                              return true;
+                            switch (_selectedStatus) {
+                              case 'Planificación':
+                                return p.status == ProjectStatus.planning;
+                              case 'En Progreso':
+                                return p.status == ProjectStatus.inProgress;
+                              case 'Completado':
+                                return p.status == ProjectStatus.completed;
+                            }
+                            return true;
+                          })
+                          // Optional client-side filter by type
+                          .where((p) {
+                            if (_selectedType == 'Todos los tipos') return true;
+                            return p.consultingType.trim().toLowerCase() ==
+                                _selectedType.trim().toLowerCase();
+                          })
+                          // Optional search
+                          .where((p) {
+                            final q = _searchController.text
+                                .trim()
+                                .toLowerCase();
+                            if (q.isEmpty) return true;
+                            return p.name.toLowerCase().contains(q) ||
+                                p.client.toLowerCase().contains(q);
+                          })
+                          .toList();
+
+                      if (projects.isEmpty) {
+                        return Container(
+                          padding: const EdgeInsets.all(24),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            'No hay proyectos para mostrar.',
+                            style: TextStyle(color: Colors.black54),
+                          ),
+                        );
+                      }
+
+                      return GridView.count(
+                        crossAxisCount: isWide ? 2 : 1,
+                        crossAxisSpacing: 20,
+                        mainAxisSpacing: 20,
+                        shrinkWrap: true,
+                        childAspectRatio: isWide ? 1.7 : 1.4,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: projects.map((p) {
+                          // Build tags from real data
+                          final tags = <String>[
+                            // Status tag
+                            () {
+                              switch (p.status) {
+                                case ProjectStatus.planning:
+                                  return 'Planificación';
+                                case ProjectStatus.inProgress:
+                                  return 'En Progreso';
+                                case ProjectStatus.completed:
+                                  return 'Completado';
+                                case ProjectStatus.archived:
+                                  return 'Archivado';
+                              }
+                            }(),
+                            // Type tag (if present)
+                            if (p.consultingType.isNotEmpty) p.consultingType,
+                          ];
+
+                          // Null-ish displays as zero/empty
+                          final client = p.client.isNotEmpty ? p.client : '—';
+                          final team =
+                              '0 miembros'; // until you wire members count
+                          final deadline =
+                              '${p.endDate.day.toString().padLeft(2, '0')}/${p.endDate.month.toString().padLeft(2, '0')}/${p.endDate.year}';
+                          final budget = '\$${p.budgetUsd.toStringAsFixed(0)}';
+
+                          // Optional progress until you implement it in data (0 by default)
+                          final progress = 0.0;
+
+                          return _buildProjectCard(
+                            title: p.name.isNotEmpty
+                                ? p.name
+                                : 'Proyecto sin título',
+                            description: p.description.isNotEmpty
+                                ? p.description
+                                : 'Sin descripción',
+                            tags: tags,
+                            progress: progress,
+                            client: client,
+                            team: team,
+                            deadline: deadline,
+                            budget: budget,
+                          );
+                        }).toList(),
+                      );
+                    },
                   );
                 },
               ),
