@@ -403,8 +403,26 @@ class _TaskView extends State<TaskView> {
                       ),
                     ),
 
-                    // PopupMenuButton<String>(
-                    //   icon: Icon(Icons.more_vert, color: Colors.grey[600]),)
+                    PopupMenuButton<String>(
+                      icon: Icon(Icons.more_vert, color: Colors.grey[600]),
+                      onSelected: (value) {
+                        if (value == 'delete') {
+                          _showDeleteColumnDialog(context, column);
+                        }
+                      },
+                      itemBuilder: (BuildContext context) => [
+                        PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Eliminar Columna'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -425,6 +443,47 @@ class _TaskView extends State<TaskView> {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  void _showDeleteColumnDialog(BuildContext context, TaskColumn column) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Eliminar Columna',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xff253f8d),
+          ),
+        ),
+        content: Text(
+          '¿Seguro de que quieres eliminar la columna "${column.name}"?',
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _taskController.removeColumn(column);
+              Navigator.of(context).pop();
+              setState(() {});
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Columna "${column.name}" eliminada'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('Eliminar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
