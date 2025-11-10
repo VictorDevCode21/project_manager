@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import '../models/tasks_model.dart';
 
 class TaskController extends ChangeNotifier {
-  final List<TaskColumn> _columns = [];
+  final List<TaskColumn> _columns = [
+    TaskColumn(name: 'Pendiente', color: Colors.grey),
+    TaskColumn(name: 'En Progreso', color: Colors.blue),
+    TaskColumn(name: 'En Revisión', color: Colors.orange),
+    TaskColumn(name: 'Completado', color: Colors.green),
+  ];
 
   TaskController() {
     _loadColumns();

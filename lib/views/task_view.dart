@@ -237,14 +237,15 @@ class _TaskView extends State<TaskView> {
     Color selectedColor = Colors.grey.shade200;
 
     final List<Color> colorOptions = [
-      Colors.grey.shade500,
-      Colors.blue.shade100,
-      Colors.orange.shade100,
-      Colors.green.shade100,
-      Colors.red.shade100,
-      Colors.purple.shade100,
-      Colors.yellow.shade100,
-      Colors.teal.shade100,
+      Colors.grey,
+      Colors.blue,
+      Colors.orange,
+      Colors.green,
+      Colors.red,
+      Colors.purple,
+      Colors.yellow,
+      Colors.teal,
+      Colors.pink,
     ];
 
     showDialog(
