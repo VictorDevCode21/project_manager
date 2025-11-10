@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:prolab_unimet/controllers/consulting_type_controller.dart';
 import 'package:prolab_unimet/controllers/project_controller.dart';
 import 'package:prolab_unimet/models/projects_model.dart';
 import 'package:prolab_unimet/views/components/forms/create_project.dart';
-import 'package:provider/provider.dart';
+import 'package:prolab_unimet/widgets/app_dropdown.dart';
 
-/// Displays the projects management view inside AdminLayout.
+/// Projects management view inside AdminLayout (View layer - MVC).
 class ProjectsView extends StatefulWidget {
   const ProjectsView({super.key});
 
@@ -14,8 +16,80 @@ class ProjectsView extends StatefulWidget {
 
 class _ProjectsViewState extends State<ProjectsView> {
   final TextEditingController _searchController = TextEditingController();
+
+  // UI state for filters (kept in View; business rules stay in Controller/Model).
   String _selectedStatus = 'Todos los estados';
   String _selectedType = 'Todos los tipos';
+
+  // Debounce to avoid excessive rebuilds while typing.
+  Timer? _searchDebounce;
+
+  // Single instance for this view
+  late final ConsultingTypeController _ctController;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctController = ConsultingTypeController();
+
+    // Listen to search input and trigger filtering with debounce.
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    // Prevent memory leaks from the search controller and timers.
+    _searchDebounce?.cancel();
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// Handles search text changes with a short debounce to keep UI responsive.
+  void _onSearchChanged() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) setState(() {});
+    });
+  }
+
+  /// Applies all filters to the provided list. This keeps composition clean:
+  /// any individual filter can work alone and all can work together.
+  List<Project> _filterProjects(List<Project> source) {
+    // 1) Status filter
+    final byStatus = source.where((p) {
+      if (_selectedStatus == 'Todos los estados') return true;
+      switch (_selectedStatus) {
+        case 'Planificación':
+          return p.status == ProjectStatus.planning;
+        case 'En Progreso':
+          return p.status == ProjectStatus.inProgress;
+        case 'Completado':
+          return p.status == ProjectStatus.completed;
+        case 'Archivado':
+          return p.status == ProjectStatus.archived;
+      }
+      return true;
+    });
+
+    // 2) Type filter
+    final byType = byStatus.where((p) {
+      if (_selectedType == 'Todos los tipos') return true;
+      return p.consultingType.trim().toLowerCase() ==
+          _selectedType.trim().toLowerCase();
+    });
+
+    // 3) Search filter (by project name and client; name is primary).
+    final query = _searchController.text.trim().toLowerCase();
+    final bySearch = byType.where((p) {
+      if (query.isEmpty) return true;
+      // Prioritize name match; still allow client match to be helpful.
+      return p.name.toLowerCase().contains(query) ||
+          p.client.toLowerCase().contains(query);
+    });
+
+    return bySearch.toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,16 +128,15 @@ class _ProjectsViewState extends State<ProjectsView> {
                       final nav = Navigator.of(context, rootNavigator: true);
                       final messenger = ScaffoldMessenger.of(context);
 
-                      // 1) Abre el diálogo UI (solo recoge datos)
+                      // 1) Open dialog (UI only)
                       final dto = await showDialog<ProjectCreateData>(
                         context: context,
                         barrierDismissible: false,
-                        useRootNavigator: true, // opcional, pero consistente
+                        useRootNavigator: true,
                         builder: (_) => const CreateProjectDialog(),
                       );
                       if (dto == null) return;
 
-                      // Guard against using BuildContext across async gaps.
                       if (!mounted) return;
 
                       debugPrint(
@@ -109,7 +182,7 @@ class _ProjectsViewState extends State<ProjectsView> {
                       } catch (e) {
                         if (!mounted) return;
                         if (nav.canPop()) {
-                          nav.pop(); // cierra loader también en error
+                          nav.pop();
                         }
                         messenger.showSnackBar(
                           SnackBar(content: Text('Error al crear: $e')),
@@ -165,11 +238,16 @@ class _ProjectsViewState extends State<ProjectsView> {
                     ),
                     const SizedBox(height: 16),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Search field
+                        // Search field (live filtering with debounce listener)
                         Expanded(
                           child: TextField(
                             controller: _searchController,
+                            onChanged: (_) {
+                              // Immediate feedback for very fast typers; listener still debounces.
+                              setState(() {});
+                            },
                             decoration: InputDecoration(
                               prefixIcon: const Icon(Icons.search),
                               hintText:
@@ -183,51 +261,100 @@ class _ProjectsViewState extends State<ProjectsView> {
                             ),
                           ),
                         ),
+
                         const SizedBox(width: 16),
 
-                        // Status filter
-                        DropdownButton<String>(
-                          value: _selectedStatus,
-                          items:
-                              [
-                                    'Todos los estados',
-                                    'En Progreso',
-                                    'Planificación',
-                                    'Completado',
-                                  ]
-                                  .map(
-                                    (e) => DropdownMenuItem(
-                                      value: e,
-                                      child: Text(e),
-                                    ),
-                                  )
-                                  .toList(),
-                          onChanged: (value) {
-                            setState(() => _selectedStatus = value!);
-                          },
+                        // Status filter with explicit constraints
+                        SizedBox(
+                          width: 220,
+                          height: 52,
+                          child: InputDecorator(
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                isExpanded: true,
+                                value: _selectedStatus,
+                                items:
+                                    const [
+                                          'Todos los estados',
+                                          'En Progreso',
+                                          'Planificación',
+                                          'Completado',
+                                          // Optional: 'Archivado'
+                                        ]
+                                        .map(
+                                          (e) => DropdownMenuItem(
+                                            value: e,
+                                            child: Text(e),
+                                          ),
+                                        )
+                                        .toList(),
+                                onChanged: (value) {
+                                  if (value == null) return;
+                                  setState(() => _selectedStatus = value);
+                                },
+                              ),
+                            ),
+                          ),
                         ),
+
                         const SizedBox(width: 16),
 
-                        // Type filter
-                        DropdownButton<String>(
-                          value: _selectedType,
-                          items:
-                              [
-                                    'Todos los tipos',
-                                    'Calidad Ambiental',
-                                    'Construcción',
-                                    'Tecnología',
-                                  ]
-                                  .map(
-                                    (e) => DropdownMenuItem(
-                                      value: e,
-                                      child: Text(e),
-                                    ),
-                                  )
-                                  .toList(),
-                          onChanged: (value) {
-                            setState(() => _selectedType = value!);
-                          },
+                        // Type filter with explicit constraints
+                        SizedBox(
+                          width: 260,
+                          height: 52,
+                          child: StreamBuilder<List<String>>(
+                            stream: _ctController.streamConsultingTypeNames(),
+                            builder: (context, snap) {
+                              if (snap.connectionState ==
+                                      ConnectionState.waiting &&
+                                  !snap.hasData) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+
+                              if (snap.hasError) {
+                                return const Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    'Error cargando tipos',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                );
+                              }
+
+                              final base = (snap.data ?? const <String>[])
+                                  .where((e) => e.trim().isNotEmpty)
+                                  .toList();
+                              final options = ['Todos los tipos', ...base];
+
+                              final current = options.contains(_selectedType)
+                                  ? _selectedType
+                                  : 'Todos los tipos';
+
+                              return AppDropdown<String>(
+                                items: options,
+                                value: current,
+                                labelOf: (x) => x,
+                                hintText: 'Tipo de consultoría',
+                                onChanged: (val) {
+                                  if (val == null) return;
+                                  setState(() => _selectedType = val);
+                                },
+                                validator: (_) => null,
+                              );
+                            },
+                          ),
                         ),
                       ],
                     ),
@@ -257,8 +384,6 @@ class _ProjectsViewState extends State<ProjectsView> {
 
                       // Error state
                       if (snap.hasError) {
-                        // Log error details to the console for debugging.
-                        // Use debugPrint (non-blocking) instead of print for Flutter apps.
                         debugPrint(
                           '[ProjectsView] stream error: ${snap.error}',
                         );
@@ -279,38 +404,8 @@ class _ProjectsViewState extends State<ProjectsView> {
                         );
                       }
 
-                      final projects = (snap.data ?? const <Project>[])
-                          // Optional client-side filter by status
-                          .where((p) {
-                            if (_selectedStatus == 'Todos los estados') {
-                              return true;
-                            }
-                            switch (_selectedStatus) {
-                              case 'Planificación':
-                                return p.status == ProjectStatus.planning;
-                              case 'En Progreso':
-                                return p.status == ProjectStatus.inProgress;
-                              case 'Completado':
-                                return p.status == ProjectStatus.completed;
-                            }
-                            return true;
-                          })
-                          // Optional client-side filter by type
-                          .where((p) {
-                            if (_selectedType == 'Todos los tipos') return true;
-                            return p.consultingType.trim().toLowerCase() ==
-                                _selectedType.trim().toLowerCase();
-                          })
-                          // Optional search
-                          .where((p) {
-                            final q = _searchController.text
-                                .trim()
-                                .toLowerCase();
-                            if (q.isEmpty) return true;
-                            return p.name.toLowerCase().contains(q) ||
-                                p.client.toLowerCase().contains(q);
-                          })
-                          .toList();
+                      // Apply composable filters.
+                      final projects = _filterProjects(snap.data ?? const []);
 
                       if (projects.isEmpty) {
                         return Container(
@@ -331,7 +426,6 @@ class _ProjectsViewState extends State<ProjectsView> {
                         childAspectRatio: isWide ? 1.7 : 1.4,
                         physics: const NeverScrollableScrollPhysics(),
                         children: projects.map((p) {
-                          // Build tags from real data
                           final tags = <String>[
                             // Status tag
                             () {
@@ -346,20 +440,16 @@ class _ProjectsViewState extends State<ProjectsView> {
                                   return 'Archivado';
                               }
                             }(),
-                            // Type tag (if present)
+                            // Type tag
                             if (p.consultingType.isNotEmpty) p.consultingType,
                           ];
 
-                          // Null-ish displays as zero/empty
                           final client = p.client.isNotEmpty ? p.client : '—';
-                          final team =
-                              '0 miembros'; // until you wire members count
+                          final team = '0 miembros'; // until wired
                           final deadline =
                               '${p.endDate.day.toString().padLeft(2, '0')}/${p.endDate.month.toString().padLeft(2, '0')}/${p.endDate.year}';
                           final budget = '\$${p.budgetUsd.toStringAsFixed(0)}';
-
-                          // Optional progress until you implement it in data (0 by default)
-                          final progress = 0.0;
+                          final progress = 0.0; // placeholder
 
                           return _buildProjectCard(
                             title: p.name.isNotEmpty
@@ -428,6 +518,8 @@ class _ProjectsViewState extends State<ProjectsView> {
           Text(
             description,
             style: const TextStyle(color: Colors.black54, fontSize: 13),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 10),
 
@@ -491,7 +583,7 @@ class _ProjectsViewState extends State<ProjectsView> {
     );
   }
 
-  /// Helper for rendering project tags.
+  /// Render a single tag with a soft background color.
   Widget _buildTag(String label) {
     Color bg;
     switch (label) {
@@ -524,7 +616,7 @@ class _ProjectsViewState extends State<ProjectsView> {
     );
   }
 
-  /// Helper for displaying labeled rows.
+  /// Key-value row used in cards.
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
