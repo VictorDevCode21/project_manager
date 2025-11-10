@@ -8,6 +8,10 @@ class TaskView extends StatefulWidget {
 }
 
 class _TaskView extends State<TaskView> {
+  final TextEditingController _taskcontroller = TextEditingController();
+  String _selectedStatus = 'Todos los estados';
+  String _selectedAssignees = 'Todos los tipos';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,6 +138,104 @@ class _TaskView extends State<TaskView> {
                   ),
                 ],
               ),
+              const SizedBox(height: 30),
+
+              // FILTER SECTION
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Filtros y Búsqueda',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xff253f8d),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        // Search field
+                        Expanded(
+                          child: TextField(
+                            controller: _taskcontroller,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.search),
+                              hintText:
+                                  'Buscar por nombre de proyecto o cliente...',
+                              filled: true,
+                              fillColor: Colors.grey[100],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+
+                        // Status filter
+                        DropdownButton<String>(
+                          value: _selectedStatus,
+                          items:
+                              [
+                                    'Todos los estados',
+                                    'En Progreso',
+                                    'Planificación',
+                                    'Completado',
+                                  ]
+                                  .map(
+                                    (e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(e),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged: (value) {
+                            setState(() => _selectedStatus = value!);
+                          },
+                        ),
+                        const SizedBox(width: 16),
+
+                        // Type filter
+                        DropdownButton<String>(
+                          value: _selectedAssignees,
+                          items:
+                              [
+                                    'Todos los tipos',
+                                    'Calidad Ambiental',
+                                    'Construcción',
+                                    'Tecnología',
+                                  ]
+                                  .map(
+                                    (e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(e),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged: (value) {
+                            setState(() => _selectedAssignees = value!);
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
             ],
           ),
         ),
