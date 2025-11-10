@@ -4,6 +4,7 @@ import 'package:prolab_unimet/controllers/consulting_type_controller.dart';
 import 'package:prolab_unimet/controllers/project_controller.dart';
 import 'package:prolab_unimet/models/projects_model.dart';
 import 'package:prolab_unimet/views/components/forms/create_project.dart';
+import 'package:prolab_unimet/views/projects/manage_members_dialog.dart';
 import 'package:prolab_unimet/widgets/app_dropdown.dart';
 
 /// Projects management view inside AdminLayout (View layer - MVC).
@@ -16,6 +17,7 @@ class ProjectsView extends StatefulWidget {
 
 class _ProjectsViewState extends State<ProjectsView> {
   final TextEditingController _searchController = TextEditingController();
+  final controller = ProjectController();
 
   // UI state for filters (kept in View; business rules stay in Controller/Model).
   String _selectedStatus = 'Todos los estados';
@@ -464,6 +466,17 @@ class _ProjectsViewState extends State<ProjectsView> {
                             team: team,
                             deadline: deadline,
                             budget: budget,
+                            // NEW: forward a callback that knows p.id and p.name
+                            onManage: () {
+                              showDialog(
+                                context: context,
+                                barrierDismissible: true,
+                                builder: (_) => ManageMembersDialog(
+                                  projectId: p.id, // <-- here p exists
+                                  projectName: p.name,
+                                ),
+                              );
+                            },
                           );
                         }).toList(),
                       );
@@ -488,6 +501,7 @@ class _ProjectsViewState extends State<ProjectsView> {
     required String team,
     required String deadline,
     required String budget,
+    required VoidCallback onManage,
   }) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -566,7 +580,8 @@ class _ProjectsViewState extends State<ProjectsView> {
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {},
+                  // Use the callback instead of referencing p
+                  onPressed: onManage, // NEW
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xff253f8d),
                   ),

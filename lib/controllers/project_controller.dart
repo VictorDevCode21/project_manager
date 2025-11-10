@@ -267,3 +267,124 @@ class _Normalized {
     required this.endDate,
   });
 }
+
+extension ProjectMembersOps on ProjectController {
+  /// Exposes the current user's uid to views when needed.
+  String? get currentUserUid => _auth.currentUser?.uid;
+
+  /// Streams the members of a given project.
+  /// Data source: /projects/{projectId}/members
+  Stream<List<ProjectMember>> streamMembers(String projectId) {
+    return _db
+        .collection('projects')
+        .doc(projectId)
+        .collection('members')
+        .orderBy('addedAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map(ProjectMember.fromDoc).toList());
+  }
+
+  /// Invite a member by email:
+  /// 1) Resolve /users doc by `email`
+  /// 2) Upsert /projects/{id}/members/{uid}
+  /// 3) arrayUnion(uid) into project's visibleTo
+  Future<void> inviteMemberByEmail({
+    required String projectId,
+    required String inviterUid,
+    required String email,
+  }) async {
+    final emailNorm = email.trim().toLowerCase();
+    if (emailNorm.isEmpty) {
+      throw ArgumentError('Email is required.');
+    }
+
+    final usersCol = _db.collection('users');
+    final q = await usersCol
+        .where('email', isEqualTo: emailNorm)
+        .limit(1)
+        .get();
+    if (q.docs.isEmpty) {
+      throw StateError('User with that email was not found.');
+    }
+
+    final userDoc = q.docs.first;
+    final uid = userDoc.id;
+    final userData = userDoc.data();
+
+    final projectRef = _db.collection('projects').doc(projectId);
+    final memberRef = projectRef.collection('members').doc(uid);
+
+    await _db.runTransaction((tx) async {
+      final projSnap = await tx.get(projectRef);
+      if (!projSnap.exists) {
+        throw StateError('Project not found.');
+      }
+
+      tx.set(memberRef, {
+        'uid': uid,
+        'email': userData['email'] ?? '',
+        'displayName': userData['displayName'] ?? '',
+        'role': 'MEMBER',
+        'invitedBy': inviterUid,
+        'addedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      tx.update(projectRef, {
+        'visibleTo': FieldValue.arrayUnion([uid]),
+      });
+    });
+  }
+
+  /// Remove a member:
+  /// 1) Delete /projects/{id}/members/{uid}
+  /// 2) arrayRemove(uid) from visibleTo
+  Future<void> removeMember({
+    required String projectId,
+    required String memberUid,
+  }) async {
+    final projectRef = _db.collection('projects').doc(projectId);
+    final memberRef = projectRef.collection('members').doc(memberUid);
+
+    await _db.runTransaction((tx) async {
+      final m = await tx.get(memberRef);
+      if (m.exists) {
+        tx.delete(memberRef);
+      }
+      tx.update(projectRef, {
+        'visibleTo': FieldValue.arrayRemove([memberUid]),
+      });
+    });
+  }
+}
+
+/// Lightweight model used by the members stream (Model - MVC).
+class ProjectMember {
+  final String uid;
+  final String email;
+  final String displayName;
+  final String role;
+  final DateTime? addedAt;
+
+  ProjectMember({
+    required this.uid,
+    required this.email,
+    required this.displayName,
+    required this.role,
+    required this.addedAt,
+  });
+
+  factory ProjectMember.fromDoc(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final d = doc.data();
+    return ProjectMember(
+      uid: d['uid'] ?? doc.id,
+      email: (d['email'] ?? '').toString(),
+      displayName: (d['displayName'] ?? '').toString(),
+      role: (d['role'] ?? 'MEMBER').toString(),
+      addedAt: (d['addedAt'] is Timestamp)
+          ? (d['addedAt'] as Timestamp).toDate()
+          : null,
+    );
+  }
+}
