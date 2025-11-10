@@ -1,6 +1,8 @@
-import 'dart:ffi';
+import 'package:flutter/material.dart';
 
-class Color {}
+enum Priority { baja, media, alta }
+
+enum Status { pendiente, enProgreso, enRevision, completado }
 
 class TaskColumn {
   final String name;
@@ -15,11 +17,11 @@ class Task {
   final String description;
   final String projectType;
   final String assignee;
-  final String priority;
-  final String status;
-  final Double estimatedHours;
-  final DateTime dueTime;
-  final String tags;
+  final Priority priority;
+  final Status status;
+  final double estimatedHours;
+  final DateTime? dueTime;
+  final List<String> tags;
 
   Task({
     required this.title,
@@ -29,7 +31,7 @@ class Task {
     required this.priority,
     required this.status,
     required this.estimatedHours,
-    required this.dueTime,
-    required this.tags,
+    this.dueTime,
+    this.tags = const [],
   });
 }

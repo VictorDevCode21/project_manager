@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:prolab_unimet/controllers/task_controller.dart';
 
 class TaskView extends StatefulWidget {
   const TaskView({super.key});
@@ -9,8 +10,9 @@ class TaskView extends StatefulWidget {
 
 class _TaskView extends State<TaskView> {
   final TextEditingController _taskcontroller = TextEditingController();
-  String _selectedStatus = 'Todos los estados';
-  String _selectedAssignees = 'Todos los tipos';
+  String _selectedStatus = 'Prioridades';
+  String _selectedAssignees = 'Responsables';
+  final TaskController _taskController = TaskController();
 
   @override
   Widget build(BuildContext context) {
@@ -76,9 +78,7 @@ class _TaskView extends State<TaskView> {
                     spacing: 16,
                     children: [
                       ElevatedButton.icon(
-                        onPressed: () {
-                          //crear
-                        },
+                        onPressed: () {},
                         icon: const Icon(
                           Icons.add,
                           size: 18,
@@ -189,20 +189,12 @@ class _TaskView extends State<TaskView> {
                         // Status filter
                         DropdownButton<String>(
                           value: _selectedStatus,
-                          items:
-                              [
-                                    'Todos los estados',
-                                    'En Progreso',
-                                    'Planificación',
-                                    'Completado',
-                                  ]
-                                  .map(
-                                    (e) => DropdownMenuItem(
-                                      value: e,
-                                      child: Text(e),
-                                    ),
-                                  )
-                                  .toList(),
+                          items: ['Alta', 'Media', 'Baja']
+                              .map(
+                                (e) =>
+                                    DropdownMenuItem(value: e, child: Text(e)),
+                              )
+                              .toList(),
                           onChanged: (value) {
                             setState(() => _selectedStatus = value!);
                           },
@@ -212,20 +204,12 @@ class _TaskView extends State<TaskView> {
                         // Type filter
                         DropdownButton<String>(
                           value: _selectedAssignees,
-                          items:
-                              [
-                                    'Todos los tipos',
-                                    'Calidad Ambiental',
-                                    'Construcción',
-                                    'Tecnología',
-                                  ]
-                                  .map(
-                                    (e) => DropdownMenuItem(
-                                      value: e,
-                                      child: Text(e),
-                                    ),
-                                  )
-                                  .toList(),
+                          items: ['Maria', 'Juan', 'Alcachofa']
+                              .map(
+                                (e) =>
+                                    DropdownMenuItem(value: e, child: Text(e)),
+                              )
+                              .toList(),
                           onChanged: (value) {
                             setState(() => _selectedAssignees = value!);
                           },
@@ -236,9 +220,71 @@ class _TaskView extends State<TaskView> {
                 ),
               ),
               const SizedBox(height: 30),
+
+              _buildBoard(),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildBoard() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: _taskController.columns.map((column) {
+          return Container(
+            width: 280,
+            margin: const EdgeInsets.only(right: 20),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      column.name,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: column.color,
+                      ),
+                    ),
+                    Icon(Icons.more_vert, color: Colors.grey[600]),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                Container(
+                  height: 300,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Sin tareas',
+                    style: TextStyle(color: Colors.grey[500]),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }
