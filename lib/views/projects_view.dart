@@ -5,6 +5,7 @@ import 'package:prolab_unimet/controllers/project_controller.dart';
 import 'package:prolab_unimet/models/projects_model.dart';
 import 'package:prolab_unimet/views/components/forms/create_project.dart';
 import 'package:prolab_unimet/views/projects/manage_members_dialog.dart';
+import 'package:prolab_unimet/views/projects/project_details_dialog.dart';
 import 'package:prolab_unimet/widgets/app_dropdown.dart';
 
 /// Projects management view inside AdminLayout (View layer - MVC).
@@ -19,35 +20,32 @@ class _ProjectsViewState extends State<ProjectsView> {
   final TextEditingController _searchController = TextEditingController();
   final controller = ProjectController();
 
-  // UI state for filters (kept in View; business rules stay in Controller/Model).
+  // UI filter state
   String _selectedStatus = 'Todos los estados';
   String _selectedType = 'Todos los tipos';
 
-  // Debounce to avoid excessive rebuilds while typing.
+  // Debounce for search box
   Timer? _searchDebounce;
 
-  // Single instance for this view
+  // Single instance for consulting types
   late final ConsultingTypeController _ctController;
 
   @override
   void initState() {
     super.initState();
     _ctController = ConsultingTypeController();
-
-    // Listen to search input and trigger filtering with debounce.
     _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
-    // Prevent memory leaks from the search controller and timers.
     _searchDebounce?.cancel();
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
 
-  /// Handles search text changes with a short debounce to keep UI responsive.
+  /// Debounced text change
   void _onSearchChanged() {
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 250), () {
@@ -55,10 +53,9 @@ class _ProjectsViewState extends State<ProjectsView> {
     });
   }
 
-  /// Applies all filters to the provided list. This keeps composition clean:
-  /// any individual filter can work alone and all can work together.
+  /// Apply filters client-side for simplicity
   List<Project> _filterProjects(List<Project> source) {
-    // 1) Status filter
+    // 1) Status
     final byStatus = source.where((p) {
       if (_selectedStatus == 'Todos los estados') return true;
       switch (_selectedStatus) {
@@ -74,18 +71,17 @@ class _ProjectsViewState extends State<ProjectsView> {
       return true;
     });
 
-    // 2) Type filter
+    // 2) Type
     final byType = byStatus.where((p) {
       if (_selectedType == 'Todos los tipos') return true;
       return p.consultingType.trim().toLowerCase() ==
           _selectedType.trim().toLowerCase();
     });
 
-    // 3) Search filter (by project name and client; name is primary).
+    // 3) Search by name or client
     final query = _searchController.text.trim().toLowerCase();
     final bySearch = byType.where((p) {
       if (query.isEmpty) return true;
-      // Prioritize name match; still allow client match to be helpful.
       return p.name.toLowerCase().contains(query) ||
           p.client.toLowerCase().contains(query);
     });
@@ -130,7 +126,7 @@ class _ProjectsViewState extends State<ProjectsView> {
                       final nav = Navigator.of(context, rootNavigator: true);
                       final messenger = ScaffoldMessenger.of(context);
 
-                      // 1) Open dialog (UI only)
+                      // 1) Open modal to create project
                       final dto = await showDialog<ProjectCreateData>(
                         context: context,
                         barrierDismissible: false,
@@ -138,18 +134,9 @@ class _ProjectsViewState extends State<ProjectsView> {
                         builder: (_) => const CreateProjectDialog(),
                       );
                       if (dto == null) return;
-
                       if (!mounted) return;
 
-                      debugPrint(
-                        '[ProjectsView] DTO -> '
-                        'name=${dto.name}, client=${dto.client}, '
-                        'desc.len=${dto.description.length}, type=${dto.consultingType}, '
-                        'budget=${dto.budgetUsd}, priority=${dto.priority}, '
-                        'start=${dto.startDate.toIso8601String()}, '
-                        'end=${dto.endDate.toIso8601String()}',
-                      );
-
+                      // 2) Progress spinner while creating
                       showDialog(
                         context: context,
                         barrierDismissible: false,
@@ -170,12 +157,8 @@ class _ProjectsViewState extends State<ProjectsView> {
                           startDate: dto.startDate,
                           endDate: dto.endDate,
                         );
-
                         if (!mounted) return;
-                        if (nav.canPop()) {
-                          nav.pop();
-                        }
-
+                        if (nav.canPop()) nav.pop();
                         messenger.showSnackBar(
                           SnackBar(
                             content: Text('Proyecto creado: $projectId'),
@@ -183,9 +166,7 @@ class _ProjectsViewState extends State<ProjectsView> {
                         );
                       } catch (e) {
                         if (!mounted) return;
-                        if (nav.canPop()) {
-                          nav.pop();
-                        }
+                        if (nav.canPop()) nav.pop();
                         messenger.showSnackBar(
                           SnackBar(content: Text('Error al crear: $e')),
                         );
@@ -214,7 +195,7 @@ class _ProjectsViewState extends State<ProjectsView> {
               ),
               const SizedBox(height: 30),
 
-              // ===== FILTER SECTION =====
+              // ===== FILTERS =====
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -242,14 +223,11 @@ class _ProjectsViewState extends State<ProjectsView> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Search field (live filtering with debounce listener)
+                        // Search
                         Expanded(
                           child: TextField(
                             controller: _searchController,
-                            onChanged: (_) {
-                              // Immediate feedback for very fast typers; listener still debounces.
-                              setState(() {});
-                            },
+                            onChanged: (_) => setState(() {}),
                             decoration: InputDecoration(
                               prefixIcon: const Icon(Icons.search),
                               hintText:
@@ -263,10 +241,8 @@ class _ProjectsViewState extends State<ProjectsView> {
                             ),
                           ),
                         ),
-
                         const SizedBox(width: 16),
-
-                        // Status filter with explicit constraints
+                        // Status
                         SizedBox(
                           width: 220,
                           height: 52,
@@ -286,19 +262,17 @@ class _ProjectsViewState extends State<ProjectsView> {
                                 value: _selectedStatus,
                                 items:
                                     const [
-                                          'Todos los estados',
-                                          'En Progreso',
-                                          'Planificación',
-                                          'Completado',
-                                          // Optional: 'Archivado'
-                                        ]
-                                        .map(
-                                          (e) => DropdownMenuItem(
-                                            value: e,
-                                            child: Text(e),
-                                          ),
-                                        )
-                                        .toList(),
+                                      'Todos los estados',
+                                      'En Progreso',
+                                      'Planificación',
+                                      'Completado',
+                                      // 'Archivado'
+                                    ].map((e) {
+                                      return DropdownMenuItem(
+                                        value: e,
+                                        child: Text(e),
+                                      );
+                                    }).toList(),
                                 onChanged: (value) {
                                   if (value == null) return;
                                   setState(() => _selectedStatus = value);
@@ -307,10 +281,8 @@ class _ProjectsViewState extends State<ProjectsView> {
                             ),
                           ),
                         ),
-
                         const SizedBox(width: 16),
-
-                        // Type filter with explicit constraints
+                        // Type
                         SizedBox(
                           width: 260,
                           height: 52,
@@ -324,7 +296,6 @@ class _ProjectsViewState extends State<ProjectsView> {
                                   child: CircularProgressIndicator(),
                                 );
                               }
-
                               if (snap.hasError) {
                                 return const Align(
                                   alignment: Alignment.centerLeft,
@@ -334,12 +305,10 @@ class _ProjectsViewState extends State<ProjectsView> {
                                   ),
                                 );
                               }
-
                               final base = (snap.data ?? const <String>[])
                                   .where((e) => e.trim().isNotEmpty)
                                   .toList();
                               final options = ['Todos los tipos', ...base];
-
                               final current = options.contains(_selectedType)
                                   ? _selectedType
                                   : 'Todos los tipos';
@@ -374,7 +343,6 @@ class _ProjectsViewState extends State<ProjectsView> {
                   return StreamBuilder<List<Project>>(
                     stream: controller.streamOwnedProjects(),
                     builder: (context, snap) {
-                      // Loading state
                       if (snap.connectionState == ConnectionState.waiting) {
                         return const Center(
                           child: Padding(
@@ -384,17 +352,10 @@ class _ProjectsViewState extends State<ProjectsView> {
                         );
                       }
 
-                      // Error state
                       if (snap.hasError) {
                         debugPrint(
                           '[ProjectsView] stream error: ${snap.error}',
                         );
-                        if (snap.stackTrace != null) {
-                          debugPrint(
-                            '[ProjectsView] stack: ${snap.stackTrace}',
-                          );
-                        }
-
                         return Center(
                           child: Padding(
                             padding: const EdgeInsets.all(16),
@@ -406,9 +367,7 @@ class _ProjectsViewState extends State<ProjectsView> {
                         );
                       }
 
-                      // Apply composable filters.
                       final projects = _filterProjects(snap.data ?? const []);
-
                       if (projects.isEmpty) {
                         return Container(
                           padding: const EdgeInsets.all(24),
@@ -428,51 +387,14 @@ class _ProjectsViewState extends State<ProjectsView> {
                         childAspectRatio: isWide ? 1.7 : 1.4,
                         physics: const NeverScrollableScrollPhysics(),
                         children: projects.map((p) {
-                          final tags = <String>[
-                            // Status tag
-                            () {
-                              switch (p.status) {
-                                case ProjectStatus.planning:
-                                  return 'Planificación';
-                                case ProjectStatus.inProgress:
-                                  return 'En Progreso';
-                                case ProjectStatus.completed:
-                                  return 'Completado';
-                                case ProjectStatus.archived:
-                                  return 'Archivado';
-                              }
-                            }(),
-                            // Type tag
-                            if (p.consultingType.isNotEmpty) p.consultingType,
-                          ];
-
-                          final client = p.client.isNotEmpty ? p.client : '—';
-                          final team = '0 miembros'; // until wired
-                          final deadline =
-                              '${p.endDate.day.toString().padLeft(2, '0')}/${p.endDate.month.toString().padLeft(2, '0')}/${p.endDate.year}';
-                          final budget = '\$${p.budgetUsd.toStringAsFixed(0)}';
-                          final progress = 0.0; // placeholder
-
                           return _buildProjectCard(
-                            title: p.name.isNotEmpty
-                                ? p.name
-                                : 'Proyecto sin título',
-                            description: p.description.isNotEmpty
-                                ? p.description
-                                : 'Sin descripción',
-                            tags: tags,
-                            progress: progress,
-                            client: client,
-                            team: team,
-                            deadline: deadline,
-                            budget: budget,
-                            // NEW: forward a callback that knows p.id and p.name
+                            project: p,
                             onManage: () {
                               showDialog(
                                 context: context,
                                 barrierDismissible: true,
                                 builder: (_) => ManageMembersDialog(
-                                  projectId: p.id, // <-- here p exists
+                                  projectId: p.id,
                                   projectName: p.name,
                                 ),
                               );
@@ -491,18 +413,36 @@ class _ProjectsViewState extends State<ProjectsView> {
     );
   }
 
-  /// Builds a single project card with consistent design.
+  /// Single project card. Receives the full `Project` to avoid dangling vars.
   Widget _buildProjectCard({
-    required String title,
-    required String description,
-    required List<String> tags,
-    required double progress,
-    required String client,
-    required String team,
-    required String deadline,
-    required String budget,
+    required Project project,
     required VoidCallback onManage,
   }) {
+    // Build tags
+    final tags = <String>[
+      switch (project.status) {
+        ProjectStatus.planning => 'Planificación',
+        ProjectStatus.inProgress => 'En Progreso',
+        ProjectStatus.completed => 'Completado',
+        ProjectStatus.archived => 'Archivado',
+      },
+      if (project.consultingType.isNotEmpty) project.consultingType,
+    ];
+
+    // Derived UI strings
+    final title = project.name.isNotEmpty
+        ? project.name
+        : 'Proyecto sin título';
+    final description = project.description.isNotEmpty
+        ? project.description
+        : 'Sin descripción';
+    final client = project.client.isNotEmpty ? project.client : '—';
+    final team = '0 miembros'; // TODO: connect to members count if needed
+    final deadline =
+        '${project.endDate.day.toString().padLeft(2, '0')}/${project.endDate.month.toString().padLeft(2, '0')}/${project.endDate.year}';
+    final budget = '\$${project.budgetUsd.toStringAsFixed(0)}';
+    final progress = 0.0; // Placeholder for now
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -519,7 +459,7 @@ class _ProjectsViewState extends State<ProjectsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title and description
+          // Title & description
           Text(
             title,
             style: const TextStyle(
@@ -541,7 +481,7 @@ class _ProjectsViewState extends State<ProjectsView> {
           Wrap(spacing: 6, children: tags.map((t) => _buildTag(t)).toList()),
           const SizedBox(height: 12),
 
-          // Progress bar
+          // Progress
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -561,7 +501,7 @@ class _ProjectsViewState extends State<ProjectsView> {
           ),
           const SizedBox(height: 16),
 
-          // Info section
+          // Info rows
           _buildInfoRow('Cliente:', client),
           _buildInfoRow('Equipo:', team),
           _buildInfoRow('Entrega:', deadline),
@@ -573,15 +513,20 @@ class _ProjectsViewState extends State<ProjectsView> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: true,
+                      builder: (_) => ProjectDetailsDialog(project: project),
+                    );
+                  },
                   child: const Text('Ver Detalles'),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton(
-                  // Use the callback instead of referencing p
-                  onPressed: onManage, // NEW
+                  onPressed: onManage,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xff253f8d),
                   ),
@@ -598,20 +543,20 @@ class _ProjectsViewState extends State<ProjectsView> {
     );
   }
 
-  /// Render a single tag with a soft background color.
+  /// Tag chip
   Widget _buildTag(String label) {
     Color bg;
     switch (label) {
       case 'En Progreso':
         bg = const Color(0xffe3f2fd);
         break;
-      case 'Calidad Ambiental':
-        bg = const Color(0xffe8f5e9);
-        break;
       case 'Planificación':
         bg = const Color(0xfffff3e0);
         break;
-      case 'Construcción':
+      case 'Completado':
+        bg = const Color(0xffe8f5e9);
+        break;
+      case 'Archivado':
         bg = const Color(0xffffebee);
         break;
       default:
@@ -631,7 +576,7 @@ class _ProjectsViewState extends State<ProjectsView> {
     );
   }
 
-  /// Key-value row used in cards.
+  /// Key-value row
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
