@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:prolab_unimet/controllers/task_controller.dart';
+import 'package:prolab_unimet/models/tasks_model.dart';
 
 class TaskView extends StatefulWidget {
   const TaskView({super.key});
@@ -78,7 +79,9 @@ class _TaskView extends State<TaskView> {
                     spacing: 16,
                     children: [
                       ElevatedButton.icon(
-                        onPressed: () {},
+                        onPressed: () {
+                          _showAddColumnDialog(context);
+                        },
                         icon: const Icon(
                           Icons.add,
                           size: 18,
@@ -189,7 +192,7 @@ class _TaskView extends State<TaskView> {
                         // Status filter
                         DropdownButton<String>(
                           value: _selectedStatus,
-                          items: ['Alta', 'Media', 'Baja']
+                          items: ['Prioridades', 'Alta', 'Media', 'Baja']
                               .map(
                                 (e) =>
                                     DropdownMenuItem(value: e, child: Text(e)),
@@ -204,7 +207,7 @@ class _TaskView extends State<TaskView> {
                         // Type filter
                         DropdownButton<String>(
                           value: _selectedAssignees,
-                          items: ['Maria', 'Juan', 'Alcachofa']
+                          items: ['Responsables', 'Alta', 'Media', 'Baja']
                               .map(
                                 (e) =>
                                     DropdownMenuItem(value: e, child: Text(e)),
@@ -226,6 +229,141 @@ class _TaskView extends State<TaskView> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showAddColumnDialog(BuildContext context) {
+    TextEditingController nameController = TextEditingController();
+    Color selectedColor = Colors.grey.shade200;
+
+    final List<Color> colorOptions = [
+      Colors.grey.shade500,
+      Colors.blue.shade100,
+      Colors.orange.shade100,
+      Colors.green.shade100,
+      Colors.red.shade100,
+      Colors.purple.shade100,
+      Colors.yellow.shade100,
+      Colors.teal.shade100,
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+              contentPadding: EdgeInsets.all(16),
+              actionsPadding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
+              content: Column(
+                mainAxisSize:
+                    MainAxisSize.min, // ✅ CLAVE - Ocupa solo espacio necesario
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Nueva Columna',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xff253f8d),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre de la columna',
+                      border: OutlineInputBorder(),
+                      hintText: 'Ej: En Espera',
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                    ),
+                    autofocus: true,
+                  ),
+                  SizedBox(height: 12),
+                  const Text(
+                    'Selecciona un color',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: colorOptions.map((color) {
+                      return GestureDetector(
+                        onTap: () {
+                          setStateDialog(() {
+                            selectedColor = color;
+                          });
+                        },
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: selectedColor == color
+                                ? Border.all(color: Colors.blue, width: 2)
+                                : Border.all(
+                                    color: Colors.grey.shade300,
+                                    width: 1,
+                                  ),
+                          ),
+                          child: selectedColor == color
+                              ? Icon(Icons.check, size: 14, color: Colors.white)
+                              : null,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: nameController.text.trim().isEmpty
+                      ? null
+                      : () {
+                          final newColumn = TaskColumn(
+                            name: nameController.text.trim(),
+                            color: selectedColor,
+                          );
+                          _taskController.addColumn(newColumn);
+                          Navigator.of(context).pop();
+                          setState(() {});
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Columna "${newColumn.name}" creada',
+                              ),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff2d55fa),
+                  ),
+                  child: const Text(
+                    'Crear Columna',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -264,7 +402,9 @@ class _TaskView extends State<TaskView> {
                         color: column.color,
                       ),
                     ),
-                    Icon(Icons.more_vert, color: Colors.grey[600]),
+
+                    // PopupMenuButton<String>(
+                    //   icon: Icon(Icons.more_vert, color: Colors.grey[600]),)
                   ],
                 ),
                 const SizedBox(height: 10),
