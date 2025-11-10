@@ -274,6 +274,12 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                       return const SizedBox.shrink();
                     }
 
+                    final double _invitesListHeight =
+                        (MediaQuery.of(context).size.height * 0.28).clamp(
+                          220.0,
+                          360.0,
+                        ); // 28% viewport, clamped
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -282,25 +288,38 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                           style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 8),
-                        ...invites.map(
-                          (i) => ListTile(
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.mail_outline),
-                            title: Text(i.email),
-                            subtitle: Text('Estado: ${i.status}'),
-                            trailing: IconButton(
-                              tooltip: 'Cancelar invitación',
-                              icon: const Icon(Icons.close),
-                              onPressed: _busy
-                                  ? null
-                                  : () => _controller.cancelInvite(
-                                      widget.projectId,
-                                      i.id,
-                                    ),
-                            ),
+
+                        // Fixed-height, scrollable list to avoid overflow inside SingleChildScrollView
+                        SizedBox(
+                          height: _invitesListHeight,
+                          child: ListView.separated(
+                            // Do not use shrinkWrap here; let the SizedBox constraint drive it
+                            itemCount: invites.length,
+                            separatorBuilder: (_, __) =>
+                                const Divider(height: 1),
+                            itemBuilder: (_, i) {
+                              final ivt = invites[i];
+                              return ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.mail_outline),
+                                title: Text(ivt.email),
+                                subtitle: Text('Estado: ${ivt.status}'),
+                                trailing: IconButton(
+                                  tooltip: 'Cancelar invitación',
+                                  icon: const Icon(Icons.close),
+                                  onPressed: _busy
+                                      ? null
+                                      : () => _controller.cancelInvite(
+                                          widget.projectId,
+                                          ivt.id,
+                                        ),
+                                ),
+                              );
+                            },
                           ),
                         ),
+
                         const SizedBox(height: 12),
                         const Divider(height: 1),
                         const SizedBox(height: 12),
@@ -346,43 +365,52 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                       );
                     }
 
-                    return ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: members.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (_, i) {
-                        final m = members[i];
-                        final subtitle = m.displayName.isNotEmpty
-                            ? '${m.displayName} • ${m.email}'
-                            : m.email;
-                        final isSelf = m.uid == _controller.currentUserUid;
+                    final double _membersListHeight =
+                        (MediaQuery.of(context).size.height * 0.30).clamp(
+                          220.0,
+                          420.0,
+                        ); // 30% viewport, clamped
 
-                        return ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: const CircleAvatar(
-                            radius: 18,
-                            child: Icon(Icons.person, size: 18),
-                          ),
-                          title: Text(subtitle),
-                          subtitle: Text(
-                            m.addedAt != null
-                                ? 'Agregado el ${m.addedAt}'
-                                : 'Fecha pendiente',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          trailing: IconButton(
-                            tooltip: isSelf
-                                ? 'No puedes eliminarte a ti mismo'
-                                : 'Eliminar',
-                            onPressed: (_busy || isSelf)
-                                ? null
-                                : () => _confirmRemove(m),
-                            icon: const Icon(Icons.delete_outline),
-                          ),
-                        );
-                      },
+                    return SizedBox(
+                      height: _membersListHeight,
+                      child: ListView.separated(
+                        // Do not use shrinkWrap; the SizedBox gives bounded height
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: members.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (_, i) {
+                          final m = members[i];
+                          final subtitle = m.displayName.isNotEmpty
+                              ? '${m.displayName} • ${m.email}'
+                              : m.email;
+                          final isSelf = m.uid == _controller.currentUserUid;
+
+                          return ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            leading: const CircleAvatar(
+                              radius: 18,
+                              child: Icon(Icons.person, size: 18),
+                            ),
+                            title: Text(subtitle),
+                            subtitle: Text(
+                              m.addedAt != null
+                                  ? 'Agregado el ${m.addedAt}'
+                                  : 'Fecha pendiente',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            trailing: IconButton(
+                              tooltip: isSelf
+                                  ? 'No puedes eliminarte a ti mismo'
+                                  : 'Eliminar',
+                              onPressed: (_busy || isSelf)
+                                  ? null
+                                  : () => _confirmRemove(m),
+                              icon: const Icon(Icons.delete_outline),
+                            ),
+                          );
+                        },
+                      ),
                     );
                   },
                 ),
