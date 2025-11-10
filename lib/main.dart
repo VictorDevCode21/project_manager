@@ -8,6 +8,7 @@ import 'package:prolab_unimet/views/splash_view.dart';
 import 'package:provider/provider.dart';
 import 'services/firebase_options.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +23,13 @@ void main() async {
   } catch (e, st) {
     debugPrint('❌ Error al inicializar Firebase: $e');
     debugPrintStack(stackTrace: st);
+  }
+
+  try {
+    await dotenv.load(fileName: "assets/.env"); // Await to load .env variables
+    debugPrint('✅ .env loaded for web: ${dotenv.env.length} vars');
+  } catch (e) {
+    debugPrint('⚠️ Could not load assets/.env: $e');
   }
 
   runApp(

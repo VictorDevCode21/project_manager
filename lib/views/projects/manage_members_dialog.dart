@@ -1,8 +1,9 @@
-// lib/views/components/modals/manage_members_dialog.dart
+// lib/views/projects/manage_members_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:prolab_unimet/controllers/project_controller.dart';
 
-/// Minimal dialog to manage project members and invites (View - MVC).
+/// Dialog to manage project members and invites (View - MVC).
+/// UI strings are in Spanish; code comments are in English as requested.
 class ManageMembersDialog extends StatefulWidget {
   final String projectId;
   final String projectName;
@@ -43,20 +44,17 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
 
     setState(() => _busy = true);
     try {
-      // 1) Create invite document (no member added yet).
-      final token = await _controller.createProjectInvite(
+      // Creates invite and emails via Lambda URL from .env.
+      await _controller.createInviteAndSendEmail(
         projectId: widget.projectId,
-        inviterUid: inviter,
-        email: _emailCtrl.text,
+        recipientEmail: _emailCtrl.text,
       );
 
-      // 2) (Optional) Trigger your email service here in UI layer or via CF later.
-      // For now we just show success and clear the form.
       if (!mounted) return;
       _emailCtrl.clear();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Invitation sent. Token: $token')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invitación enviada correctamente.')),
+      );
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -91,7 +89,7 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
       builder: (_) => AlertDialog(
         title: const Text('Eliminar miembro'),
         content: Text(
-          'Eliminar ${m.displayName.isNotEmpty ? m.displayName : m.email} de este proyecto?',
+          '¿Eliminar a ${m.displayName.isNotEmpty ? m.displayName : m.email} de este proyecto?',
         ),
         actions: [
           TextButton(
@@ -130,13 +128,14 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Header
                 Row(
                   children: [
                     const Icon(Icons.group, color: Color(0xff253f8d)),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Manejar miembros en proyecto: • ${widget.projectName}',
+                        'Gestionar miembros • ${widget.projectName}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -152,7 +151,7 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Invita por email (se enviará un enlace de aceptación) y gestiona miembros existentes.',
+                  'Invita colaboradores por correo (recibirán un enlace de aceptación) y gestiona los miembros existentes.',
                   style: TextStyle(color: Colors.black54),
                 ),
                 const SizedBox(height: 16),
@@ -168,7 +167,7 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                           enabled: !_busy,
                           decoration: InputDecoration(
                             hintText: 'example@correo.unimet.edu.ve',
-                            labelText: 'Correo electrónico del invitado',
+                            labelText: 'Introduzca el correo del invitado',
                             filled: true,
                             fillColor: Colors.grey[100],
                             border: OutlineInputBorder(
@@ -178,12 +177,13 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                           ),
                           validator: (v) {
                             final value = (v ?? '').trim().toLowerCase();
-                            if (value.isEmpty) return 'El email es requerido.';
+                            if (value.isEmpty) return 'El correo es requerido.';
+                            // Adjust the regex if you plan to allow more domains.
                             final ok = RegExp(
                               r'^[\w\.-]+@(correo\.unimet\.edu\.ve|unimet\.edu\.ve)$',
                             ).hasMatch(value);
                             if (!ok) {
-                              return 'Formato inválido. Solo dominios unimet.edu.ve o correo.unimet.edu.ve';
+                              return 'Correo inválido. Permitidos: unimet.edu.ve o correo.unimet.edu.ve';
                             }
                             return null;
                           },
@@ -230,6 +230,7 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                     ],
                   ),
                 ),
+
                 if (_error != null) ...[
                   const SizedBox(height: 8),
                   Text(
@@ -242,12 +243,10 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                 const Divider(height: 1),
                 const SizedBox(height: 12),
 
-                // Pending invites list (nice to have)
+                // Pending invites list (client-side filter to avoid composite index)
                 StreamBuilder<List<ProjectInvite>>(
-                  stream: _controller.streamInvites(
-                    widget.projectId,
-                    status: 'PENDING',
-                  ),
+                  // Do not pass a Firestore status filter to avoid composite index.
+                  stream: _controller.streamInvites(widget.projectId),
                   builder: (context, snap) {
                     if (snap.connectionState == ConnectionState.waiting) {
                       return const Padding(
@@ -255,10 +254,26 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                         child: Center(child: CircularProgressIndicator()),
                       );
                     }
-                    final invites = snap.data ?? const <ProjectInvite>[];
+                    if (snap.hasError) {
+                      return Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          'Error cargando invitaciones: ${snap.error}',
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      );
+                    }
+
+                    final all = snap.data ?? const <ProjectInvite>[];
+                    // Only show PENDING
+                    final invites = all
+                        .where((i) => (i.status).toUpperCase() == 'PENDING')
+                        .toList();
+
                     if (invites.isEmpty) {
                       return const SizedBox.shrink();
                     }
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -308,11 +323,12 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                       return Padding(
                         padding: const EdgeInsets.all(12),
                         child: Text(
-                          'Error Cargando los miembros: ${snap.error}',
+                          'Error cargando miembros: ${snap.error}',
                           style: const TextStyle(color: Colors.red),
                         ),
                       );
                     }
+
                     final members = snap.data ?? const <ProjectMember>[];
                     if (members.isEmpty) {
                       return const Padding(
@@ -322,13 +338,14 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                             Icon(Icons.info_outline, color: Colors.black38),
                             SizedBox(width: 8),
                             Text(
-                              'No hay miembros aún. Invita alguno arriba.',
+                              'Aún no hay miembros. Invita a alguien arriba.',
                               style: TextStyle(color: Colors.black54),
                             ),
                           ],
                         ),
                       );
                     }
+
                     return ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -340,6 +357,7 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                             ? '${m.displayName} • ${m.email}'
                             : m.email;
                         final isSelf = m.uid == _controller.currentUserUid;
+
                         return ListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
@@ -350,14 +368,14 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                           title: Text(subtitle),
                           subtitle: Text(
                             m.addedAt != null
-                                ? 'Added ${m.addedAt}'
-                                : 'Pending timestamp',
+                                ? 'Agregado el ${m.addedAt}'
+                                : 'Fecha pendiente',
                             style: const TextStyle(fontSize: 12),
                           ),
                           trailing: IconButton(
                             tooltip: isSelf
-                                ? 'No puedes removerte a ti mismo'
-                                : 'Remove',
+                                ? 'No puedes eliminarte a ti mismo'
+                                : 'Eliminar',
                             onPressed: (_busy || isSelf)
                                 ? null
                                 : () => _confirmRemove(m),

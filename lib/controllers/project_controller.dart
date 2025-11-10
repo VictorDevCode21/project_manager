@@ -1,9 +1,14 @@
+// lib/controllers/project_controller.dart
+
 import 'dart:developer' as dev;
-import 'dart:math';
-import 'package:flutter/foundation.dart' show debugPrint;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'package:prolab_unimet/models/projects_model.dart';
+import 'package:prolab_unimet/services/invite_service.dart';
 
 class ProjectController {
   final FirebaseFirestore _db;
@@ -12,6 +17,8 @@ class ProjectController {
   ProjectController({FirebaseFirestore? firestore, FirebaseAuth? auth})
     : _db = firestore ?? FirebaseFirestore.instance,
       _auth = auth ?? FirebaseAuth.instance;
+
+  // ===================== PROJECTS =====================
 
   Future<String> createProject({
     required String name,
@@ -67,9 +74,9 @@ class ProjectController {
     try {
       final data = project.toMap()
         ..addAll({
-          'status': 'PLANNING', // enforced by rules
+          'status': 'PLANNING', // validated by rules
           'nameLower': project.name.toLowerCase(),
-          'visibleTo': project.visibleTo, // <- ya incluye [ownerId]
+          'visibleTo': project.visibleTo, // already includes [ownerId]
           'createdAt': FieldValue.serverTimestamp(),
         });
 
@@ -121,6 +128,7 @@ class ProjectController {
         .map((snap) => snap.docs.map(Project.fromDoc).toList());
   }
 
+  /// Optional: server-side filtering for status, type, and prefix search.
   Stream<QuerySnapshot<Map<String, dynamic>>> watchProjects({
     ProjectStatus? statusFilter,
     String? consultingTypeFilter,
@@ -149,6 +157,7 @@ class ProjectController {
     final hasSearch = s != null && s.isNotEmpty;
 
     if (hasSearch) {
+      // Requires index on nameLower if combined with other where clauses.
       q = q.orderBy('nameLower').startAt([s]).endAt(['$s\uf8ff']);
     } else {
       q = q.orderBy('createdAt', descending: true);
@@ -231,7 +240,7 @@ class ProjectController {
       'startDate': project.startDate.toIso8601String(),
       'endDate': project.endDate.toIso8601String(),
       'consultingType': project.consultingType,
-      'visibleTo': project.visibleTo, // <-- log útil para depurar reglas
+      'visibleTo': project.visibleTo,
       'desc_len': project.description.length,
     };
     debugPrint('[ProjectController] payload: $data');
@@ -269,23 +278,14 @@ class _Normalized {
   });
 }
 
+// ===================== MEMBERS =====================
+
 extension ProjectMembersOps on ProjectController {
-  /// Exposes the current user's uid to views when needed.
+  /// Exposes current user's uid to views.
+  ///
   String? get currentUserUid => _auth.currentUser?.uid;
 
-  String _genToken([int length = 48]) {
-    const alphabet =
-        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    final rnd = Random.secure();
-    return List.generate(
-      length,
-      (_) => alphabet[rnd.nextInt(alphabet.length)],
-    ).join();
-  }
-
   /// Streams the members of a given project.
-  /// Data source: /projects/{projectId}/members
-  // ====== MEMBERS ======
   Stream<List<ProjectMember>> streamMembers(String projectId) {
     return _db
         .collection('projects')
@@ -296,6 +296,7 @@ extension ProjectMembersOps on ProjectController {
         .map((snap) => snap.docs.map(ProjectMember.fromDoc).toList());
   }
 
+  /// Removes a member and updates visibleTo accordingly.
   Future<void> removeMember({
     required String projectId,
     required String memberUid,
@@ -305,69 +306,126 @@ extension ProjectMembersOps on ProjectController {
 
     await _db.runTransaction((tx) async {
       final m = await tx.get(memberRef);
-      if (m.exists) tx.delete(memberRef);
+      if (m.exists) {
+        tx.delete(memberRef);
+      }
       tx.update(projectRef, {
         'visibleTo': FieldValue.arrayRemove([memberUid]),
       });
     });
   }
+}
 
-  // ====== INVITES ======
+// ===================== INVITES =====================
 
-  /// Creates an invite under /projects/{projectId}/invites.
-  /// Returns the generated token so UI can email a link like:
-  /// http://localhost:5173/invite?token=XYZ
-  Future<String> createProjectInvite({
+extension ProjectInvitesOps on ProjectController {
+  /// True if an Auth account already exists for the given email.
+  Future<bool> _authAccountExists(String email) async {
+    try {
+      final methods = await (_auth as dynamic).fetchSignInMethodsForEmail(
+        email.trim().toLowerCase(),
+      );
+      final list = methods as List<dynamic>?;
+      return list != null && list.isNotEmpty;
+    } catch (_) {
+      // Fallback: do not block the flow if this capability is unavailable.
+      return false;
+    }
+  }
+
+  /// Joins base + path ensuring exactly one slash.
+  String _joinBaseAndPath(String base, String path) {
+    final b = base.endsWith('/') ? base.substring(0, base.length - 1) : base;
+    final p = path.startsWith('/') ? path : '/$path';
+    return '$b$p';
+  }
+
+  /// Creates an invite in /projects/{projectId}/invites and sends the email
+  /// through the Lambda Function. Chooses /login vs /register based on Auth.
+  Future<void> createInviteAndSendEmail({
     required String projectId,
-    required String inviterUid,
-    required String email,
+    required String recipientEmail,
   }) async {
-    final emailNorm = email.trim().toLowerCase();
-    if (emailNorm.isEmpty) {
+    final inviter = _auth.currentUser;
+    if (inviter == null) {
+      throw Exception('No authenticated user.');
+    }
+
+    final email = recipientEmail.trim().toLowerCase();
+    if (email.isEmpty) {
       throw ArgumentError('Email is required.');
     }
 
-    final token = _genToken();
-    final projRef = _db.collection('projects').doc(projectId);
-    final inviteRef = projRef.collection('invites').doc();
+    // Read public env vars directly
+    final functionUrl = dotenv.env['FUNCTION_URL']?.trim() ?? '';
+    final baseUrl = dotenv.env['INVITE_ACCEPT_BASE_URL']?.trim() ?? '';
 
-    await _db.runTransaction((tx) async {
-      final proj = await tx.get(projRef);
-      if (!proj.exists) throw StateError('Project not found.');
-
-      tx.set(inviteRef, {
-        'email': emailNorm,
-        'invitedById': inviterUid,
-        'status': 'PENDING',
-        'token': token,
-        'createdAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    });
-
-    return token;
-  }
-
-  /// Streams invites for a project, optionally filtered by status.
-  Stream<List<ProjectInvite>> streamInvites(
-    String projectId, {
-    String? status,
-  }) {
-    Query<Map<String, dynamic>> q = _db
-        .collection('projects')
-        .doc(projectId)
-        .collection('invites');
-
-    if (status != null && status.isNotEmpty) {
-      q = q.where('status', isEqualTo: status);
+    if (functionUrl.isEmpty) {
+      throw Exception('FUNCTION_URL is missing in .env');
+    }
+    if (baseUrl.isEmpty) {
+      throw Exception('INVITE_ACCEPT_BASE_URL is missing in .env');
     }
 
-    return q
+    // 1) Create invite doc with default status PENDING (no token used).
+    final inviteRef = _db
+        .collection('projects')
+        .doc(projectId)
+        .collection('invites')
+        .doc();
+
+    await inviteRef.set({
+      'email': email,
+      'status': 'PENDING', // PENDING | ACCEPTED | EXPIRED | CANCELLED
+      'invitedBy': inviter.uid,
+      'createdAt': FieldValue.serverTimestamp(),
+      'acceptedAt': null,
+    });
+
+    // 2) Decide path: /login if account exists, else /register
+    final exists = await _authAccountExists(email);
+    final path = exists ? '/login' : '/register';
+
+    // 3) Build accept URL. We include pid so the frontend knows which project.
+    final base = _joinBaseAndPath(baseUrl, path);
+    final acceptUrl = Uri.parse(
+      base,
+    ).replace(queryParameters: {'pid': projectId}).toString();
+
+    // 4) Send email via Lambda
+    final mailer = InviteService();
+    try {
+      await mailer.sendInviteEmail(
+        email: email,
+        acceptUrl: acceptUrl,
+        functionUrl: functionUrl,
+      );
+    } catch (e, _) {
+      // Do not break UX if mailer fails; the invite exists and can be resent.
+      _logError('mailer_failed', {'error': e.toString(), 'email': email});
+      // If you prefer to surface the error to UI, uncomment the next line:
+      // throw Exception('Invite created but mailer failed.');
+    }
+  }
+
+  /// Streams invites for a project, filtered to PENDING only.
+  /// If Firestore asks for a composite index (status+createdAt),
+  /// create it or remove the orderBy if you want zero-index setup.
+  Stream<List<ProjectInvite>> streamInvites(
+    String projectId, {
+    String status = 'PENDING',
+  }) {
+    return _db
+        .collection('projects')
+        .doc(projectId)
+        .collection('invites')
+        .where('status', isEqualTo: status)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) => snap.docs.map(ProjectInvite.fromDoc).toList());
   }
 
-  /// Cancels an invite (owner/admin only by rules).
+  /// Cancels an invite (rules define who is allowed).
   Future<void> cancelInvite(String projectId, String inviteId) async {
     final ref = _db
         .collection('projects')
@@ -382,7 +440,7 @@ extension ProjectMembersOps on ProjectController {
   }
 }
 
-// ====== Lightweight models ======
+// ===================== LIGHTWEIGHT MODELS =====================
 
 class ProjectMember {
   final String uid;
@@ -419,14 +477,12 @@ class ProjectInvite {
   final String id;
   final String email;
   final String status;
-  final String token;
   final DateTime? createdAt;
 
   ProjectInvite({
     required this.id,
     required this.email,
     required this.status,
-    required this.token,
     required this.createdAt,
   });
 
@@ -438,7 +494,6 @@ class ProjectInvite {
       id: doc.id,
       email: (d['email'] ?? '').toString(),
       status: (d['status'] ?? 'PENDING').toString(),
-      token: (d['token'] ?? '').toString(),
       createdAt: (d['createdAt'] is Timestamp)
           ? (d['createdAt'] as Timestamp).toDate()
           : null,
