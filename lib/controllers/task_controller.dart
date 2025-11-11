@@ -1,7 +1,9 @@
+//import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../models/tasks_model.dart';
 
 class TaskController extends ChangeNotifier {
+  //final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final List<TaskColumn> _columns = [
     TaskColumn(name: 'Pendiente', color: Colors.grey),
     TaskColumn(name: 'En Progreso', color: Colors.blue),

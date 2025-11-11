@@ -12,7 +12,9 @@ class TaskView extends StatefulWidget {
 class _TaskView extends State<TaskView> {
   final TextEditingController _taskcontroller = TextEditingController();
   String _selectedStatus = 'Prioridades';
+  //final List<String> projectTypes = _getProjectTypes();
   String _selectedAssignees = 'Responsables';
+  // final List<String> assignees = _getAssignees();
   final TaskController _taskController = TaskController();
 
   @override
@@ -258,8 +260,7 @@ class _TaskView extends State<TaskView> {
               contentPadding: EdgeInsets.all(16),
               actionsPadding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
               content: Column(
-                mainAxisSize:
-                    MainAxisSize.min, // ✅ CLAVE - Ocupa solo espacio necesario
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
