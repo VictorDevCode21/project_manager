@@ -178,11 +178,81 @@ class _AddTaskState extends State<AddTask> {
                   ],
                 ),
                 SizedBox(height: 12),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _hoursController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Horas estimadas',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Columna', style: TextStyle(fontSize: 12)),
+                          DropdownButtonFormField<TaskColumn>(
+                            initialValue: _selectedColumn,
+                            items: widget.columns.map((column) {
+                              return DropdownMenuItem(
+                                value: column,
+                                child: Text(
+                                  column.name,
+                                  style: TextStyle(fontSize: 14),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() => _selectedColumn = value!);
+                            },
+                            isExpanded: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ],
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: _titleController.text.trim().isEmpty
+              ? null
+              : () {
+                  final newTask = Task(
+                    title: _titleController.text.trim(),
+                    description: _descriptionController.text.trim(),
+                    projectType: _selectedtProjectType,
+                    assignee: _selectedAssignee,
+                    priority: _selectedPriority,
+                    status: _selectedStatus,
+                    estimatedHours: double.tryParse(_hoursController.text) ?? 0,
+                    dueTime: null,
+                    tags: [],
+                  );
+
+                  widget.onAddTask(newTask);
+                  Navigator.of(context).pop();
+                },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xff2d55fa),
+          ),
+          child: Text('Crear Tarea'),
+        ),
+      ],
     );
   }
 
