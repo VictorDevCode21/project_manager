@@ -72,11 +72,10 @@ class LoginController extends ChangeNotifier {
 
       // 4️⃣ Show welcome message and navigate based on role
       if (context.mounted) {
-
         // (El SnackBar de "Bienvenido" se maneja en AdminLayout)
 
         if (role == 'ADMIN' || role == 'COORDINATOR' || role == 'USER') {
-          context.go('/admin-dashboard');
+          context.go('/admin-homepage');
         } else {
           context.go('/');
         }
