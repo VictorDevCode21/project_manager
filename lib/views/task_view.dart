@@ -15,7 +15,14 @@ class _TaskView extends State<TaskView> {
   final TextEditingController _taskcontroller = TextEditingController();
   String _selectedStatus = 'Prioridades';
   String _selectedAssignees = 'Responsables';
-  String? _currentProjectId;
+  late TaskController _taskController;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _taskController = Provider.of<TaskController>(context);
+    _taskController.setCurrentProject("32MZNpafyvefmnMnr6zv");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -340,7 +347,7 @@ class _TaskView extends State<TaskView> {
       scrollDirection: Axis.horizontal,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: taskController.columns.map((column) {
+        children: _taskController.columns.map((column) {
           return Container(
             width: 280,
             margin: const EdgeInsets.only(right: 20),
@@ -463,16 +470,16 @@ class _TaskView extends State<TaskView> {
   }
 
   void _showAddTaskDialog(BuildContext context, TaskController taskController) {
-    final projectId = taskController.currentProjectId ?? 'proyecto-temporal';
+    //final projectId = taskController.currentProjectId ?? 'proyecto-temporal';
     showDialog(
       context: context,
       builder: (context) => AddTask(
-        columns: taskController.columns,
-        projectId: projectId,
+        columns: _taskController.columns,
+        projectId: _taskController.currentProjectId!,
         //projectId: taskController.currentProjectId ?? 'proyecto-temporal',
         onAddTask: (newTask) async {
           try {
-            await taskController.addTask(newTask);
+            await _taskController.addTask(newTask);
             Navigator.of(context).pop();
             print('✅ Diálogo cerrado exitosamente');
           } catch (e) {

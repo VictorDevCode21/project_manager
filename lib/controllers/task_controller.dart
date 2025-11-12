@@ -22,13 +22,14 @@ class TaskController extends ChangeNotifier {
 
   List<TaskColumn> get columns => _columns;
   List<Task> get tasks => _tasks;
-  String? get currentProjectId => _currentProjectId;
 
-  void _setCurrentProject(String projectId) {
+  void setCurrentProject(String projectId) {
     _currentProjectId = projectId;
     _loadTasks();
     notifyListeners();
   }
+
+  String? get currentProjectId => _currentProjectId;
 
   void _initializeColumns() {
     _columns = [
