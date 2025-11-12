@@ -102,6 +102,51 @@ class TaskController extends ChangeNotifier {
     return ValidationResult(isValid: errors.isEmpty, errors: errors);
   }
 
+  Future<void> updateTaskStatus(String taskId, Status newStatus) async {
+    if (_currentProjectId == null) {
+      throw Exception('No hay proyecto seleccionado');
+    }
+
+    try {
+      print('🔄 Actualizando estado de tarea $taskId a $newStatus');
+      await _firestore
+          .collection('projects')
+          .doc(_currentProjectId!)
+          .collection('tasks')
+          .doc(taskId)
+          .update({
+            'status': _statusToString(newStatus),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+      Future.microtask(() {
+        final taskIndex = _tasks.indexWhere((task) => task.id == taskId);
+        if (taskIndex != -1) {
+          final oldTask = _tasks[taskIndex];
+          _tasks[taskIndex] = Task(
+            id: oldTask.id,
+            title: oldTask.title,
+            description: oldTask.description,
+            projectType: oldTask.projectType,
+            assignee: oldTask.assignee,
+            priority: oldTask.priority,
+            status: newStatus, // ← NUEVO ESTADO
+            estimatedHours: oldTask.estimatedHours,
+            dueTime: oldTask.dueTime,
+            tags: oldTask.tags,
+            projectId: oldTask.projectId,
+          );
+
+          notifyListeners();
+          print('✅ Estado de tarea actualizado localmente');
+        }
+      });
+    } catch (e) {
+      print('❌ Error actualizando tarea: $e');
+      rethrow;
+    }
+  }
+
   Future<void> addTask(Task task) async {
     if (_currentProjectId == null) {
       throw Exception('No hay proyecto seleccionado');

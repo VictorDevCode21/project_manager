@@ -350,88 +350,180 @@ class _TaskView extends State<TaskView> {
         children: _taskController.columns.map((column) {
           final columnTasks = _taskController.getTasksByColumn(column.name);
 
-          return Container(
-            width: 280,
-            margin: const EdgeInsets.only(right: 20),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      column.name,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: column.color,
-                      ),
-                    ),
-
-                    PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert, color: Colors.grey[600]),
-                      onSelected: (value) {
-                        if (value == 'delete') {
-                          _showDeleteColumnDialog(
-                            context,
-                            column,
-                            taskController,
-                          );
-                        }
-                      },
-                      itemBuilder: (BuildContext context) => [
-                        PopupMenuItem<String>(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('Eliminar Columna'),
-                            ],
-                          ),
-                        ),
-                      ],
+          return DragTarget<Map<String, dynamic>>(
+            onAccept: (data) {
+              _handleTaskDrop(data['task'], column.name);
+            },
+            builder: (context, candidateData, rejectData) {
+              final isActive = candidateData.isNotEmpty;
+              return Container(
+                width: 280,
+                margin: const EdgeInsets.only(right: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isActive ? Colors.blue.shade50 : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: isActive
+                      ? Border.all(color: Colors.blue, width: 2)
+                      : Border.all(color: Colors.transparent),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          column.name,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: column.color,
+                          ),
+                        ),
 
-                if (columnTasks.isEmpty)
-                  Container(
-                    height: 100,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
+                        PopupMenuButton<String>(
+                          icon: Icon(Icons.more_vert, color: Colors.grey[600]),
+                          onSelected: (value) {
+                            if (value == 'delete') {
+                              _showDeleteColumnDialog(
+                                context,
+                                column,
+                                taskController,
+                              );
+                            }
+                          },
+                          itemBuilder: (BuildContext context) => [
+                            PopupMenuItem<String>(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Eliminar Columna'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      'Sin tareas',
-                      style: TextStyle(color: Colors.grey[500]),
-                    ),
-                  )
-                else
-                  Column(
-                    children: columnTasks.map((task) {
-                      return _buildTaskCard(task, column);
-                    }).toList(),
-                  ),
-              ],
-            ),
+                    const SizedBox(height: 10),
+
+                    if (columnTasks.isEmpty)
+                      Container(
+                        height: 100,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? Colors.blue.shade100
+                              : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                          border: isActive
+                              ? Border.all(color: Colors.blueGrey, width: 1)
+                              : Border.all(color: Colors.transparent),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.move_to_inbox,
+                              color: isActive
+                                  ? Colors.blueGrey
+                                  : Colors.grey[500],
+                              size: 24,
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              isActive ? 'Soltar aquí' : 'Sin tareas',
+                              style: TextStyle(
+                                color: isActive
+                                    ? Colors.blueGrey
+                                    : Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Column(
+                        children: columnTasks.map((task) {
+                          return _buildDraggableTaskCard(task, column);
+                        }).toList(),
+                      ),
+                  ],
+                ),
+              );
+            },
           );
         }).toList(),
       ),
+    );
+  }
+
+  Widget _buildDraggableTaskCard(Task task, TaskColumn column) {
+    return Draggable<Map<String, dynamic>>(
+      data: {'task': task, 'sourceColumn': column.name},
+      feedback: Material(
+        elevation: 8,
+        child: Container(
+          width: 260,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blue, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: _buildTaskContent(task),
+        ),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.5,
+        child: _buildTaskCard(task, column),
+      ),
+      child: _buildTaskCard(task, column),
+    );
+  }
+
+  Widget _buildTaskContent(Task task) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          task.title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: Color(0xff253f8d),
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (task.description.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            task.description,
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ],
     );
   }
 
@@ -573,7 +665,27 @@ class _TaskView extends State<TaskView> {
     );
   }
 
-  // Métodos auxiliares para prioridad
+  void _handleTaskDrop(Task task, String targetColumnName) async {
+    final statusMap = {
+      'Pendiente': Status.pendiente,
+      'En Progreso': Status.enProgreso,
+      'En Revisión': Status.enRevision,
+      'Completado': Status.completado,
+    };
+
+    final newStatus = statusMap[targetColumnName];
+    if (newStatus != null && task.status != newStatus) {
+      print('🎯 Moviendo tarea "${task.title}" de ${task.status} a $newStatus');
+      print('🔄 Moviendo tarea "${task.title}" a $targetColumnName');
+      try {
+        await _taskController.updateTaskStatus(task.id, newStatus);
+        print('✅ Tarea movida exitosamente a $targetColumnName');
+      } catch (e) {
+        print('❌ Error moviendo tarea: $e');
+      }
+    }
+  }
+
   Color _getPriorityColor(Priority priority) {
     switch (priority) {
       case Priority.alta:
