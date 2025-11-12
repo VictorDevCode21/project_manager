@@ -14,9 +14,8 @@ class TaskView extends StatefulWidget {
 class _TaskView extends State<TaskView> {
   final TextEditingController _taskcontroller = TextEditingController();
   String _selectedStatus = 'Prioridades';
-  //final List<String> projectTypes = _getProjectTypes();
   String _selectedAssignees = 'Responsables';
-  // final List<String> assignees = _getAssignees();
+  String? _currentProjectId;
 
   @override
   Widget build(BuildContext context) {
