@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:prolab_unimet/controllers/task_controller.dart';
 import 'package:prolab_unimet/models/tasks_model.dart';
+import 'package:prolab_unimet/widgets/add_task.dart';
+import 'package:provider/provider.dart';
 
 class TaskView extends StatefulWidget {
   const TaskView({super.key});
@@ -15,10 +17,10 @@ class _TaskView extends State<TaskView> {
   //final List<String> projectTypes = _getProjectTypes();
   String _selectedAssignees = 'Responsables';
   // final List<String> assignees = _getAssignees();
-  final TaskController _taskController = TaskController();
 
   @override
   Widget build(BuildContext context) {
+    final taskController = Provider.of<TaskController>(context);
     return Scaffold(
       backgroundColor: const Color(0xfff4f6f7),
       body: Padding(
@@ -82,7 +84,7 @@ class _TaskView extends State<TaskView> {
                     children: [
                       ElevatedButton.icon(
                         onPressed: () {
-                          _showAddColumnDialog(context);
+                          _showAddColumnDialog(context, taskController);
                         },
                         icon: const Icon(
                           Icons.add,
@@ -114,7 +116,7 @@ class _TaskView extends State<TaskView> {
                       ),
                       ElevatedButton.icon(
                         onPressed: () {
-                          //crear tareas
+                          _showAddTaskDialog(context, taskController);
                         },
                         icon: const Icon(
                           Icons.add,
@@ -226,7 +228,7 @@ class _TaskView extends State<TaskView> {
               ),
               const SizedBox(height: 30),
 
-              _buildBoard(),
+              _buildBoard(taskController),
             ],
           ),
         ),
@@ -234,7 +236,10 @@ class _TaskView extends State<TaskView> {
     );
   }
 
-  void _showAddColumnDialog(BuildContext context) {
+  void _showAddColumnDialog(
+    BuildContext context,
+    TaskController taskController,
+  ) {
     TextEditingController nameController = TextEditingController();
     Color selectedColor = Colors.grey.shade200;
 
@@ -340,7 +345,7 @@ class _TaskView extends State<TaskView> {
                             name: nameController.text.trim(),
                             color: selectedColor,
                           );
-                          _taskController.addColumn(newColumn);
+                          taskController.addColumn(newColumn);
                           Navigator.of(context).pop();
                           setState(() {});
 
@@ -369,12 +374,12 @@ class _TaskView extends State<TaskView> {
     );
   }
 
-  Widget _buildBoard() {
+  Widget _buildBoard(TaskController taskController) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: _taskController.columns.map((column) {
+        children: taskController.columns.map((column) {
           return Container(
             width: 280,
             margin: const EdgeInsets.only(right: 20),
@@ -409,7 +414,11 @@ class _TaskView extends State<TaskView> {
                       icon: Icon(Icons.more_vert, color: Colors.grey[600]),
                       onSelected: (value) {
                         if (value == 'delete') {
-                          _showDeleteColumnDialog(context, column);
+                          _showDeleteColumnDialog(
+                            context,
+                            column,
+                            taskController,
+                          );
                         }
                       },
                       itemBuilder: (BuildContext context) => [
@@ -449,7 +458,11 @@ class _TaskView extends State<TaskView> {
     );
   }
 
-  void _showDeleteColumnDialog(BuildContext context, TaskColumn column) {
+  void _showDeleteColumnDialog(
+    BuildContext context,
+    TaskColumn column,
+    TaskController taskController,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -471,10 +484,8 @@ class _TaskView extends State<TaskView> {
           ),
           ElevatedButton(
             onPressed: () {
-              _taskController.removeColumn(column);
+              taskController.removeColumn(column);
               Navigator.of(context).pop();
-              setState(() {});
-
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Columna "${column.name}" eliminada'),
@@ -486,6 +497,25 @@ class _TaskView extends State<TaskView> {
             child: Text('Eliminar', style: TextStyle(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showAddTaskDialog(BuildContext context, TaskController taskController) {
+    showDialog(
+      context: context,
+      builder: (context) => AddTask(
+        columns: taskController.columns,
+        projectId: taskController.currentProjectId ?? 'proyecto-temporal',
+        onAddTask: (newTask) async {
+          try {
+            await taskController.addTask(newTask);
+            Navigator.of(context).pop();
+            print('✅ Diálogo cerrado exitosamente');
+          } catch (e) {
+            print('❌ Error en addTask: $e');
+          }
+        },
       ),
     );
   }

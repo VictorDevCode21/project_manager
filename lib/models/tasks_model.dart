@@ -13,6 +13,7 @@ class TaskColumn {
 }
 
 class Task {
+  final String id;
   final String title;
   final String description;
   final String projectType;
@@ -22,8 +23,10 @@ class Task {
   final double estimatedHours;
   final DateTime? dueTime;
   final List<String> tags;
+  final String projectId;
 
   Task({
+    this.id = '',
     required this.title,
     required this.description,
     required this.projectType,
@@ -33,5 +36,34 @@ class Task {
     required this.estimatedHours,
     this.dueTime,
     this.tags = const [],
+    required this.projectId,
   });
+
+  Task copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? projectType,
+    String? assignee,
+    Priority? priority,
+    Status? status,
+    double? estimatedHours,
+    DateTime? dueTime,
+    List<String>? tags,
+    String? projectId,
+  }) {
+    return Task(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      projectType: projectType ?? this.projectType,
+      assignee: assignee ?? this.assignee,
+      priority: priority ?? this.priority,
+      status: status ?? this.status,
+      estimatedHours: estimatedHours ?? this.estimatedHours,
+      dueTime: dueTime ?? this.dueTime,
+      tags: tags ?? this.tags,
+      projectId: projectId ?? this.projectId,
+    );
+  }
 }
