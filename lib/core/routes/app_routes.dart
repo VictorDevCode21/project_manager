@@ -55,11 +55,11 @@ final appRouter = GoRouter(
         ),
 
         // 2. ADD NEW ROUTE HERE
-        GoRoute(
-          path: '/admin-settings',
-          // builder: (context, state) => const SettingsView(),
-          redirect: (context, state) => _requireAuth(context, userRoles),
-        ),
+        // GoRoute(
+        //   path: '/admin-settings',
+        //   // builder: (context, state) => const SettingsView(),
+        //   redirect: (context, state) => _requireAuth(context, userRoles),
+        // ),
         GoRoute(
           path: '/admin-profile',
           builder: (context, state) => const ProfileView(),

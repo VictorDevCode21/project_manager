@@ -1,6 +1,8 @@
 // register_controller.dart
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// Manages user registration logic and form validation.
 /// Note: This controller is SILENT on client-side invalid form.
@@ -15,15 +17,16 @@ class RegisterController {
   final confirmPasswordController = TextEditingController();
   final personIdController = TextEditingController();
 
+  // Services
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final AuthService _authService = AuthService();
+
   // Extra state
   String? selectedRole;
   DateTime? selectedDate;
 
   // Form key
   final formKey = GlobalKey<FormState>();
-
-  // Services
-  final AuthService _authService = AuthService();
 
   // ===== Validations =====
   String? validateName(String? value) {
@@ -207,18 +210,31 @@ class RegisterController {
     // Normalize inputs before hitting the network
     _normalizeInputs();
 
+    // Store these values *before* the try-catch, as they are needed in both
+    final email = emailController.text;
+    final name = nameController.text.trim();
+    final personId = personIdController.text.trim();
+
     try {
-      final user = await _authService.registerUser(
-        name: nameController.text.trim(),
-        email: emailController.text,
+      // 4. CALL AUTH SERVICE
+      final User? user = await _authService.registerUser(
+        name: name,
+        email: email,
         password: passwordController.text,
         phoneNumber: phoneController.text,
         role: selectedRole ?? 'USER',
         birthDate: selectedDate!,
-        personId: personIdController.text.trim(),
+        personId: personId,
       );
 
       if (user != null) {
+        // === 🚀 NEW LOGIC START ===
+        // Registration was successful. Now, check for pending invites.
+        // This is "fire-and-forget" - we don't 'await' it because
+        // we don't want to block the user's login if this fails.
+        _checkForPendingInvites(email, user.uid);
+        // === 🚀 NEW LOGIC END ===
+
         if (!context.mounted) return true;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Cuenta creada con éxito')),
@@ -235,6 +251,73 @@ class RegisterController {
         ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
       return false;
+    }
+  }
+
+  // === 🚀 NEW METHOD ===
+  ///
+  /// Checks for pending invitations for the newly registered user.
+  /// This runs *after* registration is successful.
+  ///
+  Future<void> _checkForPendingInvites(
+    String newUserEmail,
+    String newUserId,
+  ) async {
+    try {
+      // 1. Find all invites across all projects matching the user's email
+      final invitesQuery = _db
+          .collectionGroup('invites')
+          .where('email', isEqualTo: newUserEmail)
+          .where('status', isEqualTo: 'PENDING');
+
+      final invitesSnapshot = await invitesQuery.get();
+
+      if (invitesSnapshot.docs.isEmpty) {
+        // No pending invites, nothing to do.
+        debugPrint("No pending invites found for $newUserEmail");
+        return;
+      }
+
+      debugPrint(
+        "Found ${invitesSnapshot.docs.length} pending invites for $newUserEmail",
+      );
+
+      // 2. We have invites. Prepare a batch write.
+      final WriteBatch batch = _db.batch();
+
+      for (final inviteDoc in invitesSnapshot.docs) {
+        final inviteData = inviteDoc.data();
+
+        // 3. Get info for the notification
+        final projectId = inviteDoc.reference.parent.parent!.id;
+        final projectName = inviteData['projectName'] ?? 'un proyecto';
+        final inviterName = inviteData['inviterName'] ?? 'un administrador';
+
+        // 4. Create the new notification document
+        final notificationRef = _db.collection('notifications').doc();
+        batch.set(notificationRef, {
+          'recipientId': newUserId,
+          'title': '¡Invitación al proyecto \'$projectName\'!',
+          'body': 'Has sido invitado por $inviterName.',
+          'type': 'project_invitation',
+          'relatedId': projectId,
+          'createdAt': FieldValue.serverTimestamp(),
+          'isRead': false,
+        });
+
+        // 5. Update the original invite doc with the new user's ID
+        batch.update(inviteDoc.reference, {
+          'recipientId': newUserId,
+          'status': 'NOTIFIED', // Mark as processed
+        });
+      }
+
+      // 6. Commit all changes to Firestore
+      await batch.commit();
+    } catch (e) {
+      // This is a non-critical operation. Log the error but don't
+      // interrupt the user's flow.
+      debugPrint("Error processing pending invites for $newUserId: $e");
     }
   }
 
