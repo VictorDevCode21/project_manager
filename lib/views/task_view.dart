@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:prolab_unimet/controllers/task_controller.dart';
 import 'package:prolab_unimet/models/tasks_model.dart';
 import 'package:prolab_unimet/views/tasks/add_task_dialog.dart';
+import 'package:prolab_unimet/views/tasks/task_details_dialog.dart';
 import 'package:provider/provider.dart';
 
 class TaskView extends StatefulWidget {
@@ -594,7 +595,7 @@ class _TaskView extends State<TaskView> {
   Widget _buildTaskCard(Task task, TaskColumn column) {
     return GestureDetector(
       onTap: () {
-        _showEditTaskDialog(context, task);
+        _showTaskDetailsDialog(context, task);
       },
       child: Container(
         width: double.infinity,
@@ -677,6 +678,19 @@ class _TaskView extends State<TaskView> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showTaskDetailsDialog(BuildContext context, Task task) {
+    showDialog(
+      context: context,
+      builder: (context) => TaskDetailsDialog(
+        task: task,
+        onEditPressed: () {
+          Navigator.of(context).pop();
+          _showEditTaskDialog(context, task);
+        },
       ),
     );
   }

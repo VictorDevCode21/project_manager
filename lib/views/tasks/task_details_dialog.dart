@@ -36,6 +36,152 @@ class TaskDetailsDialog extends StatelessWidget {
           ),
         ],
       ),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width * 0.8,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // TÍTULO
+              Text(
+                task.title,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xff253f8d),
+                ),
+              ),
+              SizedBox(height: 16),
+
+              // DESCRIPCIÓN
+              if (task.description.isNotEmpty) ...[
+                Text(
+                  'Descripción:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  task.description,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                ),
+                SizedBox(height: 16),
+              ],
+
+              // METADATA EN FORMATO TABLA
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    _buildDetailRow('Proyecto:', task.projectType),
+                    _buildDetailRow('Asignado a:', task.assignee),
+                    _buildDetailRow(
+                      'Prioridad:',
+                      _getPriorityText(task.priority),
+                    ),
+                    _buildDetailRow('Estado:', _getStatusText(task.status)),
+                    _buildDetailRow(
+                      'Horas estimadas:',
+                      '${task.estimatedHours} h',
+                    ),
+                    if (task.dueTime != null)
+                      _buildDetailRow(
+                        'Fecha límite:',
+                        _formatDate(task.dueTime!),
+                      ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 20),
+
+              // BOTONES
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text('Cerrar'),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onEditPressed,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xff253f8d),
+                      ),
+                      child: Text(
+                        'Editar Tarea',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(value, style: TextStyle(color: Colors.grey[800])),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getPriorityText(Priority priority) {
+    switch (priority) {
+      case Priority.alta:
+        return 'Alta';
+      case Priority.media:
+        return 'Media';
+      case Priority.baja:
+        return 'Baja';
+    }
+  }
+
+  String _getStatusText(Status status) {
+    switch (status) {
+      case Status.pendiente:
+        return 'Pendiente';
+      case Status.enProgreso:
+        return 'En Progreso';
+      case Status.enRevision:
+        return 'En Revisión';
+      case Status.completado:
+        return 'Completado';
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 }
