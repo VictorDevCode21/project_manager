@@ -80,6 +80,10 @@ class ProjectController {
           'createdAt': FieldValue.serverTimestamp(),
         });
 
+      // --- 👇 AÑADE ESTAS LÍNEAS DE DEPURACIÓN AQUÍ ---
+      debugPrint('>>> [DEBUG] Auth UID: ${user.uid}');
+      debugPrint('>>> [DEBUG] Payload ownerId: ${data['ownerId']}');
+
       await projRef.set(data);
 
       _logInfo('project_created', {
@@ -319,17 +323,28 @@ extension ProjectMembersOps on ProjectController {
 // ===================== INVITES =====================
 
 extension ProjectInvitesOps on ProjectController {
-  /// True if an Auth account already exists for the given email.
-  Future<bool> _authAccountExists(String email) async {
+  // === NEW METHOD ===
+  ///
+  /// Finds a user's UID by their email.
+  /// Returns UID string if found, null otherwise.
+  ///
+  Future<String?> _findUidByEmail(String email) async {
     try {
-      final methods = await (_auth as dynamic).fetchSignInMethodsForEmail(
-        email.trim().toLowerCase(),
-      );
-      final list = methods as List<dynamic>?;
-      return list != null && list.isNotEmpty;
-    } catch (_) {
-      // Fallback: do not block the flow if this capability is unavailable.
-      return false;
+      final query = await _db
+          .collection("users")
+          .where("email", isEqualTo: email.trim().toLowerCase())
+          .limit(1)
+          .get();
+      if (query.docs.isNotEmpty) {
+        return query.docs.first.id; // Return the user's UID
+      }
+      return null; // No user found
+    } catch (e) {
+      _logError("find_user_by_email_failed", {
+        "email": email,
+        "error": e.toString(),
+      });
+      return null; // Fail safe
     }
   }
 
@@ -340,10 +355,14 @@ extension ProjectInvitesOps on ProjectController {
     return '$b$p';
   }
 
-  /// Creates an invite in /projects/{projectId}/invites and sends the email
-  /// through the Lambda Function. Chooses /login vs /register based on Auth.
+  // === MODIFIED SECTION ===
+  ///
+  /// Creates an invite, sends an email, AND creates an in-app notification
+  /// if the user already exists.
+  ///
   Future<void> createInviteAndSendEmail({
     required String projectId,
+    required String projectName, // NEW: Need this for the notification
     required String recipientEmail,
   }) async {
     final inviter = _auth.currentUser;
@@ -356,6 +375,51 @@ extension ProjectInvitesOps on ProjectController {
       throw ArgumentError('Email is required.');
     }
 
+    // 1) Check if user exists *before* doing anything else
+    final recipientId = await _findUidByEmail(email);
+
+    final WriteBatch batch = _db.batch();
+
+    // 2) Create the invite doc in the batch
+    final inviteRef = _db
+        .collection('projects')
+        .doc(projectId)
+        .collection('invites')
+        .doc(); // auto-id
+
+    batch.set(inviteRef, {
+      'email': email,
+      'status': 'PENDING',
+      'invitedBy': inviter.uid,
+      'createdAt': FieldValue.serverTimestamp(),
+      'acceptedAt': null,
+      'recipientId': recipientId, // Store UID if we found one
+    });
+
+    // 3) --- If user exists, create notification in the same batch ---
+    if (recipientId != null) {
+      final notificationRef = _db.collection('notifications').doc();
+      batch.set(notificationRef, {
+        'recipientId': recipientId,
+        'title': '¡Invitación al proyecto \'$projectName\'!',
+        'body':
+            'Has sido invitado por ${inviter.displayName ?? inviter.email}.',
+        'type': 'project_invitation',
+        'relatedId': projectId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'isRead': false,
+      });
+    }
+
+    // 4) Commit the batch (creates invite + notification atomically)
+    try {
+      await batch.commit();
+    } catch (e) {
+      _logError("invite_batch_failed", {"error": e.toString()});
+      throw Exception("No se pudo crear la invitación. Intenta de nuevo.");
+    }
+
+    // 5) Send email via Lambda (Your existing logic)
     // Read public env vars directly
     final functionUrl = dotenv.env['FUNCTION_URL']?.trim() ?? '';
     final baseUrl = dotenv.env['INVITE_ACCEPT_BASE_URL']?.trim() ?? '';
@@ -367,32 +431,17 @@ extension ProjectInvitesOps on ProjectController {
       throw Exception('INVITE_ACCEPT_BASE_URL is missing in .env');
     }
 
-    // 1) Create invite doc with default status PENDING (no token used).
-    final inviteRef = _db
-        .collection('projects')
-        .doc(projectId)
-        .collection('invites')
-        .doc();
-
-    await inviteRef.set({
-      'email': email,
-      'status': 'PENDING', // PENDING | ACCEPTED | EXPIRED | CANCELLED
-      'invitedBy': inviter.uid,
-      'createdAt': FieldValue.serverTimestamp(),
-      'acceptedAt': null,
-    });
-
-    // 2) Decide path: /login if account exists, else /register
-    final exists = await _authAccountExists(email);
+    // 6) Decide path: We already know if the user exists!
+    final exists = recipientId != null;
     final path = exists ? '/login' : '/register';
 
-    // 3) Build accept URL. We include pid so the frontend knows which project.
+    // 7) Build accept URL
     final base = _joinBaseAndPath(baseUrl, path);
     final acceptUrl = Uri.parse(
       base,
     ).replace(queryParameters: {'pid': projectId}).toString();
 
-    // 4) Send email via Lambda
+    // 8) Send email via Lambda
     final mailer = InviteService();
     try {
       await mailer.sendInviteEmail(
@@ -401,7 +450,7 @@ extension ProjectInvitesOps on ProjectController {
         functionUrl: functionUrl,
       );
     } catch (e, _) {
-      // Do not break UX if mailer fails; the invite exists and can be resent.
+      // Do not break UX if mailer fails; the invite exists.
       _logError('mailer_failed', {'error': e.toString(), 'email': email});
       // If you prefer to surface the error to UI, uncomment the next line:
       // throw Exception('Invite created but mailer failed.');

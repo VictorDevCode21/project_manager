@@ -37,12 +37,16 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
 
+        // === 🚀 THIS IS THE FIX ===
+        // The method name in 'update' must match the method in your NotificationProvider.
+        // We named it 'updateUser'.
         ChangeNotifierProxyProvider<AuthProvider, NotificationProvider>(
           create: (_) => NotificationProvider(),
-
           update: (_, auth, previousNotifier) =>
-              previousNotifier!..listenToAuthChanges(auth),
+              previousNotifier!
+                ..updateUser(auth), // ⬅️ This was the line to fix
         ),
+        // === END OF FIX ===
       ],
       child: const MyApp(),
     ),

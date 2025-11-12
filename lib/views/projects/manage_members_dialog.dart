@@ -47,6 +47,7 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
       // Creates invite and emails via Lambda URL from .env.
       await _controller.createInviteAndSendEmail(
         projectId: widget.projectId,
+        projectName: widget.projectName,
         recipientEmail: _emailCtrl.text,
       );
 
