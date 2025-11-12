@@ -528,6 +528,58 @@ class _TaskView extends State<TaskView> {
     );
   }
 
+  void _showDeleteTaskConfirmation(BuildContext context, Task task) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Eliminar Tarea',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xff253f8d),
+          ),
+        ),
+        content: Text(
+          '¿Estás seguro de que quieres eliminar la tarea "${task.title}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await _taskController.deleteTask(task.id);
+                Navigator.of(context).pop(); // Cerrar confirmación
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Tarea "${task.title}" eliminada'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              } catch (e) {
+                Navigator.of(context).pop(); // Cerrar confirmación
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error eliminando tarea: $e'),
+                    backgroundColor: Colors.red,
+                    duration: Duration(seconds: 3),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('Eliminar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showDeleteColumnDialog(
     BuildContext context,
     TaskColumn column,
@@ -690,6 +742,10 @@ class _TaskView extends State<TaskView> {
         onEditPressed: () {
           Navigator.of(context).pop();
           _showEditTaskDialog(context, task);
+        },
+        onDeletePressed: () {
+          Navigator.of(context).pop(); // Cerrar detalles
+          _showDeleteTaskConfirmation(context, task); // Mostrar confirmación
         },
       ),
     );

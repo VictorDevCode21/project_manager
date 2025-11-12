@@ -243,6 +243,29 @@ class TaskController extends ChangeNotifier {
     }
   }
 
+  Future<void> deleteTask(String taskId) async {
+    if (_currentProjectId == null) {
+      throw Exception('No hay proyecto seleccionado');
+    }
+    try {
+      print('🗑️ Eliminando tarea: $taskId');
+      await _firestore
+          .collection('projects')
+          .doc(_currentProjectId!)
+          .collection('tasks')
+          .doc(taskId)
+          .delete();
+
+      _tasks.removeWhere((task) => task.id == taskId);
+      notifyListeners();
+
+      print('✅ Tarea eliminada correctamente');
+    } catch (e) {
+      print('❌ Error eliminando tarea: $e');
+      rethrow;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getProjects() async {
     try {
       final querySnapshot = await _firestore.collection('projects').get();

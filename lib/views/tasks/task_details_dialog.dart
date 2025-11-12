@@ -5,11 +5,13 @@ import 'package:prolab_unimet/models/tasks_model.dart';
 class TaskDetailsDialog extends StatelessWidget {
   final Task task;
   final VoidCallback onEditPressed;
+  final VoidCallback onDeletePressed;
 
   const TaskDetailsDialog({
     super.key,
     required this.task,
     required this.onEditPressed,
+    required this.onDeletePressed,
   });
 
   @override
@@ -43,7 +45,6 @@ class TaskDetailsDialog extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // TÍTULO
               Text(
                 task.title,
                 style: TextStyle(
@@ -54,7 +55,6 @@ class TaskDetailsDialog extends StatelessWidget {
               ),
               SizedBox(height: 16),
 
-              // DESCRIPCIÓN
               if (task.description.isNotEmpty) ...[
                 Text(
                   'Descripción:',
@@ -71,7 +71,6 @@ class TaskDetailsDialog extends StatelessWidget {
                 SizedBox(height: 16),
               ],
 
-              // METADATA EN FORMATO TABLA
               Container(
                 width: double.infinity,
                 padding: EdgeInsets.all(16),
@@ -102,9 +101,20 @@ class TaskDetailsDialog extends StatelessWidget {
               ),
               SizedBox(height: 20),
 
-              // BOTONES
               Row(
                 children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onDeletePressed,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: BorderSide(color: Colors.red),
+                      ),
+                      child: Text('Eliminar'),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(),
