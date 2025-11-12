@@ -147,6 +147,43 @@ class TaskController extends ChangeNotifier {
     }
   }
 
+  Future<void> updateTask(Task updatedTask) async {
+    if (_currentProjectId == null) {
+      throw Exception('No hay proyecto seleccionado');
+    }
+
+    try {
+      print('🔄 Actualizando tarea: ${updatedTask.title}');
+      await _firestore
+          .collection('projects')
+          .doc(_currentProjectId!)
+          .collection('tasks')
+          .doc(updatedTask.id)
+          .update({
+            'title': updatedTask.title,
+            'description': updatedTask.description,
+            'projectType': updatedTask.projectType,
+            'assignee': updatedTask.assignee,
+            'priority': _priorityToString(updatedTask.priority),
+            'status': _statusToString(updatedTask.status),
+            'estimatedHours': updatedTask.estimatedHours,
+            'dueDate': updatedTask.dueTime?.toIso8601String(),
+            'tags': updatedTask.tags,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+      final taskIndex = _tasks.indexWhere((task) => task.id == updatedTask.id);
+      if (taskIndex != -1) {
+        _tasks[taskIndex] = updatedTask;
+        notifyListeners();
+        print('✅ Tarea actualizada localmente');
+      }
+    } catch (e) {
+      print('❌ Error actualizando tarea: $e');
+      rethrow;
+    }
+  }
+
   Future<void> addTask(Task task) async {
     if (_currentProjectId == null) {
       throw Exception('No hay proyecto seleccionado');

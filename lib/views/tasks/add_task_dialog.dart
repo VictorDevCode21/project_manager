@@ -4,14 +4,18 @@ import 'package:prolab_unimet/models/tasks_model.dart';
 
 class AddTask extends StatefulWidget {
   final List<TaskColumn> columns;
-  final Function(Task) onAddTask;
+  final Function(Task)? onAddTask;
   final String projectId;
+  final Function(Task)? onUpdateTask;
+  final Task? task;
 
   const AddTask({
     super.key,
     required this.columns,
-    required this.onAddTask,
+    this.onAddTask,
     required this.projectId,
+    this.onUpdateTask,
+    this.task,
   });
 
   @override
@@ -27,6 +31,7 @@ class _AddTaskState extends State<AddTask> {
   Priority? _selectedPriority;
   Status? _selectedStatus;
   TaskColumn? _selectedColumn;
+  bool get isEditing => widget.task != null;
 
   final List<String> _projectTypes = [
     'Calidad Ambiental',
@@ -39,10 +44,21 @@ class _AddTaskState extends State<AddTask> {
   @override
   void initState() {
     super.initState();
-    _selectedtProjectType = _projectTypes.first;
-    _selectedAssignee = _assignees.first;
-    _selectedPriority = Priority.media;
-    _selectedStatus = Status.pendiente;
+    if (widget.task != null) {
+      _titleController.text = widget.task!.title;
+      _descriptionController.text = widget.task!.description;
+      _hoursController.text = widget.task!.estimatedHours.toString();
+      _selectedtProjectType = widget.task!.projectType;
+      _selectedAssignee = widget.task!.assignee;
+      _selectedPriority = widget.task!.priority;
+      _selectedStatus = widget.task!.status;
+    } else {
+      _selectedtProjectType = _projectTypes.first;
+      _selectedAssignee = _assignees.first;
+      _selectedPriority = Priority.media;
+      _selectedStatus = Status.pendiente;
+    }
+
     if (widget.columns.isNotEmpty) {
       _selectedColumn = widget.columns.first;
     }
@@ -54,7 +70,7 @@ class _AddTaskState extends State<AddTask> {
       insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
       contentPadding: EdgeInsets.all(16),
       title: Text(
-        'Crear nueva tarea',
+        isEditing ? 'Editar tarea' : 'Crear nueva tarea',
         style: TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: 18,
@@ -244,7 +260,8 @@ class _AddTaskState extends State<AddTask> {
           onPressed: _titleController.text.trim().isEmpty
               ? null
               : () {
-                  final newTask = Task(
+                  final task = Task(
+                    id: widget.task?.id ?? '',
                     projectId: widget.projectId,
                     title: _titleController.text.trim(),
                     description: _descriptionController.text.trim(),
@@ -253,17 +270,24 @@ class _AddTaskState extends State<AddTask> {
                     priority: _selectedPriority ?? Priority.media,
                     status: _selectedStatus ?? Status.pendiente,
                     estimatedHours: double.tryParse(_hoursController.text) ?? 0,
-                    dueTime: null,
-                    tags: [],
+                    dueTime: widget.task?.dueTime,
+                    tags: widget.task?.tags ?? [],
                   );
 
-                  widget.onAddTask(newTask);
+                  if (isEditing) {
+                    widget.onUpdateTask?.call(task);
+                  } else {
+                    widget.onAddTask?.call(task);
+                  }
                   Navigator.of(context).pop();
                 },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xff2d55fa),
           ),
-          child: Text('Crear Tarea', style: TextStyle(color: Colors.white)),
+          child: Text(
+            isEditing ? 'Actualizar Tarea' : 'Crear Tarea',
+            style: TextStyle(color: Colors.white),
+          ),
         ),
       ],
     );
