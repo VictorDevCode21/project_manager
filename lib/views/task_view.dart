@@ -32,6 +32,7 @@ class _TaskView extends State<TaskView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // HEADER SECTION
                   Wrap(
                     spacing: 20,
                     crossAxisAlignment: WrapCrossAlignment.center,
@@ -79,6 +80,7 @@ class _TaskView extends State<TaskView> {
                       ),
                     ],
                   ),
+                  // BUTTONS SECTION
                   Wrap(
                     spacing: 16,
                     children: [
@@ -172,56 +174,16 @@ class _TaskView extends State<TaskView> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        // Search field
-                        Expanded(
-                          child: TextField(
-                            controller: _taskcontroller,
-                            decoration: InputDecoration(
-                              prefixIcon: const Icon(Icons.search),
-                              hintText:
-                                  'Buscar por nombre de proyecto o cliente...',
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isSmallScreen = constraints.maxWidth < 600;
 
-                        // Status filter
-                        DropdownButton<String>(
-                          value: _selectedStatus,
-                          items: ['Prioridades', 'Alta', 'Media', 'Baja']
-                              .map(
-                                (e) =>
-                                    DropdownMenuItem(value: e, child: Text(e)),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() => _selectedStatus = value!);
-                          },
-                        ),
-                        const SizedBox(width: 16),
-
-                        // Type filter
-                        DropdownButton<String>(
-                          value: _selectedAssignees,
-                          items: ['Responsables', 'Alta', 'Media', 'Baja']
-                              .map(
-                                (e) =>
-                                    DropdownMenuItem(value: e, child: Text(e)),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() => _selectedAssignees = value!);
-                          },
-                        ),
-                      ],
+                        if (isSmallScreen) {
+                          return _buildMobileFilters();
+                        } else {
+                          return _buildDesktopFilters();
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -502,11 +464,13 @@ class _TaskView extends State<TaskView> {
   }
 
   void _showAddTaskDialog(BuildContext context, TaskController taskController) {
+    final projectId = taskController.currentProjectId ?? 'proyecto-temporal';
     showDialog(
       context: context,
       builder: (context) => AddTask(
         columns: taskController.columns,
-        projectId: taskController.currentProjectId ?? 'proyecto-temporal',
+        projectId: projectId,
+        //projectId: taskController.currentProjectId ?? 'proyecto-temporal',
         onAddTask: (newTask) async {
           try {
             await taskController.addTask(newTask);
@@ -517,6 +481,112 @@ class _TaskView extends State<TaskView> {
           }
         },
       ),
+    );
+  }
+
+  Widget _buildDesktopFilters() {
+    return Row(
+      children: [
+        // Search field
+        Expanded(
+          child: TextField(
+            controller: _taskcontroller,
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: 'Buscar por nombre de proyecto o cliente...',
+              filled: true,
+              fillColor: Colors.grey[100],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+
+        // Status filter
+        DropdownButton<String>(
+          value: _selectedStatus,
+          items: [
+            'Prioridades',
+            'Alta',
+            'Media',
+            'Baja',
+          ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          onChanged: (value) {
+            setState(() => _selectedStatus = value!);
+          },
+        ),
+        const SizedBox(width: 16),
+
+        // Type filter
+        DropdownButton<String>(
+          value: _selectedAssignees,
+          items: [
+            'Responsables',
+            'Alta',
+            'Media',
+            'Baja',
+          ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          onChanged: (value) {
+            setState(() => _selectedAssignees = value!);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileFilters() {
+    return Column(
+      children: [
+        // Search field
+        TextField(
+          controller: _taskcontroller,
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search),
+            hintText: 'Buscar proyectos...',
+            filled: true,
+            fillColor: Colors.grey[100],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Filtros en fila para móvil
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButton<String>(
+                value: _selectedStatus,
+                isExpanded: true, // Importante para móvil
+                items: ['Prioridades', 'Alta', 'Media', 'Baja']
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() => _selectedStatus = value!);
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: DropdownButton<String>(
+                value: _selectedAssignees,
+                isExpanded: true, // Importante para móvil
+                items: ['Responsables', 'Alta', 'Media', 'Baja']
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() => _selectedAssignees = value!);
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
