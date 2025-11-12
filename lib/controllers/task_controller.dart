@@ -2,10 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../models/tasks_model.dart';
 
+class ValidationResult {
+  final bool isValid;
+  final Map<String, String> errors;
+
+  ValidationResult({required this.isValid, required this.errors});
+}
+
 class TaskController extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<TaskColumn> _columns = [];
-  List<Task> _tasks = [];
+  final List<Task> _tasks = [];
   String? _currentProjectId;
 
   TaskController() {

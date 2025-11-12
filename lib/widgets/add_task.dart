@@ -1,8 +1,6 @@
-//import 'package:flutter/material.dart' show AlertDialog;
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:prolab_unimet/models/tasks_model.dart';
-import 'package:flutter/material.dart' show AlertDialog;
 
 class AddTask extends StatefulWidget {
   final List<TaskColumn> columns;
