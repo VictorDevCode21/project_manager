@@ -17,6 +17,25 @@ class TaskDetailsDialog extends StatelessWidget {
     return AlertDialog(
       insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
       contentPadding: EdgeInsets.all(20),
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              'Detalles de la Tarea',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Color(0xff253f8d),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close, color: Colors.grey),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
     );
   }
 }
