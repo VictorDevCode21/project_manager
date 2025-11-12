@@ -348,6 +348,8 @@ class _TaskView extends State<TaskView> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: _taskController.columns.map((column) {
+          final columnTasks = _taskController.getTasksByColumn(column.name);
+
           return Container(
             width: 280,
             margin: const EdgeInsets.only(right: 20),
@@ -406,18 +408,25 @@ class _TaskView extends State<TaskView> {
                 ),
                 const SizedBox(height: 10),
 
-                Container(
-                  height: 300,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
+                if (columnTasks.isEmpty)
+                  Container(
+                    height: 100,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Sin tareas',
+                      style: TextStyle(color: Colors.grey[500]),
+                    ),
+                  )
+                else
+                  Column(
+                    children: columnTasks.map((task) {
+                      return _buildTaskCard(task, column);
+                    }).toList(),
                   ),
-                  child: Text(
-                    'Sin tareas',
-                    style: TextStyle(color: Colors.grey[500]),
-                  ),
-                ),
               ],
             ),
           );
@@ -488,6 +497,103 @@ class _TaskView extends State<TaskView> {
         },
       ),
     );
+  }
+
+  Widget _buildTaskCard(Task task, TaskColumn column) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            task.title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              color: Color(0xff253f8d),
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          if (task.description.isNotEmpty)
+            Text(
+              task.description,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Asignado
+              Text(
+                task.assignee,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              // Prioridad
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _getPriorityColor(task.priority),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  _getPriorityText(task.priority),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Métodos auxiliares para prioridad
+  Color _getPriorityColor(Priority priority) {
+    switch (priority) {
+      case Priority.alta:
+        return Colors.red;
+      case Priority.media:
+        return Colors.orange;
+      case Priority.baja:
+        return Colors.green;
+    }
+  }
+
+  String _getPriorityText(Priority priority) {
+    switch (priority) {
+      case Priority.alta:
+        return 'ALTA';
+      case Priority.media:
+        return 'MEDIA';
+      case Priority.baja:
+        return 'BAJA';
+    }
   }
 
   Widget _buildDesktopFilters() {
