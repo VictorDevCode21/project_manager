@@ -2,11 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:prolab_unimet/controllers/project_controller.dart';
 import 'package:prolab_unimet/models/projects_model.dart';
-import 'package:prolab_unimet/views/projects/manage_members_dialog.dart';
 
-/// Responsive modal that shows all project details except `visibleTo`.
-/// - UI strings in Spanish (as requested)
-/// - Comments in English only (as requested)
 class ProjectDetailsDialog extends StatelessWidget {
   final Project project;
   final ProjectController _controller;
@@ -277,33 +273,6 @@ class ProjectDetailsDialog extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  // Expanded(
-                  //   child: ElevatedButton.icon(
-                  //     onPressed: () {
-                  //       Navigator.pop(context);
-                  //       showDialog(
-                  //         context: context,
-                  //         barrierDismissible: true,
-                  //         builder: (_) => ManageMembersDialog(
-                  //           projectId: project.id,
-                  //           projectName: project.name,
-                  //         ),
-                  //       );
-                  //     },
-                  //     icon: const Icon(
-                  //       Icons.group_add,
-                  //       color: Colors.white,
-                  //       size: 18,
-                  //     ),
-                  //     label: const Text(
-                  //       'Gestionar miembros',
-                  //       style: TextStyle(color: Colors.white),
-                  //     ),
-                  //     style: ElevatedButton.styleFrom(
-                  //       backgroundColor: const Color(0xff253f8d),
-                  //     ),
-                  //   ),
-                  // ),
                 ],
               ),
             ],
