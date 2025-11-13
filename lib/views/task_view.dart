@@ -19,9 +19,9 @@ class _TaskView extends State<TaskView> {
   String _selectedStatus = 'Prioridades';
   String _selectedAssignees = 'Responsables';
   late TaskController _taskController;
-  //String? _selectedProjectId;
   bool _isInitialized = false;
 
+  //AVOID REPEATED CALLS
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -55,6 +55,7 @@ class _TaskView extends State<TaskView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                //BUTTON "VOLVER" AND TITLE
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,10 +111,12 @@ class _TaskView extends State<TaskView> {
                     ],
                   ),
                 ),
+                //VERIFICATION PROJECTS EMPTY
                 if (taskController.availableProjects.isNotEmpty)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
+                      //BUTTONS
                       Wrap(
                         spacing: 16,
                         alignment: WrapAlignment.end,
@@ -196,7 +199,9 @@ class _TaskView extends State<TaskView> {
                             ),
                           ],
                         ),
+                        //DROPDOWN WITH PROJECTS
                         child: IntrinsicWidth(
+                          //adjust size
                           child: Row(
                             children: [
                               Icon(
@@ -260,6 +265,7 @@ class _TaskView extends State<TaskView> {
                   ),
               ],
             ),
+            //===========TASK BOARD=========================
             if (taskController.availableProjects.isEmpty)
               Expanded(
                 child: Center(
@@ -282,7 +288,7 @@ class _TaskView extends State<TaskView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(height: 30),
-
+                      //======FILTER==============
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
@@ -322,6 +328,7 @@ class _TaskView extends State<TaskView> {
                         ),
                       ),
                       const SizedBox(height: 30),
+                      //======KABAN BOARD=========
                       _buildBoard(taskController),
                     ],
                   ),
@@ -329,6 +336,424 @@ class _TaskView extends State<TaskView> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  //KABAN BOARD WITH EVERYTHING
+  Widget _buildBoard(TaskController taskController) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: _taskController.columns.map((column) {
+          //tasks that belong to a specific column
+          final columnTasks = _taskController.getTasksByColumn(column.name);
+
+          return DragTarget<Map<String, dynamic>>(
+            //drag and drop
+            onAccept: (data) {
+              _handleTaskDrop(data['task'], column.name);
+            },
+            builder: (context, candidateData, rejectData) {
+              final isActive = candidateData.isNotEmpty;
+              return Container(
+                width: 280,
+                margin: const EdgeInsets.only(right: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isActive ? Colors.blue.shade50 : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: isActive
+                      ? Border.all(color: Colors.blue.shade500, width: 2)
+                      : Border.all(color: Colors.transparent),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          column.name,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: column.color,
+                          ),
+                        ),
+                        //OPTIONS MENU
+                        PopupMenuButton<String>(
+                          icon: Icon(Icons.more_vert, color: Colors.grey[600]),
+                          onSelected: (value) {
+                            if (value == 'delete') {
+                              _showDeleteColumnDialog(
+                                context,
+                                column,
+                                taskController,
+                              );
+                            }
+                          },
+                          itemBuilder: (BuildContext context) => [
+                            PopupMenuItem<String>(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text('Eliminar Columna'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    //COLUMN CONTENT
+                    if (columnTasks.isEmpty)
+                      Container(
+                        height: 100,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? Colors.blue.shade100
+                              : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                          border: isActive
+                              ? Border.all(color: Colors.blueGrey, width: 1)
+                              : Border.all(color: Colors.transparent),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.move_to_inbox,
+                              color: isActive
+                                  ? Colors.blueGrey
+                                  : Colors.grey[500],
+                              size: 24,
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              isActive ? 'Soltar aquí' : 'Sin tareas',
+                              style: TextStyle(
+                                color: isActive
+                                    ? Colors.blueGrey
+                                    : Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Column(
+                        children: columnTasks.map((task) {
+                          return _buildDraggableTaskCard(task, column);
+                        }).toList(),
+                      ),
+                  ],
+                ),
+              );
+            },
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  //DRAGGABLE TASK CARD
+  Widget _buildDraggableTaskCard(Task task, TaskColumn column) {
+    return Draggable<Map<String, dynamic>>(
+      data: {'task': task, 'sourceColumn': column.name},
+      feedback: Material(
+        elevation: 8,
+        child: Container(
+          width: 260,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blue, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: _buildTaskContent(task),
+        ),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.5,
+        child: _buildTaskCard(task, column),
+      ),
+      child: _buildTaskCard(task, column),
+    );
+  }
+
+  //SIMPLIFIED TASK CONTENT
+  Widget _buildTaskContent(Task task) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          task.title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: Color(0xff253f8d),
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (task.description.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            task.description,
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ],
+    );
+  }
+
+  //CONSTRUCT THE COMPLETE TASK CARD
+  Widget _buildTaskCard(Task task, TaskColumn column) {
+    return GestureDetector(
+      onTap: () {
+        _showTaskDetailsDialog(context, task);
+      },
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[300]!),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.drag_handle, color: Colors.grey[400], size: 16),
+            SizedBox(width: 8),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Color(0xff253f8d),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (task.description.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      task.description,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        task.assignee,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getPriorityColor(task.priority),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          _getPriorityText(task.priority),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  //ADD TASKS
+  void _showAddTaskDialog(BuildContext context, TaskController taskController) {
+    final projectType =
+        _taskController.currentProject?.consultingType ?? 'Proyecto';
+    //final projectName = _taskController.currentProject?.name ?? 'Sin nombre';
+
+    showDialog(
+      context: context,
+      builder: (context) => AddTask(
+        columns: _taskController.columns,
+        projectId: _taskController.currentProjectId!,
+        //projectId: taskController.currentProjectId ?? 'proyecto-temporal',
+        projectType: projectType,
+        onAddTask: (newTask) async {
+          try {
+            await _taskController.addTask(newTask);
+            Navigator.of(context).pop();
+          } catch (e) {}
+        },
+      ),
+    );
+  }
+
+  //SHOW DETAILS FOR EDITING TASKS
+  void _showTaskDetailsDialog(BuildContext context, Task task) {
+    showDialog(
+      context: context,
+      builder: (context) => TaskDetailsDialog(
+        task: task,
+        onEditPressed: () {
+          Navigator.of(context).pop();
+          _showEditTaskDialog(context, task);
+        },
+        onDeletePressed: () {
+          Navigator.of(context).pop();
+          _showDeleteTaskConfirmation(context, task);
+        },
+      ),
+    );
+  }
+
+  //EDIT TASK DIALOG
+  void _showEditTaskDialog(BuildContext context, Task task) {
+    final scaffoldContext = context;
+    final projectType =
+        _taskController.currentProject?.consultingType ?? 'Proyecto';
+    //final projectName = _taskController.currentProject?.name ?? 'Sin nombre';
+    showDialog(
+      context: context,
+      builder: (context) => AddTask(
+        task: task,
+        columns: _taskController.columns,
+        projectId: _taskController.currentProjectId!,
+        projectType: projectType,
+        onUpdateTask: (updatedTask) async {
+          try {
+            await _taskController.updateTask(updatedTask);
+            Navigator.of(context).pop();
+
+            if (scaffoldContext.mounted) {
+              ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                SnackBar(
+                  content: Text('Tarea "${updatedTask.title}" actualizada'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          } catch (e) {
+            if (scaffoldContext.mounted) {
+              ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                SnackBar(
+                  content: Text('Error actualizando tarea: $e'),
+                  backgroundColor: Colors.red,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            }
+          }
+        },
+      ),
+    );
+  }
+
+  //WARNING: DELETE TASK
+  void _showDeleteTaskConfirmation(BuildContext context, Task task) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Eliminar Tarea',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xff253f8d),
+          ),
+        ),
+        content: Text(
+          '¿Estás seguro de que quieres eliminar la tarea "${task.title}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await _taskController.deleteTask(task.id);
+                Navigator.of(context).pop();
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Tarea "${task.title}" eliminada'),
+                    backgroundColor: Colors.green,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              } catch (e) {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error eliminando tarea: $e'),
+                    backgroundColor: Colors.red,
+                    duration: Duration(seconds: 3),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('Eliminar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
@@ -471,242 +896,7 @@ class _TaskView extends State<TaskView> {
     );
   }
 
-  Widget _buildBoard(TaskController taskController) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: _taskController.columns.map((column) {
-          final columnTasks = _taskController.getTasksByColumn(column.name);
-
-          return DragTarget<Map<String, dynamic>>(
-            onAccept: (data) {
-              _handleTaskDrop(data['task'], column.name);
-            },
-            builder: (context, candidateData, rejectData) {
-              final isActive = candidateData.isNotEmpty;
-              return Container(
-                width: 280,
-                margin: const EdgeInsets.only(right: 20),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isActive ? Colors.blue.shade50 : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: isActive
-                      ? Border.all(color: Colors.blue, width: 2)
-                      : Border.all(color: Colors.transparent),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          column.name,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: column.color,
-                          ),
-                        ),
-
-                        PopupMenuButton<String>(
-                          icon: Icon(Icons.more_vert, color: Colors.grey[600]),
-                          onSelected: (value) {
-                            if (value == 'delete') {
-                              _showDeleteColumnDialog(
-                                context,
-                                column,
-                                taskController,
-                              );
-                            }
-                          },
-                          itemBuilder: (BuildContext context) => [
-                            PopupMenuItem<String>(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Eliminar Columna'),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    if (columnTasks.isEmpty)
-                      Container(
-                        height: 100,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? Colors.blue.shade100
-                              : Colors.grey[100],
-                          borderRadius: BorderRadius.circular(8),
-                          border: isActive
-                              ? Border.all(color: Colors.blueGrey, width: 1)
-                              : Border.all(color: Colors.transparent),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.move_to_inbox,
-                              color: isActive
-                                  ? Colors.blueGrey
-                                  : Colors.grey[500],
-                              size: 24,
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              isActive ? 'Soltar aquí' : 'Sin tareas',
-                              style: TextStyle(
-                                color: isActive
-                                    ? Colors.blueGrey
-                                    : Colors.grey[500],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      Column(
-                        children: columnTasks.map((task) {
-                          return _buildDraggableTaskCard(task, column);
-                        }).toList(),
-                      ),
-                  ],
-                ),
-              );
-            },
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildDraggableTaskCard(Task task, TaskColumn column) {
-    return Draggable<Map<String, dynamic>>(
-      data: {'task': task, 'sourceColumn': column.name},
-      feedback: Material(
-        elevation: 8,
-        child: Container(
-          width: 260,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: _buildTaskContent(task),
-        ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.5,
-        child: _buildTaskCard(task, column),
-      ),
-      child: _buildTaskCard(task, column),
-    );
-  }
-
-  Widget _buildTaskContent(Task task) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          task.title,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-            color: Color(0xff253f8d),
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        if (task.description.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            task.description,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ],
-    );
-  }
-
-  void _showDeleteTaskConfirmation(BuildContext context, Task task) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Eliminar Tarea',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color(0xff253f8d),
-          ),
-        ),
-        content: Text(
-          '¿Estás seguro de que quieres eliminar la tarea "${task.title}"?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancelar', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await _taskController.deleteTask(task.id);
-                Navigator.of(context).pop();
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Tarea "${task.title}" eliminada'),
-                    backgroundColor: Colors.green,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              } catch (e) {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error eliminando tarea: $e'),
-                    backgroundColor: Colors.red,
-                    duration: Duration(seconds: 3),
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text('Eliminar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
+  //WARNING: DELETE COLUMN
   void _showDeleteColumnDialog(
     BuildContext context,
     TaskColumn column,
@@ -750,177 +940,7 @@ class _TaskView extends State<TaskView> {
     );
   }
 
-  void _showAddTaskDialog(BuildContext context, TaskController taskController) {
-    final projectType =
-        _taskController.currentProject?.consultingType ?? 'Proyecto';
-    //final projectName = _taskController.currentProject?.name ?? 'Sin nombre';
-
-    showDialog(
-      context: context,
-      builder: (context) => AddTask(
-        columns: _taskController.columns,
-        projectId: _taskController.currentProjectId!,
-        //projectId: taskController.currentProjectId ?? 'proyecto-temporal',
-        projectType: projectType,
-        onAddTask: (newTask) async {
-          try {
-            await _taskController.addTask(newTask);
-            Navigator.of(context).pop();
-          } catch (e) {}
-        },
-      ),
-    );
-  }
-
-  Widget _buildTaskCard(Task task, TaskColumn column) {
-    return GestureDetector(
-      onTap: () {
-        _showTaskDetailsDialog(context, task);
-      },
-      child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[300]!),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 2,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.drag_handle, color: Colors.grey[400], size: 16),
-            SizedBox(width: 8),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    task.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: Color(0xff253f8d),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (task.description.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      task.description,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        task.assignee,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getPriorityColor(task.priority),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          _getPriorityText(task.priority),
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showTaskDetailsDialog(BuildContext context, Task task) {
-    showDialog(
-      context: context,
-      builder: (context) => TaskDetailsDialog(
-        task: task,
-        onEditPressed: () {
-          Navigator.of(context).pop();
-          _showEditTaskDialog(context, task);
-        },
-        onDeletePressed: () {
-          Navigator.of(context).pop();
-          _showDeleteTaskConfirmation(context, task);
-        },
-      ),
-    );
-  }
-
-  void _showEditTaskDialog(BuildContext context, Task task) {
-    final scaffoldContext = context;
-    final projectType =
-        _taskController.currentProject?.consultingType ?? 'Proyecto';
-    //final projectName = _taskController.currentProject?.name ?? 'Sin nombre';
-    showDialog(
-      context: context,
-      builder: (context) => AddTask(
-        task: task,
-        columns: _taskController.columns,
-        projectId: _taskController.currentProjectId!,
-        projectType: projectType,
-        onUpdateTask: (updatedTask) async {
-          try {
-            await _taskController.updateTask(updatedTask);
-            Navigator.of(context).pop();
-
-            if (scaffoldContext.mounted) {
-              ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-                SnackBar(
-                  content: Text('Tarea "${updatedTask.title}" actualizada'),
-                  backgroundColor: Colors.green,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            }
-          } catch (e) {
-            if (scaffoldContext.mounted) {
-              ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-                SnackBar(
-                  content: Text('Error actualizando tarea: $e'),
-                  backgroundColor: Colors.red,
-                  duration: Duration(seconds: 3),
-                ),
-              );
-            }
-          }
-        },
-      ),
-    );
-  }
-
+  //DRAG AND DROP
   void _handleTaskDrop(Task task, String targetColumnName) async {
     final statusMap = {
       'Pendiente': Status.pendiente,
@@ -961,6 +981,7 @@ class _TaskView extends State<TaskView> {
     }
   }
 
+  //FILTER DESKTOP
   Widget _buildDesktopFilters() {
     return Row(
       children: [
@@ -1011,6 +1032,7 @@ class _TaskView extends State<TaskView> {
     );
   }
 
+  //FILTER MOBILE
   Widget _buildMobileFilters() {
     return Column(
       children: [

@@ -26,14 +26,15 @@ class TaskController extends ChangeNotifier {
     //_loadTasks();
   }
 
+  //GETTERS
   List<TaskColumn> get columns => _columns;
   List<Task> get tasks => _tasks;
-  //
   String? get currentProjectId => _currentProjectId;
   Project? get currentProject => _currentProject;
   List<Map<String, dynamic>> get availableProjects => _availableProjects;
   Map<String, dynamic>? get currentProjectData => _currentProjectData;
 
+  //INITIALIZE DEFAULT COLUMNS
   void _initializeColumns() {
     _columns = [
       TaskColumn(name: 'Pendiente', color: Colors.grey),
@@ -43,6 +44,7 @@ class TaskController extends ChangeNotifier {
     ];
   }
 
+  //LOAD TASKS
   Future<void> _loadTasks() async {
     if (_currentProjectId == null) {
       //print(' No hay projectId establecido');
@@ -80,6 +82,7 @@ class TaskController extends ChangeNotifier {
     }
   }
 
+  //VALIDATE REQUIRED FIELDS
   ValidationResult validateTask(Task task) {
     final errors = <String, String>{};
 
@@ -105,6 +108,7 @@ class TaskController extends ChangeNotifier {
     return ValidationResult(isValid: errors.isEmpty, errors: errors);
   }
 
+  //UPDATE TASK STATUS IN FIRESTORE
   Future<void> updateTaskStatus(String taskId, Status newStatus) async {
     if (_currentProjectId == null) {
       throw Exception('No hay proyecto seleccionado');
@@ -148,6 +152,7 @@ class TaskController extends ChangeNotifier {
     }
   }
 
+  //UPDATE TASK DETAILS IN FIRESTORE
   Future<void> updateTask(Task updatedTask) async {
     if (_currentProjectId == null) {
       throw Exception('No hay proyecto seleccionado');
@@ -183,6 +188,7 @@ class TaskController extends ChangeNotifier {
     }
   }
 
+  //ADD TASK AND SAVE IN FIRESTORE
   Future<void> addTask(Task task) async {
     if (_currentProjectId == null) {
       throw Exception('No hay proyecto seleccionado');
@@ -233,6 +239,7 @@ class TaskController extends ChangeNotifier {
     }
   }
 
+  //DELETE TASK AND SAVE IN FIRESTORE
   Future<void> deleteTask(String taskId) async {
     if (_currentProjectId == null) {
       throw Exception('No hay proyecto seleccionado');
@@ -255,6 +262,7 @@ class TaskController extends ChangeNotifier {
     }
   }
 
+  //GET AVAILABLE PROJECTS IN FIRESTORE
   Future<List<Map<String, dynamic>>> getProjects() async {
     try {
       final querySnapshot = await _firestore.collection('projects').get();
@@ -267,6 +275,7 @@ class TaskController extends ChangeNotifier {
     }
   }
 
+  //POSSIBLES PROJECTS
   Future<void> setCurrentProject(String projectId) async {
     _currentProjectId = projectId;
 
@@ -323,6 +332,7 @@ class TaskController extends ChangeNotifier {
     print(' No tienes acceso a este proyecto');
   }
 
+  //LOAD PROJECTS (USER ACCESS)
   Future<void> loadAvailableProjects() async {
     try {
       final currentUser = _auth.currentUser;
@@ -363,6 +373,108 @@ class TaskController extends ChangeNotifier {
       print('❌ Error cargando proyectos: $e');
       _availableProjects = [];
     }
+  }
+
+  //ADD COLUMN
+  void addColumn(TaskColumn column) {
+    _columns.add(column);
+    _saveColumns();
+    notifyListeners();
+  }
+
+  //DELETE COLUMN
+  void removeColumn(TaskColumn column) {
+    _columns.remove(column);
+    _saveColumns();
+    notifyListeners();
+  }
+
+  List<Task> getTasksByColumn(String columnName) {
+    final statusMap = {
+      'Pendiente': Status.pendiente,
+      'En Progreso': Status.enProgreso,
+      'En Revisión': Status.enRevision,
+      'Completado': Status.completado,
+    };
+
+    final status = statusMap[columnName];
+    if (status != null) {
+      return _tasks.where((task) => task.status == status).toList();
+    }
+
+    return [];
+  }
+
+  //LOAD CUSTOM COLUMNS
+  Future<void> _loadColumns() async {
+    if (_currentProjectId == null) return;
+
+    try {
+      final columnsDoc = await _firestore
+          .collection('projects')
+          .doc(_currentProjectId!)
+          .collection('metadata')
+          .doc('columns')
+          .get();
+
+      if (columnsDoc.exists) {
+        final data = columnsDoc.data();
+        final columnsData = data?['columns'] as List?;
+
+        if (columnsData != null) {
+          _columns = columnsData.map((col) {
+            return TaskColumn(
+              name: col['name'] ?? '',
+              color: _parseColor(col['color']),
+            );
+          }).toList();
+          print('Columnas cargadas: ${_columns.length}');
+        }
+      } else {
+        _initializeDefaultColumns();
+        _saveColumns();
+      }
+
+      notifyListeners();
+    } catch (e) {
+      print('Error cargando columnas: $e');
+      _initializeDefaultColumns();
+    }
+  }
+
+  //SAVE COLUMNS
+  Future<void> _saveColumns() async {
+    if (_currentProjectId == null) return;
+
+    try {
+      final columnsData = _columns.map((col) {
+        return {'name': col.name, 'color': _colorToString(col.color)};
+      }).toList();
+
+      await _firestore
+          .collection('projects')
+          .doc(_currentProjectId!)
+          .collection('metadata')
+          .doc('columns')
+          .set({
+            'columns': columnsData,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+      print('Columnas guardadas: ${_columns.length}');
+    } catch (e) {
+      print('Error guardando columnas: $e');
+    }
+  }
+
+  //DEFAULT COLUMNS
+  void _initializeDefaultColumns() {
+    _columns = [
+      TaskColumn(name: 'Pendiente', color: Colors.grey),
+      TaskColumn(name: 'En Progreso', color: Colors.blue),
+      TaskColumn(name: 'En Revisión', color: Colors.orange),
+      TaskColumn(name: 'Completado', color: Colors.green),
+    ];
   }
 
   Priority _stringToPriority(String priority) {
@@ -415,103 +527,6 @@ class TaskController extends ChangeNotifier {
       case Status.completado:
         return 'completado';
     }
-  }
-
-  void addColumn(TaskColumn column) {
-    _columns.add(column);
-    _saveColumns();
-    notifyListeners();
-  }
-
-  void removeColumn(TaskColumn column) {
-    _columns.remove(column);
-    _saveColumns();
-    notifyListeners();
-  }
-
-  List<Task> getTasksByColumn(String columnName) {
-    final statusMap = {
-      'Pendiente': Status.pendiente,
-      'En Progreso': Status.enProgreso,
-      'En Revisión': Status.enRevision,
-      'Completado': Status.completado,
-    };
-
-    final status = statusMap[columnName];
-    if (status != null) {
-      return _tasks.where((task) => task.status == status).toList();
-    }
-
-    return [];
-  }
-
-  Future<void> _loadColumns() async {
-    if (_currentProjectId == null) return;
-
-    try {
-      final columnsDoc = await _firestore
-          .collection('projects')
-          .doc(_currentProjectId!)
-          .collection('metadata')
-          .doc('columns')
-          .get();
-
-      if (columnsDoc.exists) {
-        final data = columnsDoc.data();
-        final columnsData = data?['columns'] as List?;
-
-        if (columnsData != null) {
-          _columns = columnsData.map((col) {
-            return TaskColumn(
-              name: col['name'] ?? '',
-              color: _parseColor(col['color']),
-            );
-          }).toList();
-          print('Columnas cargadas: ${_columns.length}');
-        }
-      } else {
-        _initializeDefaultColumns();
-        _saveColumns();
-      }
-
-      notifyListeners();
-    } catch (e) {
-      print('Error cargando columnas: $e');
-      _initializeDefaultColumns();
-    }
-  }
-
-  Future<void> _saveColumns() async {
-    if (_currentProjectId == null) return;
-
-    try {
-      final columnsData = _columns.map((col) {
-        return {'name': col.name, 'color': _colorToString(col.color)};
-      }).toList();
-
-      await _firestore
-          .collection('projects')
-          .doc(_currentProjectId!)
-          .collection('metadata')
-          .doc('columns')
-          .set({
-            'columns': columnsData,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-
-      print('Columnas guardadas: ${_columns.length}');
-    } catch (e) {
-      print('Error guardando columnas: $e');
-    }
-  }
-
-  void _initializeDefaultColumns() {
-    _columns = [
-      TaskColumn(name: 'Pendiente', color: Colors.grey),
-      TaskColumn(name: 'En Progreso', color: Colors.blue),
-      TaskColumn(name: 'En Revisión', color: Colors.orange),
-      TaskColumn(name: 'Completado', color: Colors.green),
-    ];
   }
 
   Color _parseColor(dynamic colorData) {
