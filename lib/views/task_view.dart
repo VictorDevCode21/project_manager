@@ -6,7 +6,9 @@ import 'package:prolab_unimet/views/tasks/task_details_dialog.dart';
 import 'package:provider/provider.dart';
 
 class TaskView extends StatefulWidget {
-  const TaskView({super.key});
+  final String? projectId;
+
+  const TaskView({super.key, this.projectId});
 
   @override
   State<TaskView> createState() => _TaskView();
@@ -17,189 +19,327 @@ class _TaskView extends State<TaskView> {
   String _selectedStatus = 'Prioridades';
   String _selectedAssignees = 'Responsables';
   late TaskController _taskController;
+  String? _selectedProjectId;
+  bool _isInitialized = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _taskController = Provider.of<TaskController>(context);
-    _taskController.setCurrentProject("32MZNpafyvefmnMnr6zv");
+
+    if (!_isInitialized) {
+      _isInitialized = true;
+      _taskController = Provider.of<TaskController>(context);
+
+      _taskController.loadAvailableProjects().then((_) {
+        if (_taskController.availableProjects.isNotEmpty) {
+          final firstProjectId =
+              _taskController.availableProjects.first['id'] as String;
+          _taskController.setCurrentProject(firstProjectId);
+        }
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final taskController = Provider.of<TaskController>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xfff4f6f7),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // HEADER SECTION
-                  Wrap(
-                    spacing: 20,
-                    crossAxisAlignment: WrapCrossAlignment.center,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // HEADER ROW - ESTRUCTURA CORREGIDA
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // IZQUIERDA: Volver + Títulos
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextButton.icon(
-                        onPressed: () {},
-                        icon: Icon(Icons.arrow_back, color: Colors.grey),
-                        label: Text(
-                          'Volver',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        style: TextButton.styleFrom(
-                          //backgroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Wrap(
+                        spacing: 20,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Text(
-                            'Gestión de Tareas',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xff1b5bf5),
+                          TextButton.icon(
+                            onPressed: () {},
+                            icon: Icon(Icons.arrow_back, color: Colors.grey),
+                            label: Text(
+                              'Volver',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
                             ),
                           ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Tablero para gestionar tareas de proyectos',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Gestión de Tareas',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xff1b5bf5),
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Tablero para gestionar tareas de proyectos',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ],
                   ),
-                  // BUTTONS SECTION
-                  Wrap(
-                    spacing: 16,
+                ),
+
+                // DERECHA: Controles (botones arriba, dropdown abajo)
+                if (taskController.availableProjects.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          _showAddColumnDialog(context, taskController);
-                        },
-                        icon: const Icon(
-                          Icons.add,
-                          size: 18,
-                          color: Color(0xff38465a),
-                        ),
-                        label: const Text(
-                          'Nueva Columna',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xff38465a),
+                      // BOTONES ARRIBA
+                      Wrap(
+                        spacing: 16,
+                        alignment: WrapAlignment.end,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              _showAddColumnDialog(context, taskController);
+                            },
+                            icon: const Icon(
+                              Icons.add,
+                              size: 18,
+                              color: Color(0xff38465a),
+                            ),
+                            label: const Text(
+                              'Nueva Columna',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xff38465a),
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color.fromARGB(
+                                255,
+                                224,
+                                228,
+                                231,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
                           ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(
-                            255,
-                            224,
-                            228,
-                            231,
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              _showAddTaskDialog(context, taskController);
+                            },
+                            icon: const Icon(
+                              Icons.add,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              'Nueva Tarea',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xff2d55fa),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
+                        ],
                       ),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          _showAddTaskDialog(context, taskController);
-                        },
-                        icon: const Icon(
-                          Icons.add,
-                          size: 18,
+
+                      SizedBox(height: 12), // ESPACIO ENTRE BOTONES Y DROPDOWN
+                      // DROPDOWN DEBAJO
+                      Container(
+                        height: 40,
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
                           color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey[300]!),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        label: const Text(
-                          'Nueva Tarea',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xff2d55fa),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                        child: IntrinsicWidth(
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.folder_open,
+                                size: 16,
+                                color: Color(0xff253f8d),
+                              ),
+                              SizedBox(width: 8),
+                              Container(
+                                constraints: BoxConstraints(
+                                  minWidth: 120,
+                                  maxWidth: 200,
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: _taskController.currentProjectId,
+                                    isExpanded: true,
+                                    icon: Icon(
+                                      Icons.arrow_drop_down,
+                                      color: Color(0xff253f8d),
+                                      size: 18,
+                                    ),
+                                    iconSize: 18,
+                                    dropdownColor: Colors.white,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xff253f8d),
+                                    ),
+                                    items: _taskController.availableProjects
+                                        .map((project) {
+                                          return DropdownMenuItem<String>(
+                                            value: project['id'],
+                                            child: Text(
+                                              project['name'] ?? 'Sin nombre',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xff253f8d),
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          );
+                                        })
+                                        .toList(),
+                                    onChanged: (projectId) {
+                                      if (projectId != null) {
+                                        _taskController.setCurrentProject(
+                                          projectId,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 30),
+              ],
+            ),
 
-              // FILTER SECTION
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+            // MENSAJE SI NO HAY PROYECTOS
+            if (taskController.availableProjects.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.lock, size: 50, color: Colors.grey),
+                      SizedBox(height: 20),
+                      Text('No tienes acceso a ningún proyecto'),
+                      SizedBox(height: 10),
+                      Text('Contacta al administrador'),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Filtros y Búsqueda',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xff253f8d),
+              )
+            else
+              // CONTENIDO PRINCIPAL (FILTROS + TABLERO)
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 30),
+
+                      // FILTER SECTION
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Filtros y Búsqueda',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xff253f8d),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final isSmallScreen =
+                                    constraints.maxWidth < 600;
+                                if (isSmallScreen) {
+                                  return _buildMobileFilters();
+                                } else {
+                                  return _buildDesktopFilters();
+                                }
+                              },
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isSmallScreen = constraints.maxWidth < 600;
+                      const SizedBox(height: 30),
 
-                        if (isSmallScreen) {
-                          return _buildMobileFilters();
-                        } else {
-                          return _buildDesktopFilters();
-                        }
-                      },
-                    ),
-                  ],
+                      // BOARD
+                      _buildBoard(taskController),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 30),
-
-              _buildBoard(taskController),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -551,7 +691,7 @@ class _TaskView extends State<TaskView> {
             onPressed: () async {
               try {
                 await _taskController.deleteTask(task.id);
-                Navigator.of(context).pop(); // Cerrar confirmación
+                Navigator.of(context).pop();
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -561,8 +701,7 @@ class _TaskView extends State<TaskView> {
                   ),
                 );
               } catch (e) {
-                Navigator.of(context).pop(); // Cerrar confirmación
-
+                Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Error eliminando tarea: $e'),
@@ -624,18 +763,21 @@ class _TaskView extends State<TaskView> {
   }
 
   void _showAddTaskDialog(BuildContext context, TaskController taskController) {
-    //final projectId = taskController.currentProjectId ?? 'proyecto-temporal';
+    final projectType =
+        _taskController.currentProject?.consultingType ?? 'Proyecto';
+    final projectName = _taskController.currentProject?.name ?? 'Sin nombre';
+
     showDialog(
       context: context,
       builder: (context) => AddTask(
         columns: _taskController.columns,
         projectId: _taskController.currentProjectId!,
         //projectId: taskController.currentProjectId ?? 'proyecto-temporal',
+        projectType: projectType,
         onAddTask: (newTask) async {
           try {
             await _taskController.addTask(newTask);
             Navigator.of(context).pop();
-            print('✅ Diálogo cerrado exitosamente');
           } catch (e) {
             print('❌ Error en addTask: $e');
           }
@@ -744,8 +886,8 @@ class _TaskView extends State<TaskView> {
           _showEditTaskDialog(context, task);
         },
         onDeletePressed: () {
-          Navigator.of(context).pop(); // Cerrar detalles
-          _showDeleteTaskConfirmation(context, task); // Mostrar confirmación
+          Navigator.of(context).pop();
+          _showDeleteTaskConfirmation(context, task);
         },
       ),
     );
@@ -753,12 +895,16 @@ class _TaskView extends State<TaskView> {
 
   void _showEditTaskDialog(BuildContext context, Task task) {
     final scaffoldContext = context;
+    final projectType =
+        _taskController.currentProject?.consultingType ?? 'Proyecto';
+    final projectName = _taskController.currentProject?.name ?? 'Sin nombre';
     showDialog(
       context: context,
       builder: (context) => AddTask(
         task: task,
         columns: _taskController.columns,
         projectId: _taskController.currentProjectId!,
+        projectType: projectType,
         onUpdateTask: (updatedTask) async {
           try {
             await _taskController.updateTask(updatedTask);
@@ -799,11 +945,8 @@ class _TaskView extends State<TaskView> {
 
     final newStatus = statusMap[targetColumnName];
     if (newStatus != null && task.status != newStatus) {
-      print('🎯 Moviendo tarea "${task.title}" de ${task.status} a $newStatus');
-      print('🔄 Moviendo tarea "${task.title}" a $targetColumnName');
       try {
         await _taskController.updateTaskStatus(task.id, newStatus);
-        print('✅ Tarea movida exitosamente a $targetColumnName');
       } catch (e) {
         print('❌ Error moviendo tarea: $e');
       }
@@ -835,7 +978,6 @@ class _TaskView extends State<TaskView> {
   Widget _buildDesktopFilters() {
     return Row(
       children: [
-        // Search field
         Expanded(
           child: TextField(
             controller: _taskcontroller,
@@ -853,7 +995,6 @@ class _TaskView extends State<TaskView> {
         ),
         const SizedBox(width: 16),
 
-        // Status filter
         DropdownButton<String>(
           value: _selectedStatus,
           items: [
@@ -868,7 +1009,6 @@ class _TaskView extends State<TaskView> {
         ),
         const SizedBox(width: 16),
 
-        // Type filter
         DropdownButton<String>(
           value: _selectedAssignees,
           items: [
@@ -888,7 +1028,6 @@ class _TaskView extends State<TaskView> {
   Widget _buildMobileFilters() {
     return Column(
       children: [
-        // Search field
         TextField(
           controller: _taskcontroller,
           decoration: InputDecoration(
@@ -904,13 +1043,12 @@ class _TaskView extends State<TaskView> {
         ),
         const SizedBox(height: 12),
 
-        // Filtros en fila para móvil
         Row(
           children: [
             Expanded(
               child: DropdownButton<String>(
                 value: _selectedStatus,
-                isExpanded: true, // Importante para móvil
+                isExpanded: true,
                 items: ['Prioridades', 'Alta', 'Media', 'Baja']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -923,7 +1061,7 @@ class _TaskView extends State<TaskView> {
             Expanded(
               child: DropdownButton<String>(
                 value: _selectedAssignees,
-                isExpanded: true, // Importante para móvil
+                isExpanded: true,
                 items: ['Responsables', 'Alta', 'Media', 'Baja']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),

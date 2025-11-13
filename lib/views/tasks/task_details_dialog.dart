@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:prolab_unimet/models/tasks_model.dart';
 
 class TaskDetailsDialog extends StatelessWidget {

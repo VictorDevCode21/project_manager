@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:prolab_unimet/models/tasks_model.dart';
 
@@ -8,6 +7,7 @@ class AddTask extends StatefulWidget {
   final String projectId;
   final Function(Task)? onUpdateTask;
   final Task? task;
+  final String projectType;
 
   const AddTask({
     super.key,
@@ -16,6 +16,7 @@ class AddTask extends StatefulWidget {
     required this.projectId,
     this.onUpdateTask,
     this.task,
+    required this.projectType,
   });
 
   @override
@@ -110,7 +111,10 @@ class _AddTaskState extends State<AddTask> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Proyecto', style: TextStyle(fontSize: 14)),
+                        Text(
+                          'Proyecto: ${widget.projectType}',
+                          style: TextStyle(fontSize: 14),
+                        ),
                         DropdownButtonFormField<String>(
                           value: _selectedtProjectType,
                           items: _projectTypes.map((type) {

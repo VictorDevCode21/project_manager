@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:prolab_unimet/models/projects_model.dart';
 import '../models/tasks_model.dart';
 
 class ValidationResult {
@@ -11,9 +13,13 @@ class ValidationResult {
 
 class TaskController extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   List<TaskColumn> _columns = [];
   List<Task> _tasks = [];
   String? _currentProjectId;
+  List<Map<String, dynamic>> _availableProjects = [];
+  Project? _currentProject;
+  Map<String, dynamic>? _currentProjectData;
 
   TaskController() {
     _initializeColumns();
@@ -22,14 +28,11 @@ class TaskController extends ChangeNotifier {
 
   List<TaskColumn> get columns => _columns;
   List<Task> get tasks => _tasks;
-
-  void setCurrentProject(String projectId) {
-    _currentProjectId = projectId;
-    _loadTasks();
-    notifyListeners();
-  }
-
+  //
   String? get currentProjectId => _currentProjectId;
+  Project? get currentProject => _currentProject;
+  List<Map<String, dynamic>> get availableProjects => _availableProjects;
+  Map<String, dynamic>? get currentProjectData => _currentProjectData;
 
   void _initializeColumns() {
     _columns = [
@@ -67,7 +70,7 @@ class TaskController extends ChangeNotifier {
               ? DateTime.parse(data['dueDate'])
               : null,
           tags: List<String>.from(data['tags'] ?? []),
-          projectId: _currentProjectId!, // ← NUEVO
+          projectId: _currentProjectId!,
         );
       }).toList();
 
@@ -108,7 +111,6 @@ class TaskController extends ChangeNotifier {
     }
 
     try {
-      print('🔄 Actualizando estado de tarea $taskId a $newStatus');
       await _firestore
           .collection('projects')
           .doc(_currentProjectId!)
@@ -130,7 +132,7 @@ class TaskController extends ChangeNotifier {
             projectType: oldTask.projectType,
             assignee: oldTask.assignee,
             priority: oldTask.priority,
-            status: newStatus, // ← NUEVO ESTADO
+            status: newStatus,
             estimatedHours: oldTask.estimatedHours,
             dueTime: oldTask.dueTime,
             tags: oldTask.tags,
@@ -138,7 +140,6 @@ class TaskController extends ChangeNotifier {
           );
 
           notifyListeners();
-          print('✅ Estado de tarea actualizado localmente');
         }
       });
     } catch (e) {
@@ -153,7 +154,6 @@ class TaskController extends ChangeNotifier {
     }
 
     try {
-      print('🔄 Actualizando tarea: ${updatedTask.title}');
       await _firestore
           .collection('projects')
           .doc(_currentProjectId!)
@@ -176,10 +176,9 @@ class TaskController extends ChangeNotifier {
       if (taskIndex != -1) {
         _tasks[taskIndex] = updatedTask;
         notifyListeners();
-        print('✅ Tarea actualizada localmente');
       }
     } catch (e) {
-      print('❌ Error actualizando tarea: $e');
+      print('Error actualizando tarea: $e');
       rethrow;
     }
   }
@@ -194,11 +193,6 @@ class TaskController extends ChangeNotifier {
       throw Exception('Datos inválidos: ${validation.errors}');
     }
     try {
-      print('🔄 INTENTANDO GUARDAR EN FIRESTORE...');
-      print('📝 Título: ${task.title}');
-      print('🏷️ Proyecto: ${task.projectType}');
-      print('📂 Project ID: ${task.projectId}');
-
       final DocumentReference docRef = await _firestore
           .collection('projects')
           .doc(_currentProjectId!)
@@ -217,10 +211,6 @@ class TaskController extends ChangeNotifier {
             'updatedAt': FieldValue.serverTimestamp(),
           });
 
-      print(
-        '✅ TAREA GUARDADA EN: projects/$_currentProjectId/tasks/${docRef.id}',
-      );
-
       _tasks.add(
         Task(
           id: docRef.id,
@@ -238,7 +228,7 @@ class TaskController extends ChangeNotifier {
       );
       notifyListeners();
     } catch (e) {
-      print('❌ ERROR EN FIRESTORE: $e');
+      print('ERROR EN FIRESTORE: $e');
       rethrow;
     }
   }
@@ -248,7 +238,6 @@ class TaskController extends ChangeNotifier {
       throw Exception('No hay proyecto seleccionado');
     }
     try {
-      print('🗑️ Eliminando tarea: $taskId');
       await _firestore
           .collection('projects')
           .doc(_currentProjectId!)
@@ -259,9 +248,9 @@ class TaskController extends ChangeNotifier {
       _tasks.removeWhere((task) => task.id == taskId);
       notifyListeners();
 
-      print('✅ Tarea eliminada correctamente');
+      print('Tarea eliminada correctamente');
     } catch (e) {
-      print('❌ Error eliminando tarea: $e');
+      //
       rethrow;
     }
   }
@@ -273,8 +262,105 @@ class TaskController extends ChangeNotifier {
         return {'id': doc.id, 'name': doc.data()['name'] ?? 'Sin nombre'};
       }).toList();
     } catch (e) {
-      print('❌ Error cargando proyectos: $e');
+      //
       return [];
+    }
+  }
+
+  Future<void> setCurrentProject(String projectId) async {
+    _currentProjectId = projectId;
+
+    try {
+      final projectDoc = await _firestore
+          .collection('projects')
+          .doc(projectId)
+          .get();
+
+      if (projectDoc.exists) {
+        _currentProjectData = projectDoc.data();
+
+        final currentUser = _auth.currentUser;
+        if (currentUser == null) {
+          print('❌ Usuario no autenticado');
+          _tasks = [];
+          notifyListeners();
+          return;
+        }
+
+        final visibleTo = List<String>.from(
+          _currentProjectData?['visibleTo'] ?? [],
+        );
+        final ownerId = _currentProjectData?['ownerId'];
+
+        final hasAccess =
+            visibleTo.contains(currentUser.uid) || ownerId == currentUser.uid;
+
+        if (hasAccess) {
+          print('✅ Usuario tiene acceso al proyecto');
+          _loadTasks();
+        } else {
+          print('❌ Usuario NO tiene acceso al proyecto');
+          _tasks = [];
+          _showAccessDeniedMessage();
+        }
+      } else {
+        print('❌ Proyecto no encontrado: $projectId');
+        _currentProjectData = null;
+        _tasks = [];
+      }
+
+      notifyListeners();
+    } catch (e) {
+      print('❌ Error cargando proyecto: $e');
+      _currentProjectData = null;
+      _tasks = [];
+      notifyListeners();
+    }
+  }
+
+  void _showAccessDeniedMessage() {
+    print('🚫 No tienes acceso a este proyecto');
+  }
+
+  Future<void> loadAvailableProjects() async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        print('❌ Usuario no autenticado');
+        _availableProjects = [];
+        notifyListeners();
+        return;
+      }
+
+      print('🔄 Cargando proyectos para usuario: ${currentUser.uid}');
+      final querySnapshot = await _firestore.collection('projects').get();
+
+      _availableProjects = querySnapshot.docs
+          .where((doc) {
+            final data = doc.data();
+            final visibleTo = List<String>.from(data['visibleTo'] ?? []);
+            final ownerId = data['ownerId'];
+
+            return visibleTo.contains(currentUser.uid) ||
+                ownerId == currentUser.uid;
+          })
+          .map((doc) {
+            final data = doc.data();
+            return {
+              'id': doc.id,
+              'name': data['name'] ?? 'Sin nombre',
+              'consultingType': data['consultingType'] ?? 'Proyecto',
+              'ownerId': data['ownerId'],
+              'visibleTo': List<String>.from(data['visibleTo'] ?? []),
+            };
+          })
+          .toList();
+
+      print('✅ Proyectos con acceso: ${_availableProjects.length}');
+      notifyListeners();
+    } catch (e) {
+      print('❌ Error cargando proyectos: $e');
+      _availableProjects = [];
     }
   }
 

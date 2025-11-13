@@ -6,28 +6,10 @@ import 'package:prolab_unimet/core/routes/app_routes.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
 import 'package:prolab_unimet/providers/notification_provider.dart';
 import 'package:prolab_unimet/views/splash_view.dart';
-import 'package:prolab_unimet/views/task_view.dart';
 import 'package:provider/provider.dart';
 import 'services/firebase_options.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
-// void main() {
-//   runApp(const TaskViewPart());
-// }
-
-// class TaskViewPart extends StatelessWidget {
-//   const TaskViewPart({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       debugShowCheckedModeBanner: false,
-//       theme: ThemeData(useMaterial3: true),
-//       home: const TaskView(),
-//     );
-//   }
-// }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

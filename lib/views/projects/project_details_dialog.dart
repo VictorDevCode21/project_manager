@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:prolab_unimet/controllers/project_controller.dart';
 import 'package:prolab_unimet/models/projects_model.dart';
-import 'package:prolab_unimet/views/projects/manage_members_dialog.dart';
 
 /// Responsive modal that shows all project details except `visibleTo`.
 /// - UI strings in Spanish (as requested)
