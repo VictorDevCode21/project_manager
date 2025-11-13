@@ -19,7 +19,7 @@ class _TaskView extends State<TaskView> {
   String _selectedStatus = 'Prioridades';
   String _selectedAssignees = 'Responsables';
   late TaskController _taskController;
-  String? _selectedProjectId;
+  //String? _selectedProjectId;
   bool _isInitialized = false;
 
   @override
@@ -51,12 +51,10 @@ class _TaskView extends State<TaskView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // HEADER ROW - ESTRUCTURA CORREGIDA
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // IZQUIERDA: Volver + Títulos
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,13 +110,10 @@ class _TaskView extends State<TaskView> {
                     ],
                   ),
                 ),
-
-                // DERECHA: Controles (botones arriba, dropdown abajo)
                 if (taskController.availableProjects.isNotEmpty)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // BOTONES ARRIBA
                       Wrap(
                         spacing: 16,
                         alignment: WrapAlignment.end,
@@ -185,8 +180,7 @@ class _TaskView extends State<TaskView> {
                         ],
                       ),
 
-                      SizedBox(height: 12), // ESPACIO ENTRE BOTONES Y DROPDOWN
-                      // DROPDOWN DEBAJO
+                      SizedBox(height: 12),
                       Container(
                         height: 40,
                         padding: EdgeInsets.symmetric(horizontal: 16),
@@ -266,8 +260,6 @@ class _TaskView extends State<TaskView> {
                   ),
               ],
             ),
-
-            // MENSAJE SI NO HAY PROYECTOS
             if (taskController.availableProjects.isEmpty)
               Expanded(
                 child: Center(
@@ -284,7 +276,6 @@ class _TaskView extends State<TaskView> {
                 ),
               )
             else
-              // CONTENIDO PRINCIPAL (FILTROS + TABLERO)
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
@@ -292,7 +283,6 @@ class _TaskView extends State<TaskView> {
                     children: [
                       SizedBox(height: 30),
 
-                      // FILTER SECTION
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
@@ -332,8 +322,6 @@ class _TaskView extends State<TaskView> {
                         ),
                       ),
                       const SizedBox(height: 30),
-
-                      // BOARD
                       _buildBoard(taskController),
                     ],
                   ),
@@ -765,7 +753,7 @@ class _TaskView extends State<TaskView> {
   void _showAddTaskDialog(BuildContext context, TaskController taskController) {
     final projectType =
         _taskController.currentProject?.consultingType ?? 'Proyecto';
-    final projectName = _taskController.currentProject?.name ?? 'Sin nombre';
+    //final projectName = _taskController.currentProject?.name ?? 'Sin nombre';
 
     showDialog(
       context: context,
@@ -778,9 +766,7 @@ class _TaskView extends State<TaskView> {
           try {
             await _taskController.addTask(newTask);
             Navigator.of(context).pop();
-          } catch (e) {
-            print('❌ Error en addTask: $e');
-          }
+          } catch (e) {}
         },
       ),
     );
@@ -897,7 +883,7 @@ class _TaskView extends State<TaskView> {
     final scaffoldContext = context;
     final projectType =
         _taskController.currentProject?.consultingType ?? 'Proyecto';
-    final projectName = _taskController.currentProject?.name ?? 'Sin nombre';
+    //final projectName = _taskController.currentProject?.name ?? 'Sin nombre';
     showDialog(
       context: context,
       builder: (context) => AddTask(
@@ -948,7 +934,7 @@ class _TaskView extends State<TaskView> {
       try {
         await _taskController.updateTaskStatus(task.id, newStatus);
       } catch (e) {
-        print('❌ Error moviendo tarea: $e');
+        //
       }
     }
   }

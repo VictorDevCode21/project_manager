@@ -45,7 +45,7 @@ class TaskController extends ChangeNotifier {
 
   Future<void> _loadTasks() async {
     if (_currentProjectId == null) {
-      print('⚠️ No hay projectId establecido');
+      //print(' No hay projectId establecido');
       return;
     }
     try {
@@ -76,7 +76,7 @@ class TaskController extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      print('❌ Error cargando tareas: $e');
+      //print('Error cargando tareas: $e');
     }
   }
 
@@ -143,7 +143,7 @@ class TaskController extends ChangeNotifier {
         }
       });
     } catch (e) {
-      print('❌ Error actualizando tarea: $e');
+      //print('Error actualizando tarea: $e');
       rethrow;
     }
   }
@@ -228,7 +228,7 @@ class TaskController extends ChangeNotifier {
       );
       notifyListeners();
     } catch (e) {
-      print('ERROR EN FIRESTORE: $e');
+      // print('ERROR EN FIRESTORE: $e');
       rethrow;
     }
   }
@@ -248,7 +248,7 @@ class TaskController extends ChangeNotifier {
       _tasks.removeWhere((task) => task.id == taskId);
       notifyListeners();
 
-      print('Tarea eliminada correctamente');
+      // print('Tarea eliminada correctamente');
     } catch (e) {
       //
       rethrow;
@@ -281,7 +281,7 @@ class TaskController extends ChangeNotifier {
 
         final currentUser = _auth.currentUser;
         if (currentUser == null) {
-          print('❌ Usuario no autenticado');
+          //print('Usuario no autenticado');
           _tasks = [];
           notifyListeners();
           return;
@@ -296,22 +296,22 @@ class TaskController extends ChangeNotifier {
             visibleTo.contains(currentUser.uid) || ownerId == currentUser.uid;
 
         if (hasAccess) {
-          print('✅ Usuario tiene acceso al proyecto');
+          // print('Usuario tiene acceso al proyecto');
           _loadTasks();
         } else {
-          print('❌ Usuario NO tiene acceso al proyecto');
+          // print(' Usuario NO tiene acceso al proyecto');
           _tasks = [];
           _showAccessDeniedMessage();
         }
       } else {
-        print('❌ Proyecto no encontrado: $projectId');
+        // print(' Proyecto no encontrado: $projectId');
         _currentProjectData = null;
         _tasks = [];
       }
 
       notifyListeners();
     } catch (e) {
-      print('❌ Error cargando proyecto: $e');
+      //print('Error cargando proyecto: $e');
       _currentProjectData = null;
       _tasks = [];
       notifyListeners();
@@ -319,14 +319,14 @@ class TaskController extends ChangeNotifier {
   }
 
   void _showAccessDeniedMessage() {
-    print('🚫 No tienes acceso a este proyecto');
+    print(' No tienes acceso a este proyecto');
   }
 
   Future<void> loadAvailableProjects() async {
     try {
       final currentUser = _auth.currentUser;
       if (currentUser == null) {
-        print('❌ Usuario no autenticado');
+        print(' Usuario no autenticado');
         _availableProjects = [];
         notifyListeners();
         return;
