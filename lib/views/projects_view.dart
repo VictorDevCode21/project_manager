@@ -1,14 +1,6 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:prolab_unimet/controllers/consulting_type_controller.dart';
-import 'package:prolab_unimet/controllers/project_controller.dart';
-import 'package:prolab_unimet/models/projects_model.dart';
-import 'package:prolab_unimet/views/components/forms/create_project.dart';
-import 'package:prolab_unimet/views/projects/manage_members_dialog.dart';
-import 'package:prolab_unimet/views/projects/project_details_dialog.dart';
-import 'package:prolab_unimet/widgets/app_dropdown.dart';
 
-/// Projects management view inside AdminLayout (View layer - MVC).
+/// Displays the projects management view inside AdminLayout.
 class ProjectsView extends StatefulWidget {
   const ProjectsView({super.key});
 
@@ -18,76 +10,8 @@ class ProjectsView extends StatefulWidget {
 
 class _ProjectsViewState extends State<ProjectsView> {
   final TextEditingController _searchController = TextEditingController();
-  final controller = ProjectController();
-
-  // UI filter state
   String _selectedStatus = 'Todos los estados';
   String _selectedType = 'Todos los tipos';
-
-  // Debounce for search box
-  Timer? _searchDebounce;
-
-  // Single instance for consulting types
-  late final ConsultingTypeController _ctController;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctController = ConsultingTypeController();
-    _searchController.addListener(_onSearchChanged);
-  }
-
-  @override
-  void dispose() {
-    _searchDebounce?.cancel();
-    _searchController.removeListener(_onSearchChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  /// Debounced text change
-  void _onSearchChanged() {
-    _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 250), () {
-      if (mounted) setState(() {});
-    });
-  }
-
-  /// Apply filters client-side for simplicity
-  List<Project> _filterProjects(List<Project> source) {
-    // 1) Status
-    final byStatus = source.where((p) {
-      if (_selectedStatus == 'Todos los estados') return true;
-      switch (_selectedStatus) {
-        case 'Planificación':
-          return p.status == ProjectStatus.planning;
-        case 'En Progreso':
-          return p.status == ProjectStatus.inProgress;
-        case 'Completado':
-          return p.status == ProjectStatus.completed;
-        case 'Archivado':
-          return p.status == ProjectStatus.archived;
-      }
-      return true;
-    });
-
-    // 2) Type
-    final byType = byStatus.where((p) {
-      if (_selectedType == 'Todos los tipos') return true;
-      return p.consultingType.trim().toLowerCase() ==
-          _selectedType.trim().toLowerCase();
-    });
-
-    // 3) Search by name or client
-    final query = _searchController.text.trim().toLowerCase();
-    final bySearch = byType.where((p) {
-      if (query.isEmpty) return true;
-      return p.name.toLowerCase().contains(query) ||
-          p.client.toLowerCase().contains(query);
-    });
-
-    return bySearch.toList();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -122,55 +46,8 @@ class _ProjectsViewState extends State<ProjectsView> {
                     ],
                   ),
                   ElevatedButton.icon(
-                    onPressed: () async {
-                      final nav = Navigator.of(context, rootNavigator: true);
-                      final messenger = ScaffoldMessenger.of(context);
-
-                      // 1) Open modal to create project
-                      final dto = await showDialog<ProjectCreateData>(
-                        context: context,
-                        barrierDismissible: false,
-                        useRootNavigator: true,
-                        builder: (_) => const CreateProjectDialog(),
-                      );
-                      if (dto == null) return;
-                      if (!mounted) return;
-
-                      // 2) Progress spinner while creating
-                      showDialog(
-                        context: context,
-                        barrierDismissible: false,
-                        useRootNavigator: true,
-                        builder: (_) =>
-                            const Center(child: CircularProgressIndicator()),
-                      );
-
-                      try {
-                        final controller = ProjectController();
-                        final projectId = await controller.createProject(
-                          name: dto.name,
-                          client: dto.client,
-                          description: dto.description,
-                          consultingType: dto.consultingType,
-                          budgetUsd: dto.budgetUsd,
-                          priority: dto.priority,
-                          startDate: dto.startDate,
-                          endDate: dto.endDate,
-                        );
-                        if (!mounted) return;
-                        if (nav.canPop()) nav.pop();
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: Text('Proyecto creado: $projectId'),
-                          ),
-                        );
-                      } catch (e) {
-                        if (!mounted) return;
-                        if (nav.canPop()) nav.pop();
-                        messenger.showSnackBar(
-                          SnackBar(content: Text('Error al crear: $e')),
-                        );
-                      }
+                    onPressed: () {
+                      // TODO: Navigate to project creation form
                     },
                     icon: const Icon(Icons.add, size: 18, color: Colors.white),
                     label: const Text(
@@ -195,7 +72,7 @@ class _ProjectsViewState extends State<ProjectsView> {
               ),
               const SizedBox(height: 30),
 
-              // ===== FILTERS =====
+              // ===== FILTER SECTION =====
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -221,13 +98,11 @@ class _ProjectsViewState extends State<ProjectsView> {
                     ),
                     const SizedBox(height: 16),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Search
+                        // Search field
                         Expanded(
                           child: TextField(
                             controller: _searchController,
-                            onChanged: (_) => setState(() {}),
                             decoration: InputDecoration(
                               prefixIcon: const Icon(Icons.search),
                               hintText:
@@ -242,90 +117,50 @@ class _ProjectsViewState extends State<ProjectsView> {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        // Status
-                        SizedBox(
-                          width: 220,
-                          height: 52,
-                          child: InputDecorator(
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                isExpanded: true,
-                                value: _selectedStatus,
-                                items:
-                                    const [
-                                      'Todos los estados',
-                                      'En Progreso',
-                                      'Planificación',
-                                      'Completado',
-                                      // 'Archivado'
-                                    ].map((e) {
-                                      return DropdownMenuItem(
-                                        value: e,
-                                        child: Text(e),
-                                      );
-                                    }).toList(),
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  setState(() => _selectedStatus = value);
-                                },
-                              ),
-                            ),
-                          ),
+
+                        // Status filter
+                        DropdownButton<String>(
+                          value: _selectedStatus,
+                          items:
+                              [
+                                    'Todos los estados',
+                                    'En Progreso',
+                                    'Planificación',
+                                    'Completado',
+                                  ]
+                                  .map(
+                                    (e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(e),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged: (value) {
+                            setState(() => _selectedStatus = value!);
+                          },
                         ),
                         const SizedBox(width: 16),
-                        // Type
-                        SizedBox(
-                          width: 260,
-                          height: 52,
-                          child: StreamBuilder<List<String>>(
-                            stream: _ctController.streamConsultingTypeNames(),
-                            builder: (context, snap) {
-                              if (snap.connectionState ==
-                                      ConnectionState.waiting &&
-                                  !snap.hasData) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              }
-                              if (snap.hasError) {
-                                return const Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    'Error cargando tipos',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                );
-                              }
-                              final base = (snap.data ?? const <String>[])
-                                  .where((e) => e.trim().isNotEmpty)
-                                  .toList();
-                              final options = ['Todos los tipos', ...base];
-                              final current = options.contains(_selectedType)
-                                  ? _selectedType
-                                  : 'Todos los tipos';
 
-                              return AppDropdown<String>(
-                                items: options,
-                                value: current,
-                                labelOf: (x) => x,
-                                hintText: 'Tipo de consultoría',
-                                onChanged: (val) {
-                                  if (val == null) return;
-                                  setState(() => _selectedType = val);
-                                },
-                                validator: (_) => null,
-                              );
-                            },
-                          ),
+                        // Type filter
+                        DropdownButton<String>(
+                          value: _selectedType,
+                          items:
+                              [
+                                    'Todos los tipos',
+                                    'Calidad Ambiental',
+                                    'Construcción',
+                                    'Tecnología',
+                                  ]
+                                  .map(
+                                    (e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(e),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged: (value) {
+                            setState(() => _selectedType = value!);
+                          },
                         ),
                       ],
                     ),
@@ -338,71 +173,48 @@ class _ProjectsViewState extends State<ProjectsView> {
               LayoutBuilder(
                 builder: (context, constraints) {
                   final isWide = constraints.maxWidth > 900;
-                  final controller = ProjectController();
-
-                  return StreamBuilder<List<Project>>(
-                    stream: controller.streamOwnedProjects(),
-                    builder: (context, snap) {
-                      if (snap.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-
-                      if (snap.hasError) {
-                        debugPrint(
-                          '[ProjectsView] stream error: ${snap.error}',
-                        );
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              'Error cargando proyectos: ${snap.error}',
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                          ),
-                        );
-                      }
-
-                      final projects = _filterProjects(snap.data ?? const []);
-                      if (projects.isEmpty) {
-                        return Container(
-                          padding: const EdgeInsets.all(24),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            'No hay proyectos para mostrar.',
-                            style: TextStyle(color: Colors.black54),
-                          ),
-                        );
-                      }
-
-                      return GridView.count(
-                        crossAxisCount: isWide ? 2 : 1,
-                        crossAxisSpacing: 20,
-                        mainAxisSpacing: 20,
-                        shrinkWrap: true,
-                        childAspectRatio: isWide ? 1.7 : 1.4,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: projects.map((p) {
-                          return _buildProjectCard(
-                            project: p,
-                            onManage: () {
-                              showDialog(
-                                context: context,
-                                barrierDismissible: true,
-                                builder: (_) => ManageMembersDialog(
-                                  projectId: p.id,
-                                  projectName: p.name,
-                                ),
-                              );
-                            },
-                          );
-                        }).toList(),
-                      );
-                    },
+                  return GridView.count(
+                    crossAxisCount: isWide ? 2 : 1,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                    shrinkWrap: true,
+                    childAspectRatio: isWide ? 1.7 : 1.4,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _buildProjectCard(
+                        title: 'Análisis de Calidad del Agua - Empresa ABC',
+                        description:
+                            'Evaluación completa de parámetros fisicoquímicos y microbiológicos del agua potable',
+                        tags: ['En Progreso', 'Calidad Ambiental'],
+                        progress: 0.65,
+                        client: 'Empresa ABC S.A.',
+                        team: '4 miembros',
+                        deadline: '14/12/2024',
+                        budget: '\$15,000',
+                      ),
+                      _buildProjectCard(
+                        title: 'Inspección de Obra Civil - Proyecto XYZ',
+                        description:
+                            'Supervisión técnica y control de calidad en construcción de edificio residencial',
+                        tags: ['Planificación', 'Construcción'],
+                        progress: 0.25,
+                        client: 'Constructora XYZ',
+                        team: '6 miembros',
+                        deadline: '19/01/2025',
+                        budget: '\$25,000',
+                      ),
+                      _buildProjectCard(
+                        title: 'Inspección de Obra Civil - Proyecto XYZ',
+                        description:
+                            'Supervisión técnica y control de calidad en construcción de edificio residencial',
+                        tags: ['Planificación', 'Construcción'],
+                        progress: 0.25,
+                        client: 'Constructora XYZ',
+                        team: '6 miembros',
+                        deadline: '19/01/2025',
+                        budget: '\$25,000',
+                      ),
+                    ],
                   );
                 },
               ),
@@ -413,36 +225,17 @@ class _ProjectsViewState extends State<ProjectsView> {
     );
   }
 
-  /// Single project card. Receives the full `Project` to avoid dangling vars.
+  /// Builds a single project card with consistent design.
   Widget _buildProjectCard({
-    required Project project,
-    required VoidCallback onManage,
+    required String title,
+    required String description,
+    required List<String> tags,
+    required double progress,
+    required String client,
+    required String team,
+    required String deadline,
+    required String budget,
   }) {
-    // Build tags
-    final tags = <String>[
-      switch (project.status) {
-        ProjectStatus.planning => 'Planificación',
-        ProjectStatus.inProgress => 'En Progreso',
-        ProjectStatus.completed => 'Completado',
-        ProjectStatus.archived => 'Archivado',
-      },
-      if (project.consultingType.isNotEmpty) project.consultingType,
-    ];
-
-    // Derived UI strings
-    final title = project.name.isNotEmpty
-        ? project.name
-        : 'Proyecto sin título';
-    final description = project.description.isNotEmpty
-        ? project.description
-        : 'Sin descripción';
-    final client = project.client.isNotEmpty ? project.client : '—';
-    final team = '0 miembros'; // TODO: connect to members count if needed
-    final deadline =
-        '${project.endDate.day.toString().padLeft(2, '0')}/${project.endDate.month.toString().padLeft(2, '0')}/${project.endDate.year}';
-    final budget = '\$${project.budgetUsd.toStringAsFixed(0)}';
-    final progress = 0.0; // Placeholder for now
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -459,7 +252,7 @@ class _ProjectsViewState extends State<ProjectsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title & description
+          // Title and description
           Text(
             title,
             style: const TextStyle(
@@ -472,8 +265,6 @@ class _ProjectsViewState extends State<ProjectsView> {
           Text(
             description,
             style: const TextStyle(color: Colors.black54, fontSize: 13),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 10),
 
@@ -481,7 +272,7 @@ class _ProjectsViewState extends State<ProjectsView> {
           Wrap(spacing: 6, children: tags.map((t) => _buildTag(t)).toList()),
           const SizedBox(height: 12),
 
-          // Progress
+          // Progress bar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -501,7 +292,7 @@ class _ProjectsViewState extends State<ProjectsView> {
           ),
           const SizedBox(height: 16),
 
-          // Info rows
+          // Info section
           _buildInfoRow('Cliente:', client),
           _buildInfoRow('Equipo:', team),
           _buildInfoRow('Entrega:', deadline),
@@ -513,20 +304,14 @@ class _ProjectsViewState extends State<ProjectsView> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      barrierDismissible: true,
-                      builder: (_) => ProjectDetailsDialog(project: project),
-                    );
-                  },
+                  onPressed: () {},
                   child: const Text('Ver Detalles'),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: onManage,
+                  onPressed: () {},
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xff253f8d),
                   ),
@@ -543,20 +328,20 @@ class _ProjectsViewState extends State<ProjectsView> {
     );
   }
 
-  /// Tag chip
+  /// Helper for rendering project tags.
   Widget _buildTag(String label) {
     Color bg;
     switch (label) {
       case 'En Progreso':
         bg = const Color(0xffe3f2fd);
         break;
+      case 'Calidad Ambiental':
+        bg = const Color(0xffe8f5e9);
+        break;
       case 'Planificación':
         bg = const Color(0xfffff3e0);
         break;
-      case 'Completado':
-        bg = const Color(0xffe8f5e9);
-        break;
-      case 'Archivado':
+      case 'Construcción':
         bg = const Color(0xffffebee);
         break;
       default:
@@ -576,7 +361,7 @@ class _ProjectsViewState extends State<ProjectsView> {
     );
   }
 
-  /// Key-value row
+  /// Helper for displaying labeled rows.
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),

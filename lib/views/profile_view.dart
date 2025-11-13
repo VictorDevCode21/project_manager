@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:prolab_unimet/views/layouts/admin_layout.dart';
 import 'package:prolab_unimet/widgets/custom_text_field_widget.dart';
 import 'package:prolab_unimet/controllers/profile_controller.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class ProfileView extends StatelessWidget {
@@ -51,7 +53,7 @@ class ComeBackButton extends StatelessWidget {
           textAlign: TextAlign.left,
           style: TextStyle(
             fontSize: 28,
-            color: Colors.indigo,
+            color: Theme.of(context).colorScheme.primary,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -82,20 +84,24 @@ class _ProfileManagerState extends State<ProfileManager> {
         width: 900,
         padding: EdgeInsets.all(20),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.cyanAccent),
+          border: Border.all(color: Theme.of(context).dividerColor),
           borderRadius: BorderRadius.circular(10),
+          color: Theme.of(context).cardColor,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.person_2_outlined, color: Colors.indigo),
+                Icon(
+                  Icons.person_2_outlined,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 Text(
                   'Informacion personal',
                   style: TextStyle(
                     fontSize: 18,
-                    color: Colors.indigo,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -144,7 +150,13 @@ class _ProfileManagerState extends State<ProfileManager> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Nombre completo'),
+        Text(
+          'Nombre completo',
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyMedium!.color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         CustomTextField(
           labelText: 'nombre',
           hintText: 'Tu nombre completo',
@@ -153,7 +165,13 @@ class _ProfileManagerState extends State<ProfileManager> {
           validator: controller.validarNombre,
         ),
         SizedBox(height: 10),
-        Text('Correo electronico'),
+        Text(
+          'Correo electronico',
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyMedium!.color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         CustomTextField(
           labelText: 'correo',
           hintText: 'tu@email.com',
@@ -162,7 +180,13 @@ class _ProfileManagerState extends State<ProfileManager> {
           validator: controller.validarCorreo,
         ),
         SizedBox(height: 10),
-        Text('Telefono'),
+        Text(
+          'Telefono',
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyMedium!.color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         CustomTextField(
           labelText: 'telefono',
           hintText: '01234567890',
@@ -178,7 +202,13 @@ class _ProfileManagerState extends State<ProfileManager> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Contraseña'),
+        Text(
+          'Contraseña',
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyMedium!.color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         CustomTextField(
           labelText: 'nombre',
           hintText: '123456789',
@@ -187,7 +217,13 @@ class _ProfileManagerState extends State<ProfileManager> {
           validator: controller.validarPassword,
         ),
         SizedBox(height: 10),
-        Text('Cedula'),
+        Text(
+          'Cedula',
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyMedium!.color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         CustomTextField(
           labelText: 'cedula',
           hintText: 'Numero de cedula',
@@ -196,7 +232,13 @@ class _ProfileManagerState extends State<ProfileManager> {
           validator: controller.validarCedula,
         ),
         SizedBox(height: 10),
-        Text('Fecha de nacimiento'),
+        Text(
+          'Fecha de nacimiento',
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyMedium!.color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         TextFormField(
           readOnly: true,
           onTap: () async {
@@ -230,12 +272,17 @@ class _ProfileManagerState extends State<ProfileManager> {
     return Container(
       padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.cyan)),
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Descripción personal'),
+          Text(
+            'Descripción personal',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
           TextField(controller: controller.descController, maxLines: 10),
         ],
       ),
@@ -270,13 +317,16 @@ class _ProfileManagerState extends State<ProfileManager> {
           }
         });
       },
-      icon: Icon(Icons.save, color: Colors.white),
+      icon: Icon(Icons.save, color: Theme.of(context).colorScheme.onPrimary),
       label: Text(
         'Guardar cambios',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onPrimary,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       style: TextButton.styleFrom(
-        backgroundColor: Colors.indigo,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 16),
       ),
@@ -300,13 +350,16 @@ class NavButton1 extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton.icon(
       onPressed: () => context.go(route),
-      icon: Icon(icon, color: Colors.black),
+      icon: Icon(icon, color: Theme.of(context).textTheme.bodyMedium!.color),
       label: Text(
         label,
-        style: TextStyle(color: Colors.black, fontWeight: FontWeight.normal),
+        style: TextStyle(
+          color: Theme.of(context).textTheme.bodyMedium!.color,
+          fontWeight: FontWeight.normal,
+        ),
       ),
       style: TextButton.styleFrom(
-        backgroundColor: Colors.white24,
+        backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 16),
       ),

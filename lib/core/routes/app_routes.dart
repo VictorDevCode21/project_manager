@@ -7,9 +7,11 @@ import 'package:prolab_unimet/views/login_view.dart';
 import 'package:prolab_unimet/views/profile_view.dart';
 import 'package:prolab_unimet/views/projects_view.dart';
 import 'package:prolab_unimet/views/register_view.dart';
+import 'package:prolab_unimet/views/settings_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:prolab_unimet/views/resources_view.dart';
 import 'package:provider/provider.dart';
+import 'package:prolab_unimet/views/homepage_view.dart';
 
 // Define user roles for authorization
 const userRoles = ['USER', 'ADMIN', 'COORDINATOR'];
@@ -44,6 +46,11 @@ final appRouter = GoRouter(
       builder: (context, state, child) => AdminLayout(child: child),
       routes: [
         GoRoute(
+          path: '/admin-homepage',
+          builder: (context, state) => const HomePageView(),
+          redirect: (context, state) => _requireAuth(context, userRoles),
+        ),
+        GoRoute(
           path: '/admin-dashboard',
           builder: (context, state) => const DashboardView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
@@ -55,20 +62,35 @@ final appRouter = GoRouter(
         ),
 
         // 2. ADD NEW ROUTE HERE
-        // GoRoute(
-        //   path: '/admin-settings',
-        //   // builder: (context, state) => const SettingsView(),
-        //   redirect: (context, state) => _requireAuth(context, userRoles),
-        // ),
         GoRoute(
           path: '/admin-profile',
           builder: (context, state) => const ProfileView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
+
+        GoRoute(
+          path: '/admin-settings',
+          builder: (context, state) => const SettingsView(),
+          redirect: (context, state) => _requireAuth(context, userRoles),
+        ),
+        GoRoute(
+          path: '/admin-help',
+          //builder: (context, state) => const HelpModuleView(),
+          redirect: (context, state) => _requireAuth(context, userRoles),
+        ),
+
         GoRoute(
           path: '/admin-resources',
           builder: (context, state) => const ResourcesView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
+          routes: <RouteBase>[
+            GoRoute(
+              path: 'assign',
+              builder: (BuildContext context, GoRouterState state) {
+                return const AssignProject();
+              },
+            ),
+          ],
         ),
       ],
     ),
