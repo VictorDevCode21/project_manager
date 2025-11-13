@@ -5,9 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 /// Manages user registration logic and form validation.
-/// Note: This controller is SILENT on client-side invalid form.
-/// It returns false without showing SnackBars when the form is invalid,
-/// so the View can keep the user on the screen and show red errors only.
 class RegisterController {
   // Text controllers
   final nameController = TextEditingController();
@@ -29,6 +26,7 @@ class RegisterController {
   final formKey = GlobalKey<FormState>();
 
   // ===== Validations =====
+  // ... (All your validation functions are perfect, no changes needed)
   String? validateName(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Por favor, ingresa tu nombre';
@@ -63,73 +61,46 @@ class RegisterController {
     return null;
   }
 
-  // Strict: requires exactly 11 digits starting with 0 and a valid carrier prefix.
   String? validatePhone(String? value) {
-    // Basic presence check
     if (value == null || value.trim().isEmpty) {
       return 'Ingresa tu número de teléfono';
     }
-
-    // Match Venezuelan mobile format: 0 + (424|412|414|416|422) + 7 digits
     final regex = RegExp(r'^0(424|412|414|416|422)\d{7}$');
-
     if (!regex.hasMatch(value.trim())) {
       return 'Número inválido. Formato: 0(414|424|412|422|416 ) + 7 dígitos';
     }
-
     return null; // valid
   }
 
-  // Strong password validator:
-  // - At least 10 chars
-  // - At least 1 uppercase, 1 lowercase, 1 digit, 1 symbol
-  // - No whitespace
-  // - Not equal to personal fields (email, name, id) when provided
-  // - No obvious repeated same char (e.g., "aaaaaaaaaa")
   String? strongPasswordValidator(
     String? value, {
     String? email,
     String? name,
     String? personId,
   }) {
-    // Presence
+    // ... (implementation unchanged)
     if (value == null || value.isEmpty) {
       return 'Ingresa una contraseña';
     }
-
     final pwd = value;
-
-    // No whitespace allowed
     if (RegExp(r'\s').hasMatch(pwd)) {
       return 'La contraseña no debe contener espacios';
     }
-
-    // Length
     if (pwd.length < 10) {
       return 'Debe tener al menos 10 caracteres';
     }
-
-    // Character classes
     final hasUpper = RegExp(r'[A-Z]').hasMatch(pwd);
     final hasLower = RegExp(r'[a-z]').hasMatch(pwd);
     final hasDigit = RegExp(r'\d').hasMatch(pwd);
-    final hasSymbol = RegExp(
-      r'[^\w]',
-    ).hasMatch(pwd); // anything not letter/digit/_
-
+    final hasSymbol = RegExp(r'[^\w]').hasMatch(pwd);
     if (!(hasUpper && hasLower && hasDigit && hasSymbol)) {
       return 'Debe incluir mayúsculas, minúsculas, números y símbolos';
     }
-
-    // Avoid trivial repeated single-char like "!!!!!!!!!!" or "aaaaaaaaaa"
     if (RegExp(r'^(.)\1{5,}$').hasMatch(pwd)) {
       return 'Demasiado simple: caracteres repetidos';
     }
-
-    // Avoid matching personal data (basic)
     String normalize(String s) =>
         s.toLowerCase().replaceAll(RegExp(r'\s+'), '');
-
     final pwdNorm = normalize(pwd);
     if (email != null && email.isNotEmpty) {
       final emailUser = normalize(email.split('@').first);
@@ -145,13 +116,10 @@ class RegisterController {
         pwdNorm.contains(normalize(personId))) {
       return 'No uses tu cédula en la contraseña';
     }
-
-    // Looks good
     return null;
   }
 
   String? validatePassword(String? value) {
-    // Read other fields from internal controllers so you don't need params in the widget
     return strongPasswordValidator(
       value,
       email: emailController.text,
@@ -177,13 +145,11 @@ class RegisterController {
     return null;
   }
 
-  /// Returns true if the full form is valid including role and date.
   bool get isFormCompletelyValid {
     final fieldsValid = formKey.currentState?.validate() ?? false;
     return fieldsValid && validateRole() == null && validateDate() == null;
   }
 
-  /// Normalizes inputs AFTER validation passed.
   void _normalizeInputs() {
     emailController.text = emailController.text.trim().toLowerCase();
     phoneController.text = phoneController.text.trim();
@@ -192,25 +158,15 @@ class RegisterController {
   }
 
   /// Registers the user. Returns true on success, false otherwise.
-  /// - If the form is invalid (client-side), returns false WITHOUT SnackBars.
-  /// - On success, shows a success SnackBar.
-  /// - On backend error, shows the error SnackBar and returns false.
   Future<bool> registerUser(BuildContext context) async {
-    // Trigger validators on all fields in the Form
+    // ... (Validation logic unchanged)
     final fieldsValid = formKey.currentState?.validate() ?? false;
-
-    // If any client-side invalid, stay silent and let red errors be shown by the fields
     if (!fieldsValid || validateRole() != null || validateDate() != null) {
       return false;
     }
-
-    // Optionally save state
     formKey.currentState?.save();
-
-    // Normalize inputs before hitting the network
     _normalizeInputs();
 
-    // Store these values *before* the try-catch, as they are needed in both
     final email = emailController.text;
     final name = nameController.text.trim();
     final personId = personIdController.text.trim();
@@ -228,12 +184,12 @@ class RegisterController {
       );
 
       if (user != null) {
-        // === 🚀 NEW LOGIC START ===
-        // Registration was successful. Now, check for pending invites.
-        // This is "fire-and-forget" - we don't 'await' it because
-        // we don't want to block the user's login if this fails.
-        _checkForPendingInvites(email, user.uid);
-        // === 🚀 NEW LOGIC END ===
+        // === 🚀 MODIFIED LOGIC START ===
+        // Registration was successful. Now, check for pending invites
+        // in the root /pendingInvites collection.
+        // This is "fire-and-forget".
+        _processPendingInvites(email, user.uid); // <-- Renamed function
+        // === 🚀 MODIFIED LOGIC END ===
 
         if (!context.mounted) return true;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -242,7 +198,6 @@ class RegisterController {
         return true;
       }
 
-      // Unexpected null user: treat as failure without extra noise
       return false;
     } catch (e) {
       if (context.mounted) {
@@ -254,26 +209,23 @@ class RegisterController {
     }
   }
 
-  // === 🚀 NEW METHOD ===
-  ///
-  /// Checks for pending invitations for the newly registered user.
-  /// This runs *after* registration is successful.
-  ///
-  Future<void> _checkForPendingInvites(
+  // === 🚀 RENAMED AND MODIFIED FUNCTION ===
+  /// Checks for pending invitations for the newly registered user
+  /// by querying the /pendingInvites (root) collection.
+  Future<void> _processPendingInvites(
     String newUserEmail,
     String newUserId,
   ) async {
     try {
-      // 1. Find all invites across all projects matching the user's email
+      // 1. Find all invites in the ROOT /pendingInvites collection
+      // This query is now allowed by our security rules.
       final invitesQuery = _db
-          .collectionGroup('invites')
-          .where('email', isEqualTo: newUserEmail)
-          .where('status', isEqualTo: 'PENDING');
+          .collection('pendingInvites') // <-- CHANGED
+          .where('email', isEqualTo: newUserEmail);
 
       final invitesSnapshot = await invitesQuery.get();
 
       if (invitesSnapshot.docs.isEmpty) {
-        // No pending invites, nothing to do.
         debugPrint("No pending invites found for $newUserEmail");
         return;
       }
@@ -285,38 +237,50 @@ class RegisterController {
       // 2. We have invites. Prepare a batch write.
       final WriteBatch batch = _db.batch();
 
-      for (final inviteDoc in invitesSnapshot.docs) {
-        final inviteData = inviteDoc.data();
+      for (final pendingDoc in invitesSnapshot.docs) {
+        final inviteData = pendingDoc.data();
 
-        // 3. Get info for the notification
-        final projectId = inviteDoc.reference.parent.parent!.id;
-        final projectName = inviteData['projectName'] ?? 'un proyecto';
-        final inviterName = inviteData['inviterName'] ?? 'un administrador';
+        // 3. Get info for the notification (from the de-normalized doc)
+        final projectId =
+            inviteData['projectId'] as String? ?? 'unknown_project';
+        final projectName =
+            inviteData['projectName'] as String? ?? 'un proyecto';
+        final inviterName =
+            inviteData['inviterName'] as String? ?? 'un administrador';
+        final originalInvitePath = inviteData['originalInviteRef'] as String?;
 
         // 4. Create the new notification document
+        // This is allowed by: (authed() && request.auth.uid == request.resource.data.recipientId)
         final notificationRef = _db.collection('notifications').doc();
         batch.set(notificationRef, {
-          'recipientId': newUserId,
+          'recipientId': newUserId, // The new user
           'title': '¡Invitación al proyecto \'$projectName\'!',
           'body': 'Has sido invitado por $inviterName.',
           'type': 'project_invitation',
           'relatedId': projectId,
           'createdAt': FieldValue.serverTimestamp(),
           'isRead': false,
+          // NEW: Store metadata to link to the *real* invite
+          // This will be used when the user clicks "Accept"
+          'metadata': {
+            'originalInvitePath': originalInvitePath,
+            'pendingInviteId': pendingDoc.id,
+          },
         });
 
-        // 5. Update the original invite doc with the new user's ID
-        batch.update(inviteDoc.reference, {
-          'recipientId': newUserId,
-          'status': 'NOTIFIED', // Mark as processed
-        });
+        // 5. [CHANGED] We do NOT update the original invite.
+        // We simply delete the "lookup" document from /pendingInvites.
+        // This is allowed by the new rule: (authed() && token.email == resource.data.email)
+        batch.delete(pendingDoc.reference);
       }
 
       // 6. Commit all changes to Firestore
       await batch.commit();
+      debugPrint(
+        "Successfully processed and deleted ${invitesSnapshot.docs.length} pending invites.",
+      );
     } catch (e) {
-      // This is a non-critical operation. Log the error but don't
-      // interrupt the user's flow.
+      // Log error but don't block the user
       debugPrint("Error processing pending invites for $newUserId: $e");
     }
   }
