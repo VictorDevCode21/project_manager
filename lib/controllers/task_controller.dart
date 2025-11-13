@@ -281,7 +281,7 @@ class TaskController extends ChangeNotifier {
 
         final currentUser = _auth.currentUser;
         if (currentUser == null) {
-          //print('Usuario no autenticado');
+          print('Usuario no autenticado');
           _tasks = [];
           notifyListeners();
           return;
@@ -296,15 +296,16 @@ class TaskController extends ChangeNotifier {
             visibleTo.contains(currentUser.uid) || ownerId == currentUser.uid;
 
         if (hasAccess) {
-          // print('Usuario tiene acceso al proyecto');
+          print('Usuario tiene acceso al proyecto');
+          await _loadColumns();
           _loadTasks();
         } else {
-          // print(' Usuario NO tiene acceso al proyecto');
+          print(' Usuario NO tiene acceso al proyecto');
           _tasks = [];
           _showAccessDeniedMessage();
         }
       } else {
-        // print(' Proyecto no encontrado: $projectId');
+        print(' Proyecto no encontrado: $projectId');
         _currentProjectData = null;
         _tasks = [];
       }
@@ -418,11 +419,13 @@ class TaskController extends ChangeNotifier {
 
   void addColumn(TaskColumn column) {
     _columns.add(column);
+    _saveColumns();
     notifyListeners();
   }
 
   void removeColumn(TaskColumn column) {
     _columns.remove(column);
+    _saveColumns();
     notifyListeners();
   }
 
@@ -440,5 +443,89 @@ class TaskController extends ChangeNotifier {
     }
 
     return [];
+  }
+
+  Future<void> _loadColumns() async {
+    if (_currentProjectId == null) return;
+
+    try {
+      final columnsDoc = await _firestore
+          .collection('projects')
+          .doc(_currentProjectId!)
+          .collection('metadata')
+          .doc('columns')
+          .get();
+
+      if (columnsDoc.exists) {
+        final data = columnsDoc.data();
+        final columnsData = data?['columns'] as List?;
+
+        if (columnsData != null) {
+          _columns = columnsData.map((col) {
+            return TaskColumn(
+              name: col['name'] ?? '',
+              color: _parseColor(col['color']),
+            );
+          }).toList();
+          print('Columnas cargadas: ${_columns.length}');
+        }
+      } else {
+        _initializeDefaultColumns();
+        _saveColumns();
+      }
+
+      notifyListeners();
+    } catch (e) {
+      print('Error cargando columnas: $e');
+      _initializeDefaultColumns();
+    }
+  }
+
+  Future<void> _saveColumns() async {
+    if (_currentProjectId == null) return;
+
+    try {
+      final columnsData = _columns.map((col) {
+        return {'name': col.name, 'color': _colorToString(col.color)};
+      }).toList();
+
+      await _firestore
+          .collection('projects')
+          .doc(_currentProjectId!)
+          .collection('metadata')
+          .doc('columns')
+          .set({
+            'columns': columnsData,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+      print('Columnas guardadas: ${_columns.length}');
+    } catch (e) {
+      print('Error guardando columnas: $e');
+    }
+  }
+
+  void _initializeDefaultColumns() {
+    _columns = [
+      TaskColumn(name: 'Pendiente', color: Colors.grey),
+      TaskColumn(name: 'En Progreso', color: Colors.blue),
+      TaskColumn(name: 'En Revisión', color: Colors.orange),
+      TaskColumn(name: 'Completado', color: Colors.green),
+    ];
+  }
+
+  Color _parseColor(dynamic colorData) {
+    if (colorData is int) {
+      return Color(colorData);
+    } else if (colorData is String) {
+      final buffer = StringBuffer();
+      buffer.write(colorData.replaceFirst('#', ''));
+      return Color(int.parse(buffer.toString(), radix: 16));
+    }
+    return Colors.grey;
+  }
+
+  String _colorToString(Color color) {
+    return '#${color.value.toRadixString(16).padLeft(8, '0')}';
   }
 }
