@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:prolab_unimet/controllers/task_controller.dart';
 import 'package:prolab_unimet/core/routes/app_routes.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
 import 'package:prolab_unimet/providers/notification_provider.dart';
@@ -36,6 +37,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => TaskController()),
 
         // === 🚀 THIS IS THE FIX ===
         // The method name in 'update' must match the method in your NotificationProvider.
