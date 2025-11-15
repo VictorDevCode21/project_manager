@@ -64,38 +64,57 @@ class NotificationController {
     }
   }
 
+  // === 🚀 FUNCTION MODIFIED ===
   ///
   /// Handles the logic for accepting a project invitation.
-  /// This is an atomic batch write.
+  /// This is an atomic batch write that does 4 things.
   ///
   Future<void> acceptProjectInvitation({
     required String notificationId,
-    required String projectId,
+    required String
+    originalInvitePath, // Passed from Provider (e.g. "projects/abc/invites/xyz")
+    required String projectId, // Passed from Provider (e.g. "abc")
     required String userId,
-    required String userName, // The View must provide the user's name
+    required String userName,
+    required String userEmail, // Passed from Provider
   }) async {
     try {
       final WriteBatch batch = _firestore.batch();
 
-      // 1. Add the user to the project's 'members' subcollection
+      // 1. Update the *original invitation* doc
+      // (This is allowed by 'isRecipientWrite()')
+      final inviteDocRef = _firestore.doc(
+        originalInvitePath,
+      ); // Use the full path
+      batch.update(inviteDocRef, {
+        'status': 'ACCEPTED',
+        'acceptedAt': FieldValue.serverTimestamp(),
+        'recipientId': userId, // Ensure the UID is set
+      });
+
+      // 2. Add the user to the project's 'members' subcollection
+      // (This is allowed by 'authed() && request.auth.uid == uid')
       final memberDocRef = _projectsRef
           .doc(projectId)
           .collection('members')
           .doc(userId);
       batch.set(memberDocRef, {
-        'name': userName,
-        'role': 'member', // Default role
-        'joinedAt': Timestamp.now(),
+        'uid': userId,
+        'email': userEmail,
+        'displayName': userName,
+        'role': 'USER', // Default role for new members
+        'addedAt': FieldValue.serverTimestamp(),
       });
 
-      // 2. Delete the invitation from the 'invitees' subcollection (optional but clean)
-      final inviteDocRef = _projectsRef
-          .doc(projectId)
-          .collection('invitees')
-          .doc(userId);
-      batch.delete(inviteDocRef);
+      // 3. Update the main project doc to add user to 'visibleTo'
+      // (This is allowed by 'isUser() && isOnlyAddingSelfToVisibleTo()')
+      final projectDocRef = _projectsRef.doc(projectId);
+      batch.update(projectDocRef, {
+        'visibleTo': FieldValue.arrayUnion([userId]),
+      });
 
-      // 3. Delete the notification
+      // 4. Delete the notification
+      // (This is allowed by 'authed() && request.auth.uid == resource.data.recipientId')
       final notificationDocRef = _notificationsRef.doc(notificationId);
       batch.delete(notificationDocRef);
 

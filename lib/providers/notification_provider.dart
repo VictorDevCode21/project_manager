@@ -116,20 +116,55 @@ class NotificationProvider extends ChangeNotifier {
     }
   }
 
+  // === 🚀 FUNCTION MODIFIED ===
   Future<void> acceptInvitation(NotificationModel notification) async {
-    // Use the stored _authProvider
     final auth = _authProvider;
-    if (auth == null || auth.uid == null) return; // Safety check
+    if (auth == null || auth.uid == null || auth.email == null) {
+      throw Exception('Usuario no autenticado o email no disponible.');
+    }
+
+    // --- 1. Extract data from the notification ---
+
+    // The projectId is stored in relatedId
+    final String? projectId = notification.relatedId;
+
+    // The path to the *original invite* is in the metadata
+    final metadata = notification.metadata;
+    final String? originalInvitePath =
+        metadata?['originalInvitePath'] as String?;
+
+    // --- 2. Validate the data (This fixes the TypeError) ---
+    if (projectId == null || projectId.isEmpty) {
+      print("Error accepting invitation: projectId (relatedId) is null.");
+      throw Exception("Error: ID de proyecto inválido en la notificación.");
+    }
+
+    if (originalInvitePath == null || originalInvitePath.isEmpty) {
+      print(
+        "Error accepting invitation: originalInvitePath is null in metadata.",
+      );
+      throw Exception("Error: Ruta de invitación inválida en la notificación.");
+    }
 
     try {
+      // --- 3. Pass ALL required data to the controller ---
+      // We now pass both the path and the projectId,
+      // plus the user's email which is needed for the members doc.
       await _controller.acceptProjectInvitation(
         notificationId: notification.id,
-        projectId: notification.relatedId,
-        userId: auth.uid!, // We know this is not null
-        userName: auth.name ?? 'Nuevo Miembro', // Use 'name' getter
+        originalInvitePath:
+            originalInvitePath, // e.g., "projects/abc/invites/xyz"
+        projectId: projectId, // e.g., "abc"
+        userId: auth.uid!,
+        userName: auth.name ?? 'Nuevo Miembro',
+        userEmail: auth.email!, // Pass the user's email
       );
+
+      print("Invitation accepted successfully."); // Good to have a success log
     } catch (e) {
       print("Error accepting invitation: $e");
+      // Re-throw so the UI can show an error
+      throw Exception('Error al aceptar la invitación.');
     }
   }
 
