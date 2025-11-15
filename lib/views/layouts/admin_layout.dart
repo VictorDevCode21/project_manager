@@ -536,9 +536,26 @@ class _NotificationItemCard extends StatelessWidget {
                 children: [
                   // Accept Button
                   ElevatedButton(
-                    onPressed: () {
-                      provider.acceptInvitation(notification);
-                      Navigator.of(context).pop();
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final bool success = await provider.acceptInvitation(
+                        notification,
+                      );
+
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                      if (!context.mounted) return;
+
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            success
+                                ? 'Has aceptado la invitación al proyecto.'
+                                : 'No se pudo aceptar la invitación. Inténtalo de nuevo.',
+                          ),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,

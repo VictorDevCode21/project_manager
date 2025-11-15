@@ -532,7 +532,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
         ),
         const SizedBox(height: 6),
         DropdownButtonFormField<ProjectPriority>(
-          value: _priority,
+          initialValue: _priority,
           items: const [
             DropdownMenuItem(value: ProjectPriority.low, child: Text('Baja')),
             DropdownMenuItem(

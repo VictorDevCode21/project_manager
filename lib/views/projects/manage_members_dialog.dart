@@ -275,7 +275,7 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                       return const SizedBox.shrink();
                     }
 
-                    final double _invitesListHeight =
+                    final double invitesListHeight =
                         (MediaQuery.of(context).size.height * 0.28).clamp(
                           220.0,
                           360.0,
@@ -292,7 +292,7 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
 
                         // Fixed-height, scrollable list to avoid overflow inside SingleChildScrollView
                         SizedBox(
-                          height: _invitesListHeight,
+                          height: invitesListHeight,
                           child: ListView.separated(
                             // Do not use shrinkWrap here; let the SizedBox constraint drive it
                             itemCount: invites.length,
@@ -366,14 +366,14 @@ class _ManageMembersDialogState extends State<ManageMembersDialog> {
                       );
                     }
 
-                    final double _membersListHeight =
+                    final double membersListHeight =
                         (MediaQuery.of(context).size.height * 0.30).clamp(
                           220.0,
                           420.0,
                         ); // 30% viewport, clamped
 
                     return SizedBox(
-                      height: _membersListHeight,
+                      height: membersListHeight,
                       child: ListView.separated(
                         // Do not use shrinkWrap; the SizedBox gives bounded height
                         physics: const AlwaysScrollableScrollPhysics(),
