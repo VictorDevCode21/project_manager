@@ -1,6 +1,3 @@
-// resources_view.dart
-
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,12 +6,227 @@ import 'package:prolab_unimet/models/resources_model.dart';
 
 final ResourcesController _controller = ResourcesController();
 
-class AssignProject extends StatelessWidget {
+class AssignProject extends StatefulWidget {
   const AssignProject({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      Scaffold(appBar: AppBar(title: const Text('Asignar Recursos')));
+  State<AssignProject> createState() => _AssignProjectState();
+}
+
+class _AssignProjectState extends State<AssignProject> {
+  ResourcesController controller = ResourcesController();
+  final _formKey = GlobalKey<FormState>();
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Asignar Recursos',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
+          Text(
+            'Asignar personal y equipos a proyectos',
+            style: TextStyle(fontSize: 12),
+          ),
+          SizedBox(height: 10),
+        ],
+      ),
+    ),
+    body: SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.green),
+              borderRadius: BorderRadius.all(Radius.circular(8)),
+            ),
+            padding: EdgeInsets.all(15),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Información de Asignación',
+                    style: TextStyle(
+                      fontSize: 17.5,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.indigo,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text('Seleccionar proyecto y configurar la asignación'),
+                  SizedBox(height: 7),
+                  Text('Proyecto *'),
+                  FutureBuilder<List<String>>(
+                    future: controller.nombreProyectos(),
+                    builder: (context, snap) {
+                      if (!snap.hasData) {
+                        return DropdownButtonFormField<String>(
+                          decoration: InputDecoration(
+                            hintText: 'No se han cargado los datos',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onChanged: null,
+                          items: [],
+                        );
+                      }
+                      List<String> nombres = snap.data!;
+                      List<DropdownMenuItem<String>> items = nombres
+                          .map<DropdownMenuItem<String>>((String nombre) {
+                            return DropdownMenuItem<String>(
+                              value: nombre,
+                              child: Text(nombre),
+                            );
+                          })
+                          .toList();
+                      return DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          hintText: 'Seleccionar Proyecto',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        value: controller.proyecto,
+                        items: items,
+                        onChanged: (String? nuevovalor) {
+                          setState(() {
+                            controller.proyecto = nuevovalor;
+                          });
+                        },
+                      );
+                    },
+                  ),
+                  Text('Prioridad *'),
+                  DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      hintText: 'Condición del recurso',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'Alta', child: Text('Alta')),
+                      DropdownMenuItem(value: 'Media', child: Text('Media')),
+                      DropdownMenuItem(value: 'Baja', child: Text('Baja')),
+                    ],
+                    value: controller.priority,
+                    onChanged: (value) =>
+                        setState(() => controller.priority = value),
+                    validator: (_) => controller.validatePriority(),
+                  ),
+                  Text('Recurso *'),
+                  FutureBuilder<List<String>>(
+                    future: controller.nombreRecursos(),
+                    builder: (context, snap) {
+                      if (!snap.hasData) {
+                        return DropdownButtonFormField<String>(
+                          decoration: InputDecoration(
+                            hintText: 'No se han cargado los datos',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onChanged: null,
+                          items: [],
+                        );
+                      }
+
+                      List<String> nombres = snap.data!;
+
+                      List<DropdownMenuItem<String>> items = nombres
+                          .map<DropdownMenuItem<String>>((String nombre) {
+                            return DropdownMenuItem<String>(
+                              value: nombre,
+                              child: Text(nombre),
+                            );
+                          })
+                          .toList();
+
+                      return DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          hintText: 'Seleccionar Recurso',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        value: controller.resource,
+                        items: items,
+
+                        onChanged: (String? nuevovalor) {
+                          setState(() {
+                            controller.resource = nuevovalor;
+                          });
+                        },
+                      );
+                    },
+                  ),
+                  Text('Descripción de la asignación'),
+                  CustomTextField(
+                    hintText:
+                        'Describe el proposito y alcance de esta asignación...',
+                    controller: controller.descripcionassign,
+                  ),
+                  Text('Horas asignadas'),
+                  CustomTextField(
+                    hintText: 'Ejemplo: 8',
+                    controller: controller.usage,
+                    validator: controller.validateTarif,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20.0),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (_formKey.currentState!.validate()) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Asignando recurso...')),
+                      );
+
+                      if (controller.resource != null &&
+                          controller.proyecto != null) {
+                        controller.assignProject(
+                          controller.proyecto,
+                          controller.resource,
+                          controller.usage.text,
+                          context,
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff253f8d),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 30,
+                      vertical: 15,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Asignar a proyecto',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class CustomTextField extends StatelessWidget {
@@ -269,8 +481,6 @@ class ResourcesBar extends StatelessWidget {
                 if (snapshot.connectionState != ConnectionState.done) {
                   return const SizedBox.shrink();
                 }
-
-                final role = snapshot.data ?? 'USER';
 
                 return ElevatedButton.icon(
                   onPressed: () => _showAddResourceModal(context),
@@ -631,18 +841,16 @@ class ResourceList extends StatelessWidget {
     );
   }
 
-  Widget _buildHResourceCard(HumanResources resource, VoidCallback onDelete) {
+  Widget _buildHResourceCard(
+    HumanResources resource,
+    VoidCallback onDelete,
+    BuildContext context,
+  ) {
     double progress = (resource.totalUsage > 0)
         ? (resource.usage / resource.totalUsage).clamp(0.0, 1.0)
         : 0.0;
 
-    // Simula los proyectos actuales (asumiendo que 'projects' no es una lista en tu modelo HumanResources)
-    // Usaremos valores fijos o ajustamos según tu modelo real
-    List<String> projects = [
-      'Análisis de Agua',
-      'Gestión de Proyectos',
-      'Investigación',
-    ];
+    List<String> projects = ['No hay proyectos'];
 
     return Card(
       shadowColor: Colors.black,
@@ -764,8 +972,10 @@ class ResourceList extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {},
-                    child: const Text('Asignar proyecto'),
+                    onPressed: () {
+                      context.go('/admin-resources/assign');
+                    },
+                    child: const Text('Asignar recurso'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -789,7 +999,11 @@ class ResourceList extends StatelessWidget {
     );
   }
 
-  Widget _buildMResourceCard(MaterialResource resource, VoidCallback onDelete) {
+  Widget _buildMResourceCard(
+    MaterialResource resource,
+    VoidCallback onDelete,
+    BuildContext context,
+  ) {
     return Card(
       shadowColor: Colors.black,
       child: Container(
@@ -874,8 +1088,10 @@ class ResourceList extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {},
-                    child: const Text('Editar'),
+                    onPressed: () {
+                      context.go('/admin-resources/assign');
+                    },
+                    child: const Text('Asignar recurso'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -899,17 +1115,19 @@ class ResourceList extends StatelessWidget {
     );
   }
 
-  Widget _buildResourceCard(ResourcesModel resource) {
+  Widget _buildResourceCard(ResourcesModel resource, BuildContext context) {
     final String resourceId = resource.id;
     if (resource is HumanResources) {
       return _buildHResourceCard(
         resource,
         () => controller.deleteResource(resourceId),
+        context,
       );
     } else if (resource is MaterialResource) {
       return _buildMResourceCard(
         resource,
         () => controller.deleteResource(resourceId),
+        context,
       );
     }
     return const SizedBox.shrink();
@@ -963,7 +1181,7 @@ class ResourceList extends StatelessWidget {
               ),
               itemBuilder: (context, index) {
                 final resource = resources[index];
-                return _buildResourceCard(resource);
+                return _buildResourceCard(resource, context);
               },
             );
           },
@@ -1075,155 +1293,184 @@ class _Screen2State extends State<Screen2> {
                         ),
                       ),
                       const SizedBox(width: 15),
-                      const Text(
-                        'Creación de recursos humanos',
-                        style: TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Creación de recursos humanos',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.indigo,
+                            ),
+                          ),
+                          const Text(
+                            'Creación de recursos humanos',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                   const SizedBox(height: 15),
+                  Container(
+                    padding: EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.green),
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text('Nombre'),
+                        CustomTextField(
+                          hintText: 'John Doe',
+                          controller: controller.nameController,
+                          validator: controller.validateName,
+                        ),
+                        const Text('Estado del recurso'),
+                        DropdownButtonFormField<String>(
+                          decoration: InputDecoration(
+                            hintText: 'Estado del recurso',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'Disponible',
+                              child: Text('Disponible'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Ocupado',
+                              child: Text('Ocupado'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Mantenimiento',
+                              child: Text('Mantenimiento'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'En Uso',
+                              child: Text('En Uso'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Parcialmente Disponible',
+                              child: Text('Parcialmente Disponible'),
+                            ),
+                          ],
+                          value: controller.stateC,
+                          onChanged: (value) =>
+                              setState(() => controller.stateC = value),
+                          validator: (_) => controller.validateState(),
+                        ),
+                        const Text('Laboratorio'),
+                        DropdownButtonFormField<String>(
+                          decoration: InputDecoration(
+                            hintText: 'Laboratorio',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'Laboratorio de Suelos',
+                              child: Text('Laboratorio de Suelos'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Laboratorio de Materiales y ensayos',
+                              child: Text(
+                                'Laboratorio de Materiales y ensayos',
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Laboratorio de Calidad Ambiental',
+                              child: Text('Laboratorio de Calidad Ambiental'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Laboratorio de Vibraciones',
+                              child: Text('Laboratorio de Vibraciones'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Laboratorio de Ciencia de los Materiales',
+                              child: Text(
+                                'Laboratorio de Ciencia de los Materiales',
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Laboratorio de Mecanica y Fluidos',
+                              child: Text('Laboratorio de Mecanica y Fluidos'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Laboratorio de impresion 3D',
+                              child: Text('Laboratorio de impresion 3D'),
+                            ),
+                          ],
+                          value: controller.labC,
+                          onChanged: (value) =>
+                              setState(() => controller.labC = value),
+                          validator: (_) => controller.validateLab(),
+                        ),
+                        const Text('Tarifa horaria'),
+                        CustomTextField(
+                          hintText: '200\$',
+                          controller: controller.tarifController,
+                          validator: controller.validateTarif,
+                        ),
+                        const Text('Uso total (horas)'),
+                        CustomTextField(
+                          hintText: '10',
+                          controller: controller.totalUsage,
+                          validator: controller.validateTarif,
+                        ),
+                        const Text('Correo'),
+                        CustomTextField(
+                          hintText: 'jonhdoe@unimet.edu.ve',
+                          controller: controller.email,
+                          validator: controller.validateEmail,
+                        ),
+                        const Text('Habilidades'),
+                        CustomTextField(
+                          hintText: 'Diseño',
+                          maxLines: 4,
+                          controller: controller.habilities,
+                          validator: controller.validateHabilities,
+                        ),
+                        const Text('Departamento'),
+                        DropdownButtonFormField<String>(
+                          decoration: InputDecoration(
+                            hintText: 'Selecciona un departamento',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'Construccion y Desarrollo Sustentable',
+                              child: Text(
+                                'Construccion y Desarrollo Sustentable',
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Energia y Automatizacion',
+                              child: Text('Energia y Automatizacion'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Produccion Industrial',
+                              child: Text('Produccion Industrial'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Gestion de Proyectos y Sistemas',
+                              child: Text('Gestion de Proyectos y Sistemas'),
+                            ),
+                          ],
+                          value: controller.departmentC,
+                          onChanged: (value) =>
+                              setState(() => controller.departmentC = value),
+                          validator: (_) => controller.validateDepartment(),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                  const Text('Nombre'),
-                  CustomTextField(
-                    hintText: 'John Doe',
-                    controller: controller.nameController,
-                    validator: controller.validateName,
-                  ),
-                  const Text('Estado del recurso'),
-                  DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      hintText: 'Estado del recurso',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'Disponible',
-                        child: Text('Disponible'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Ocupado',
-                        child: Text('Ocupado'),
-                      ),
-                      DropdownMenuItem(value: 'En Uso', child: Text('En Uso')),
-                      DropdownMenuItem(
-                        value: 'Parcialmente Disponible',
-                        child: Text('Parcialmente Disponible'),
-                      ),
-
-                      DropdownMenuItem(
-                        value: 'Mantenimiento',
-                        child: Text('Mantenimiento'),
-                      ),
-                    ],
-                    value: controller.stateC,
-                    onChanged: (value) =>
-                        setState(() => controller.stateC = value),
-                    validator: (_) => controller.validateState(),
-                  ),
-                  const Text('Laboratorio'),
-                  DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      hintText: 'Laboratorio',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'Laboratorio de Suelos',
-                        child: Text('Laboratorio de Suelos'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Laboratorio de Materiales y ensayos',
-                        child: Text('Laboratorio de Materiales y ensayos'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Laboratorio de Calidad Ambiental',
-                        child: Text('Laboratorio de Calidad Ambiental'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Laboratorio de Vibraciones',
-                        child: Text('Laboratorio de Vibraciones'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Laboratorio de Ciencia de los Materiales',
-                        child: Text('Laboratorio de Ciencia de los Materiales'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Laboratorio de Mecanica y Fluidos',
-                        child: Text('Laboratorio de Mecanica y Fluidos'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Laboratorio de impresion 3D',
-                        child: Text('Laboratorio de impresion 3D'),
-                      ),
-                    ],
-                    value: controller.labC,
-                    onChanged: (value) =>
-                        setState(() => controller.labC = value),
-                    validator: (_) => controller.validateLab(),
-                  ),
-                  const Text('Tarifa horaria'),
-                  CustomTextField(
-                    hintText: '200\$',
-                    controller: controller.tarifController,
-                    validator: controller.validateTarif,
-                  ),
-                  const Text('Uso total (horas)'),
-                  CustomTextField(
-                    hintText: '10',
-                    controller: controller.totalUsage,
-                    validator: controller.validateTarif,
-                  ),
-                  const Text('Correo'),
-                  CustomTextField(
-                    hintText: 'jonhdoe@unimet.edu.ve',
-                    controller: controller.email,
-                    validator: controller.validateEmail,
-                  ),
-                  const Text('Habilidades'),
-                  CustomTextField(
-                    hintText: 'Diseño',
-                    maxLines: 4,
-                    controller: controller.habilities,
-                    validator: controller.validateHabilities,
-                  ),
-                  const Text('Departamento'),
-                  DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      hintText: 'Selecciona un departamento',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'Construccion y Desarrollo Sustentable',
-                        child: Text('Construccion y Desarrollo Sustentable'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Energia y Automatizacion',
-                        child: Text('Energia y Automatizacion'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Produccion Industrial',
-                        child: Text('Produccion Industrial'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Gestion de Proyectos y Sistemas',
-                        child: Text('Gestion de Proyectos y Sistemas'),
-                      ),
-                    ],
-                    value: controller.departmentC,
-                    onChanged: (value) =>
-                        setState(() => controller.departmentC = value),
-                    validator: (_) => controller.validateDepartment(),
-                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 20.0),
                     child: ElevatedButton(

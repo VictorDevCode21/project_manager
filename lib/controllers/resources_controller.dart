@@ -1,16 +1,11 @@
-// resources_controller.dart
-
-import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
-import '../models/resources_model.dart';
+import 'package:go_router/go_router.dart';
 import '../services/auth_service.dart';
+import 'package:prolab_unimet/models/resources_model.dart';
 
 class ResourcesController {
-  final AuthService _authService = AuthService();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final nameController = TextEditingController();
   final kindController = TextEditingController();
   final tarifController = TextEditingController();
@@ -20,6 +15,7 @@ class ResourcesController {
   final totalUsage = TextEditingController();
   final email = TextEditingController();
   final habilities = TextEditingController();
+  final descripcionassign = TextEditingController();
 
   // ValueNotifiers for filtering status and resource type
   final ValueNotifier<String> resourceType = ValueNotifier<String>('Humanos');
@@ -28,10 +24,6 @@ class ResourcesController {
   );
   final searchC = TextEditingController();
 
-  // ValueNotifier that will contain the Stream of filtered resources (for the UI)
-  late final ValueNotifier<Stream<List<ResourcesModel>>>
-  filteredResourcesStream;
-
   String? labC;
   String? stateC;
   String? departmentC;
@@ -39,10 +31,14 @@ class ResourcesController {
   DateTime? lastDate;
   DateTime? nextDate;
   String? filter;
+  String? priority;
+  String? proyecto;
+  String? resource;
+  var filteredResourcesStream;
 
   // Constructor: Initializes the stream and adds listeners for searching and filtering
   ResourcesController() {
-    filteredResourcesStream = ValueNotifier(_buildResourceStream());
+    var filteredResourcesStream = ValueNotifier(_buildResourceStream());
 
     searchC.addListener(_updateStream);
     selectedStateFilter.addListener(_updateStream);
@@ -67,7 +63,10 @@ class ResourcesController {
       }
       // FIN AÑADIDO
 
-      await _firestore.collection(collection).doc(resourceId).delete();
+      await FirebaseFirestore.instance
+          .collection(collection)
+          .doc(resourceId)
+          .delete();
 
       print('Recurso $resourceId eliminado con éxito.');
 
@@ -117,7 +116,7 @@ class ResourcesController {
 
             if (resourceType.value == 'Humanos') {
               return HumanResources(
-                id: id, // <--- ¡AÑADIDO!
+                id: id,
                 review: data['review'] ?? '',
                 usage: data['use'] ?? 0,
                 totalUsage: data['totalUsage'] ?? 0,
@@ -215,21 +214,29 @@ class ResourcesController {
 
   Future<String> getCurrentUserRole() async {
     final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final uid = user.uid;
+        var snapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .get();
+        var usermod = snapshot.data();
 
-    if (user == null) {
-      return 'GUEST';
+        if (usermod != null && usermod.containsKey('role')) {
+          final role = usermod['role'] as String;
+          return role;
+        }
+
+        // Case: User logged in, but document/role field is missing
+        return 'USER';
+      } catch (e) {
+        debugPrint("Error fetching user role from Firestore: $e");
+        return 'USER';
+      }
     }
 
-    try {
-      final idTokenResult = await user.getIdTokenResult(true);
-
-      debugPrint("Claims del Token: ${idTokenResult.claims}");
-      final role = idTokenResult.claims?['role'] ?? 'USER';
-      return role.toString().toUpperCase();
-    } catch (e) {
-      debugPrint("Error fetching user role from token: $e");
-      return 'USER';
-    }
+    return 'GUEST';
   }
 
   Future<void> fetchAndCalculateStats() async {
@@ -313,7 +320,7 @@ class ResourcesController {
   );
 
   String? validateName(String? value) {
-    if (value == null || value.trim().isEmpty) {
+    if (value!.trim().isEmpty || value == null) {
       return 'El campo Nombre esta vacio';
     }
     return null;
@@ -322,49 +329,51 @@ class ResourcesController {
   String? validateFilter() =>
       filter == null ? 'Selecciona el filtro de busqueda' : null;
 
-  String? validateLab() =>
-      labC == null ? 'Selecciona un tipo de usuario' : null;
+  String? validateLab() => labC == null ? 'Selecciona un laboratorio' : null;
 
   String? validateCondition() =>
-      conditionC == null ? 'Selecciona un tipo de usuario' : null;
+      conditionC == null ? 'Selecciona su condición' : null;
 
   String? validateState() =>
-      stateC == null ? 'Selecciona un tipo de usuario' : null;
+      stateC == null ? 'Selecciona el estado del recurso' : null;
 
   String? validateDepartment() =>
-      departmentC == null ? 'Selecciona un tipo de usuario' : null;
+      departmentC == null ? 'Selecciona su departamento' : null;
+
+  String? validatePriority() =>
+      priority == null ? 'Selecciona la prioridad' : null;
+
+  String? validateProject() =>
+      priority == null ? 'Selecciona la prioridad' : null;
 
   String? validateTarif(String? value) {
     debugPrint(value);
-    if (value == null || value.isEmpty) {
-      return 'El campo Tarifa esta vacio';
-    }
-
     try {
-      double? tarifa = double.tryParse(value);
-      if (tarifa == null) {
-        return 'No has puesto un numero válido';
-      } else if (tarifa < 0) {
-        return 'El número no puede ser negativo';
-      } else {
-        debugPrint(value);
-        return null;
+      if (value!.isNotEmpty || value == null) {
+        int tarifa = int.parse(value);
+        if (tarifa < 0) {
+          return 'Numero negativo';
+        } else {
+          debugPrint(value);
+          return null;
+        }
       }
     } catch (e) {
-      debugPrint('Error al parsear número: $e');
-      return 'No has puesto un número válido';
+      debugPrint('no hay un numero error');
+      return 'No has puesto un numero';
     }
+    return null;
   }
 
   String? validateHabilities(String? value) {
-    if (value == null || value.trim().isEmpty) {
+    if (value!.trim().isEmpty || value == null) {
       return 'El campo Habilidades esta vacio';
     }
     return null;
   }
 
   String? validateSpecs(String? value) {
-    if (value == null || value.trim().isEmpty) {
+    if (value!.trim().isEmpty || value == null) {
       return 'El campo Specs esta vacio';
     }
     return null;
@@ -401,23 +410,31 @@ class ResourcesController {
   }
 
   bool validateHRFields() {
-    return validateDepartment() == null &&
+    if (validateDepartment() != null &&
         validateHabilities(habilities.text) == null &&
         validateEmail(email.text) == null &&
-        validateState() == null &&
+        validateState() != null &&
         validateTarif(tarifController.text) == null &&
-        validateTarif(totalUsage.text) == null &&
-        validateLab() == null &&
-        validateName(nameController.text) == null;
+        validateTarif(usage.text) == null &&
+        validateLab() != null &&
+        validateName(nameController.text) == null) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
   bool validateMRFields() {
-    return validateLastDate() == null &&
+    if (validateLastDate() != null &&
         validateNextDate() == null &&
-        validateState() == null &&
+        validateState() != null &&
         validateSpecs(specs.text) == null &&
-        validateLab() == null &&
-        validateName(nameController.text) == null;
+        validateLab() != null &&
+        validateName(nameController.text) == null) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
   Future<void> createHResource(BuildContext context) async {
@@ -430,87 +447,52 @@ class ResourcesController {
               'name': nameController.text,
               'state': stateC,
               'lab': labC,
-              'projects': null,
+              'projects': ['No hay proyectos'],
               'mail': email.text.trim(),
-              'tarif': double.tryParse(tarifController.text) ?? 0.0,
-              'use': 0,
-              'totalUsage': int.tryParse(totalUsage.text) ?? 0,
+              'tarif': int.parse(tarifController.text),
+              'use': int.parse(usage.text),
               'habilities': habilities.text,
               'department': departmentC,
             });
-        await fetchAndCalculateStats();
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Recurso humano creado correctamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('❌ Error al crear recurso humano: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Recurso humano creado correctamente')),
+        );
+      } catch (e) {}
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Corrige los errores antes de continuar')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Epale te falta algo')));
     }
   }
 
   Future<void> createMResource(BuildContext context) async {
-    if (validateMRFields() == true) {
+    if (validateHRFields() == true) {
       try {
         await FirebaseFirestore.instance
-            .collection("material-resources")
+            .collection("material_resource")
             .doc()
             .set({
               'name': nameController.text,
               'state': stateC,
-              'projects': null,
+              'projects': ['No hay proyectos'],
               'lab': labC,
-              'tarif': double.tryParse(tarifController.text) ?? 0.0,
-              'condition': conditionC,
               'lastDate': lastDate!.toIso8601String(),
-              'nextDate': nextDate!.toIso8601String(),
+              'habilities': nextDate!.toIso8601String(),
               'specs': specs.text,
             });
-        await fetchAndCalculateStats();
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Recurso material creado correctamente'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('❌ Error al crear recurso material: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Recurso humano creado correctamente')),
+        );
+      } catch (e) {}
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Corrige los errores antes de continuar')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Epale te falta algo')));
     }
   }
 
   Future<List> getHResources() async {
-    List<Map> lista = List.empty(growable: true);
+    List<Map> lista = List.empty();
     try {
       QuerySnapshot snap = await FirebaseFirestore.instance
           .collection('human-resources')
@@ -522,6 +504,196 @@ class ResourcesController {
       return lista;
     } catch (e) {
       return lista;
+    }
+  }
+
+  Future<List<String>> nombreProyectos() async {
+    List<String> nombres = [];
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('projects')
+          .get();
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+        if (data.containsKey('name') && data['name'] is String) {
+          nombres.add(data['name']);
+        }
+      }
+      return nombres;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<String>> nombreRecursos() async {
+    List<String> nombres = [];
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('human-resources')
+          .get();
+      QuerySnapshot snapshot2 = await FirebaseFirestore.instance
+          .collection('material-resources')
+          .get();
+      for (var doc in snapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        if (data.containsKey('name')) {
+          nombres.add(data['name']);
+        }
+      }
+      for (var doc in snapshot2.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        if (data.containsKey('name')) {
+          nombres.add(data['name']);
+        }
+      }
+      return nombres;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> assignProject(
+    String? proyecto,
+    String? recurso,
+    String? use,
+    BuildContext context,
+  ) async {
+    String use1 = use!;
+    String project = proyecto!;
+    String resource = recurso!;
+    int uso = int.parse(use1);
+    List<String> lista = List.empty(growable: true);
+    lista.add(project);
+    if (proyecto != null) {
+      QuerySnapshot snap = await FirebaseFirestore.instance
+          .collection('human-resources')
+          .where('name', isEqualTo: resource)
+          .get();
+      QuerySnapshot snap2 = await FirebaseFirestore.instance
+          .collection('material-resources')
+          .where('name', isEqualTo: resource)
+          .get();
+      if (snap.size == 0) {
+        for (var doc in snap2.docs) {
+          if (doc.exists) {
+            Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+            if (data['name'] == resource) {
+              await FirebaseFirestore.instance
+                  .collection('material-resources')
+                  .doc(doc.id)
+                  .set({
+                    'projects': FieldValue.arrayUnion(lista),
+                  }, SetOptions(merge: true));
+            }
+          }
+        }
+      } else {
+        for (var doc in snap.docs) {
+          if (doc.exists) {
+            Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+            if (data.containsKey('name')) {
+              if (data['use'] + uso < data['totalUsage']) {
+                await FirebaseFirestore.instance
+                    .collection('human-resources')
+                    .doc(doc.id)
+                    .update({
+                      'projects': FieldValue.arrayUnion(lista),
+                      'use': FieldValue.increment(uso),
+                    });
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Error al asignar recurso: Overflow en horas',
+                    ),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  void cargarHResource(HumanResources resource) {
+    nameController.text = resource.name;
+    email.text = resource.email;
+    labC = resource.lab;
+    stateC = resource.state;
+    tarifController.text = resource.hourlyTarif.toString();
+    totalUsage.text = resource.totalUsage.toString();
+    habilities.text = resource.habilities;
+    departmentC = resource.department;
+  }
+
+  void cargarMResource(MaterialResource resource) {
+    nameController.text = resource.name;
+    conditionC = resource.condition;
+    labC = resource.lab;
+    stateC = resource.state;
+    tarifController.text = resource.hourlyTarif.toString();
+    lastDate = resource.lastMaintenance;
+    nextDate = resource.nextMaintenance;
+    specs.text = resource.specs;
+  }
+
+  Future<void> modifyMResource(
+    BuildContext context,
+    MaterialResource mR,
+  ) async {
+    if (validateMRFields() == true) {
+      try {
+        QuerySnapshot snap = await FirebaseFirestore.instance
+            .collection('human-resources')
+            .where('name', isEqualTo: mR.name)
+            .get();
+
+        for (var doc in snap.docs) {
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          if (data['name'] == mR.name && data['condition'] == mR.condition) {
+            await FirebaseFirestore.instance
+                .collection("material-resources")
+                .doc(doc.id)
+                .update({
+                  'name': nameController.text,
+                  'state': stateC,
+                  'lab': labC,
+                  'tarif': double.tryParse(tarifController.text) ?? 0.0,
+                  'condition': conditionC,
+                  'lastDate': lastDate!.toIso8601String(),
+                  'nextDate': nextDate!.toIso8601String(),
+                  'specs': specs.text,
+                });
+          }
+        }
+        await fetchAndCalculateStats();
+        _updateStream();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Recurso material modificado correctamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Error al modificar recurso material: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Corrige los errores antes de continuar')),
+      );
     }
   }
 }

@@ -137,7 +137,13 @@ class _ProfileManagerState extends State<ProfileManager> {
             SizedBox(height: 10),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: [cancel1(), SizedBox(width: 10), saveChanges()],
+              children: [
+                cancel1(),
+                SizedBox(width: 10),
+                saveChanges(),
+                SizedBox(width: 10),
+                authChange(),
+              ],
             ),
             SizedBox(height: 10),
           ],
@@ -166,21 +172,6 @@ class _ProfileManagerState extends State<ProfileManager> {
         ),
         SizedBox(height: 10),
         Text(
-          'Correo electronico',
-          style: TextStyle(
-            color: Theme.of(context).textTheme.bodyMedium!.color,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        CustomTextField(
-          labelText: 'correo',
-          hintText: 'tu@email.com',
-          iconData: Icons.mail,
-          controller: controller.newemailController,
-          validator: controller.validarCorreo,
-        ),
-        SizedBox(height: 10),
-        Text(
           'Telefono',
           style: TextStyle(
             color: Theme.of(context).textTheme.bodyMedium!.color,
@@ -202,21 +193,6 @@ class _ProfileManagerState extends State<ProfileManager> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Contraseña',
-          style: TextStyle(
-            color: Theme.of(context).textTheme.bodyMedium!.color,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        CustomTextField(
-          labelText: 'nombre',
-          hintText: '123456789',
-          iconData: Icons.password,
-          controller: controller.newpasswordController,
-          validator: controller.validarPassword,
-        ),
-        SizedBox(height: 10),
         Text(
           'Cedula',
           style: TextStyle(
@@ -332,6 +308,40 @@ class _ProfileManagerState extends State<ProfileManager> {
       ),
     );
   }
+
+  Widget authChange() {
+    return TextButton.icon(
+      onPressed: () {
+        setState(() {
+          if (mounted) {
+            try {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const ModificarAuth()),
+              );
+            } catch (e) {
+              debugPrint('Error');
+            }
+          }
+        });
+      },
+      icon: Icon(
+        Icons.app_registration_rounded,
+        color: Theme.of(context).colorScheme.onPrimary,
+      ),
+      label: Text(
+        'Modificar autenticación',
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      style: TextButton.styleFrom(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+      ),
+    );
+  }
 }
 
 //Boton de navegación con algunos cambios
@@ -362,6 +372,201 @@ class NavButton1 extends StatelessWidget {
         backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 16),
+      ),
+    );
+  }
+}
+
+class ModificarAuth extends StatefulWidget {
+  const ModificarAuth({super.key});
+
+  @override
+  State<ModificarAuth> createState() => _ModificarAuthState();
+}
+
+class _ModificarAuthState extends State<ModificarAuth> {
+  ProfileController controller = ProfileController();
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: Theme.of(context).textTheme.bodyMedium!.color,
+                ),
+                label: const Text(
+                  'Volver',
+                  style: TextStyle(color: Colors.black, fontSize: 16),
+                ),
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 10,
+                  ),
+                ),
+              ),
+              SizedBox(width: 10),
+              Column(
+                children: [
+                  Text(
+                    'Modificar datos de inicio de sesión',
+                    style: TextStyle(
+                      fontSize: 25,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.indigo,
+                    ),
+                  ),
+                  Text(
+                    'Modificar los datos del correo y contraseña',
+                    style: TextStyle(fontSize: 15),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          SizedBox(height: 25),
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.black),
+              borderRadius: BorderRadius.all(Radius.circular(8)),
+            ),
+            child: Form(
+              autovalidateMode: AutovalidateMode.always,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.app_registration_rounded,
+                        size: 50,
+                        color: Colors.indigo,
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Datos de inicio de sesión',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.indigo,
+                            ),
+                          ),
+                          Text(
+                            'Modificar los datos del correo y contraseña',
+                            style: TextStyle(fontSize: 14, color: Colors.black),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.app_registration_rounded,
+                        size: 100,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ],
+                  ),
+                  Text(
+                    'Antiguo Correo',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyMedium!.color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  CustomTextField(
+                    labelText: 'oldemail',
+                    controller: controller.oldemailController,
+                    validator: controller.validarCorreo,
+                  ),
+                  Text(
+                    'Nuevo correo',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyMedium!.color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  CustomTextField(
+                    labelText: 'newemail',
+                    controller: controller.newemailController,
+                    validator: controller.validarCorreo,
+                  ),
+                  Text(
+                    'Antigua contraseña',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyMedium!.color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  CustomTextField(
+                    labelText: 'oldpassword',
+                    controller: controller.oldpasswordController,
+                    validator: controller.validarPassword,
+                  ),
+                  Text(
+                    'Nueva contraseña',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyMedium!.color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  CustomTextField(
+                    labelText: 'newpassword',
+                    controller: controller.newpasswordController,
+                    validator: controller.validarPassword,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 10),
+          TextButton.icon(
+            onPressed: () {
+              try {
+                controller.modificarLogin(context);
+              } catch (e) {}
+            },
+            icon: Icon(
+              Icons.save,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
+            label: Text(
+              'Guardar cambios',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            style: TextButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
+          ),
+        ],
       ),
     );
   }
