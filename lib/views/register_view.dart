@@ -163,9 +163,9 @@ class _RegisterViewState extends State<RegisterView> {
                               navigator.pop(); // close loader
                             }
 
-                            if (context.mounted) {
+                            if (success && context.mounted) {
                               router.go(
-                                '/admin/dashboard',
+                                '/admin-dashboard',
                               ); // only navigate if it really succeeded
                             }
                           } catch (e) {

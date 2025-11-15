@@ -1,18 +1,14 @@
 // lib/controllers/notification_controller.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:prolab_unimet/models/notification_model.dart'; // Adjust path if needed
+import 'package:flutter/foundation.dart'; // <-- Needed for debugPrint
+import 'package:prolab_unimet/models/notification_model.dart';
 
-///
 /// Controller for managing notification logic and data flow.
 /// Handles all Firestore operations related to notifications.
-///
 class NotificationController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Reference to the 'notifications' collection
   late final CollectionReference _notificationsRef;
-
-  // Reference to the 'projects' collection (needed for invitation logic)
   late final CollectionReference _projectsRef;
 
   NotificationController() {
@@ -20,99 +16,114 @@ class NotificationController {
     _projectsRef = _firestore.collection('projects');
   }
 
-  ///
-  /// Gets a real-time stream of notifications for a specific user.
-  ///
+  /// Returns a real-time stream of notifications for a specific user.
   Stream<List<NotificationModel>> getUserNotifications(String userId) {
     return _notificationsRef
         .where('recipientId', isEqualTo: userId)
         .orderBy('createdAt', descending: true)
-        .limit(20) // Get the 20 most recent notifications
+        .limit(20)
         .snapshots()
-        .map((snapshot) {
-          // Map the query snapshot to a list of AppNotification models
-          return snapshot.docs.map((doc) {
-            return NotificationModel.fromFirestore(doc);
-          }).toList();
+        .map((QuerySnapshot snapshot) {
+          return snapshot.docs
+              .map(
+                (QueryDocumentSnapshot doc) =>
+                    NotificationModel.fromFirestore(doc),
+              )
+              .toList();
         })
-        .handleError((error) {
-          print("Error fetching notifications: $error");
-          return [];
+        .handleError((Object error) {
+          debugPrint('Error fetching notifications: $error');
+          return <NotificationModel>[];
         });
   }
 
-  ///
   /// Marks a specific notification as read.
-  ///
   Future<void> markAsRead(String notificationId) async {
     try {
-      await _notificationsRef.doc(notificationId).update({'isRead': true});
+      await _notificationsRef.doc(notificationId).update(<String, dynamic>{
+        'isRead': true,
+      });
     } catch (e) {
-      print("Error marking as read: $e");
-      // Optionally, throw a custom exception to be handled by the View
+      debugPrint('Error marking as read: $e');
     }
   }
 
-  ///
-  /// Dismisses (deletes) a specific notification from Firestore.
-  ///
+  /// Deletes a specific notification from Firestore.
   Future<void> dismissNotification(String notificationId) async {
     try {
       await _notificationsRef.doc(notificationId).delete();
     } catch (e) {
-      print("Error dismissing notification: $e");
+      debugPrint('Error dismissing notification: $e');
     }
   }
 
-  ///
   /// Handles the logic for accepting a project invitation.
-  /// This is an atomic batch write.
-  ///
-  Future<void> acceptProjectInvitation({
+  /// This is an atomic batch write that does 4 operations.
+  /// Returns true on success, false on any failure.
+  Future<bool> acceptProjectInvitation({
     required String notificationId,
+    required String originalInvitePath,
     required String projectId,
     required String userId,
-    required String userName, // The View must provide the user's name
+    required String userName,
+    required String userEmail,
   }) async {
     try {
       final WriteBatch batch = _firestore.batch();
 
-      // 1. Add the user to the project's 'members' subcollection
-      final memberDocRef = _projectsRef
+      // 1. Update original invitation document
+      final DocumentReference inviteDocRef = _firestore.doc(originalInvitePath);
+      batch.update(inviteDocRef, <String, dynamic>{
+        'status': 'ACCEPTED',
+        'acceptedAt': FieldValue.serverTimestamp(),
+        'recipientId': userId,
+      });
+
+      // 2. Add user to project members subcollection
+      final DocumentReference memberDocRef = _projectsRef
           .doc(projectId)
           .collection('members')
           .doc(userId);
-      batch.set(memberDocRef, {
-        'name': userName,
-        'role': 'member', // Default role
-        'joinedAt': Timestamp.now(),
+
+      batch.set(memberDocRef, <String, dynamic>{
+        'uid': userId,
+        'email': userEmail,
+        'displayName': userName,
+        'role': 'USER',
+        'addedAt': FieldValue.serverTimestamp(),
       });
 
-      // 2. Delete the invitation from the 'invitees' subcollection (optional but clean)
-      final inviteDocRef = _projectsRef
-          .doc(projectId)
-          .collection('invitees')
-          .doc(userId);
-      batch.delete(inviteDocRef);
+      // 3. Add userId to project.visibleTo
+      final DocumentReference projectDocRef = _projectsRef.doc(projectId);
+      batch.update(projectDocRef, <String, dynamic>{
+        'visibleTo': FieldValue.arrayUnion(<String>[userId]),
+      });
 
-      // 3. Delete the notification
-      final notificationDocRef = _notificationsRef.doc(notificationId);
+      // 4. Delete notification document
+      final DocumentReference notificationDocRef = _notificationsRef.doc(
+        notificationId,
+      );
       batch.delete(notificationDocRef);
 
-      // Commit all operations at once
       await batch.commit();
-    } catch (e) {
-      print("Error accepting invitation: $e");
-      // The View should handle this error and inform the user
-      throw Exception('Error al aceptar la invitación.');
+      return true;
+    } on FirebaseException catch (e, stack) {
+      debugPrint(
+        '[NotificationController][acceptProjectInvitation][FirebaseException] '
+        '${e.code} - ${e.message}\n$stack',
+      );
+      return false;
+    } catch (e, stack) {
+      debugPrint(
+        '[NotificationController][acceptProjectInvitation][Error] $e\n$stack',
+      );
+      return false;
     }
   }
 
-  ///
   /// Handles the logic for declining a project invitation.
-  /// This is an atomic batch write.
-  ///
-  Future<void> declineProjectInvitation({
+  /// Returns true on success, false on any failure.
+  Future<bool> declineProjectInvitation({
     required String notificationId,
     required String projectId,
     required String userId,
@@ -120,22 +131,32 @@ class NotificationController {
     try {
       final WriteBatch batch = _firestore.batch();
 
-      // 1. Delete the invitation from the 'invitees' subcollection
-      final inviteDocRef = _projectsRef
+      // Delete invitation inside project.invites (adjust doc id if needed)
+      final DocumentReference inviteDocRef = _projectsRef
           .doc(projectId)
-          .collection('invitees')
-          .doc(userId);
+          .collection('invites')
+          .doc(notificationId);
       batch.delete(inviteDocRef);
 
-      // 2. Delete the notification
-      final notificationDocRef = _notificationsRef.doc(notificationId);
+      // Delete notification
+      final DocumentReference notificationDocRef = _notificationsRef.doc(
+        notificationId,
+      );
       batch.delete(notificationDocRef);
 
-      // Commit all operations at once
       await batch.commit();
-    } catch (e) {
-      print("Error declining invitation: $e");
-      throw Exception('Error al rechazar la invitación.');
+      return true;
+    } on FirebaseException catch (e, stack) {
+      debugPrint(
+        '[NotificationController][declineProjectInvitation][FirebaseException] '
+        '${e.code} - ${e.message}\n$stack',
+      );
+      return false;
+    } catch (e, stack) {
+      debugPrint(
+        '[NotificationController][declineProjectInvitation][Error] $e\n$stack',
+      );
+      return false;
     }
   }
 }

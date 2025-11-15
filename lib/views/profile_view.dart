@@ -291,6 +291,7 @@ class NavButton1 extends StatelessWidget {
   final String route;
 
   const NavButton1({
+    super.key,
     required this.icon,
     required this.label,
     required this.route,

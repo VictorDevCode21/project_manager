@@ -14,6 +14,10 @@ class NotificationModel {
   final Timestamp createdAt;
   final bool isRead;
 
+  // === 🚀 NEW FIELD ===
+  /// Holds extra data, e.g., {'originalInvitePath': '...'}
+  final Map<String, dynamic>? metadata;
+
   NotificationModel({
     required this.id,
     required this.recipientId,
@@ -23,6 +27,7 @@ class NotificationModel {
     required this.relatedId,
     required this.createdAt,
     this.isRead = false,
+    this.metadata, // <-- 🚀 ADDED TO CONSTRUCTOR
   });
 
   ///
@@ -41,6 +46,11 @@ class NotificationModel {
       relatedId: data['relatedId'] ?? '',
       createdAt: data['createdAt'] ?? Timestamp.now(),
       isRead: data['isRead'] ?? false,
+
+      // === 🚀 ADDED METADATA PARSING ===
+      // Safely cast the metadata field. It will be null if it doesn't exist
+      // or isn't a Map.
+      metadata: data['metadata'] as Map<String, dynamic>?,
     );
   }
 }

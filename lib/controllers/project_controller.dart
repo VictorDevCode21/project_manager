@@ -357,18 +357,24 @@ extension ProjectInvitesOps on ProjectController {
 
   // === MODIFIED SECTION ===
   ///
-  /// Creates an invite, sends an email, AND creates an in-app notification
-  /// if the user already exists.
+  /// Creates an invite, sends an email, and handles both
+  /// existing and non-existing users.
+  /// - If user exists: creates an in-app notification.
+  /// - If user does NOT exist: creates a 'pendingInvites' lookup doc.
   ///
   Future<void> createInviteAndSendEmail({
     required String projectId,
-    required String projectName, // NEW: Need this for the notification
+    required String projectName,
     required String recipientEmail,
   }) async {
     final inviter = _auth.currentUser;
     if (inviter == null) {
       throw Exception('No authenticated user.');
     }
+
+    // Get inviter's name
+    final inviterName =
+        inviter.displayName ?? inviter.email ?? 'un administrador';
 
     final email = recipientEmail.trim().toLowerCase();
     if (email.isEmpty) {
@@ -380,7 +386,7 @@ extension ProjectInvitesOps on ProjectController {
 
     final WriteBatch batch = _db.batch();
 
-    // 2) Create the invite doc in the batch
+    // 2) Create the "source of truth" invite doc in the batch
     final inviteRef = _db
         .collection('projects')
         .doc(projectId)
@@ -391,27 +397,51 @@ extension ProjectInvitesOps on ProjectController {
       'email': email,
       'status': 'PENDING',
       'invitedBy': inviter.uid,
+      'inviterName': inviterName, // Store this for context
+      'projectName': projectName, // Store this for context
       'createdAt': FieldValue.serverTimestamp(),
       'acceptedAt': null,
       'recipientId': recipientId, // Store UID if we found one
     });
 
-    // 3) --- If user exists, create notification in the same batch ---
+    // 3) --- Handle the two different scenarios ---
     if (recipientId != null) {
+      // --- SCENARIO A: User exists ---
+      // Create an in-app notification immediately
       final notificationRef = _db.collection('notifications').doc();
       batch.set(notificationRef, {
         'recipientId': recipientId,
         'title': '¡Invitación al proyecto \'$projectName\'!',
-        'body':
-            'Has sido invitado por ${inviter.displayName ?? inviter.email}.',
+        'body': 'Has sido invitado por $inviterName.',
         'type': 'project_invitation',
         'relatedId': projectId,
         'createdAt': FieldValue.serverTimestamp(),
         'isRead': false,
+        // Store the invite path so the "accept" button works
+        'metadata': {
+          'originalInvitePath': inviteRef.path,
+          'originalInviteId': inviteRef.id,
+        },
+      });
+    } else {
+      // --- SCENARIO B: User does NOT exist ---
+      // Create the denormalized "lookup" document in /pendingInvites
+      // so the register_controller can find it.
+      final pendingInviteRef = _db
+          .collection('pendingInvites')
+          .doc(inviteRef.id); // Use same ID
+
+      batch.set(pendingInviteRef, {
+        'email': email,
+        'projectId': projectId,
+        'projectName': projectName,
+        'inviterName': inviterName,
+        'originalInviteRef': inviteRef.path,
+        'createdAt': FieldValue.serverTimestamp(),
       });
     }
 
-    // 4) Commit the batch (creates invite + notification atomically)
+    // 4) Commit the batch (creates EITHER invite+notification OR invite+pendingInvite)
     try {
       await batch.commit();
     } catch (e) {
@@ -437,9 +467,15 @@ extension ProjectInvitesOps on ProjectController {
 
     // 7) Build accept URL
     final base = _joinBaseAndPath(baseUrl, path);
-    final acceptUrl = Uri.parse(
-      base,
-    ).replace(queryParameters: {'pid': projectId}).toString();
+    // Use the *original* invite ID in the URL
+    final acceptUrl = Uri.parse(base)
+        .replace(
+          queryParameters: {
+            'pid': projectId,
+            'inviteId': inviteRef.id, // Send the inviteId
+          },
+        )
+        .toString();
 
     // 8) Send email via Lambda
     final mailer = InviteService();
@@ -452,8 +488,6 @@ extension ProjectInvitesOps on ProjectController {
     } catch (e, _) {
       // Do not break UX if mailer fails; the invite exists.
       _logError('mailer_failed', {'error': e.toString(), 'email': email});
-      // If you prefer to surface the error to UI, uncomment the next line:
-      // throw Exception('Invite created but mailer failed.');
     }
   }
 
@@ -475,17 +509,42 @@ extension ProjectInvitesOps on ProjectController {
   }
 
   /// Cancels an invite (rules define who is allowed).
+  /// Throws a user-friendly [Exception] if the update fails.
   Future<void> cancelInvite(String projectId, String inviteId) async {
     final ref = _db
         .collection('projects')
         .doc(projectId)
         .collection('invites')
         .doc(inviteId);
-    await ref.update({
-      'status': 'CANCELLED',
-      'cancelledAt': FieldValue.serverTimestamp(),
-      'cancelledBy': _auth.currentUser?.uid ?? '',
-    });
+
+    try {
+      // Add 'cancelledAt' and 'cancelledBy' for better data tracking
+      await ref.update({
+        'status': 'CANCELLED',
+        'cancelledAt': FieldValue.serverTimestamp(),
+        'cancelledBy': _auth.currentUser?.uid ?? 'unknown_user',
+      });
+    } on FirebaseException catch (e) {
+      // Use your existing logger
+      _logError("cancel_invite_failed", {
+        "projectId": projectId,
+        "inviteId": inviteId,
+        "code": e.code,
+        "message": e.message,
+      });
+      // Re-throw a cleaner message for the View to catch
+      throw Exception(
+        'Error al cancelar la invitación: ${e.message ?? e.code}',
+      );
+    } catch (e) {
+      _logError("cancel_invite_failed_unknown", {
+        "projectId": projectId,
+        "inviteId": inviteId,
+        "error": e.toString(),
+      });
+      // Re-throw a generic error
+      throw Exception('Ocurrió un error inesperado al cancelar la invitación.');
+    }
   }
 }
 
