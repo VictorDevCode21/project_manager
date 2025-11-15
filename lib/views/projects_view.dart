@@ -7,6 +7,7 @@ import 'package:prolab_unimet/views/components/forms/create_project.dart';
 import 'package:prolab_unimet/views/projects/manage_members_dialog.dart';
 import 'package:prolab_unimet/views/projects/project_details_dialog.dart';
 import 'package:prolab_unimet/widgets/app_dropdown.dart';
+import 'package:intl/intl.dart';
 
 /// Projects management view inside AdminLayout (View layer - MVC).
 class ProjectsView extends StatefulWidget {
@@ -30,11 +31,21 @@ class _ProjectsViewState extends State<ProjectsView> {
   // Single instance for consulting types
   late final ConsultingTypeController _ctController;
 
+  // Currency formatter for budget
+  late final NumberFormat _budgetFormatter;
+
   @override
   void initState() {
     super.initState();
     _ctController = ConsultingTypeController();
     _searchController.addListener(_onSearchChanged);
+
+    // Initialize currency formatter (locale in Spanish style)
+    _budgetFormatter = NumberFormat.currency(
+      locale: 'es_VE', // or 'es_ES', 'es_MX', etc.
+      symbol: r'$',
+      decimalDigits: 0,
+    );
   }
 
   @override
@@ -161,7 +172,7 @@ class _ProjectsViewState extends State<ProjectsView> {
                         if (nav.canPop()) nav.pop();
                         messenger.showSnackBar(
                           SnackBar(
-                            content: Text('Proyecto creado: $projectId'),
+                            content: Text('Proyecto creado con id: $projectId'),
                           ),
                         );
                       } catch (e) {
@@ -437,10 +448,21 @@ class _ProjectsViewState extends State<ProjectsView> {
         ? project.description
         : 'Sin descripción';
     final client = project.client.isNotEmpty ? project.client : '—';
-    final team = '0 miembros'; // TODO: connect to members count if needed
+
+    // Team count based on visibleTo
+    final int memberCount = project.visibleTo.length - 1;
+    final String team;
+    if (memberCount <= 0) {
+      team = 'Sin miembros';
+    } else if (memberCount == 1) {
+      team = '1 miembro';
+    } else {
+      team = '$memberCount miembros';
+    }
+
     final deadline =
         '${project.endDate.day.toString().padLeft(2, '0')}/${project.endDate.month.toString().padLeft(2, '0')}/${project.endDate.year}';
-    final budget = '\$${project.budgetUsd.toStringAsFixed(0)}';
+    final String budget = _budgetFormatter.format(project.budgetUsd);
     final progress = 0.0; // Placeholder for now
 
     return Container(
