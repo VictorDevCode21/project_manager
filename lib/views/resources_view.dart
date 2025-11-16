@@ -201,20 +201,61 @@ class _AssignProjectState extends State<AssignProject> {
                 padding: const EdgeInsets.symmetric(vertical: 20.0),
                 child: ElevatedButton(
                   onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Asignando recurso...')),
+                    if (!_formKey.currentState!.validate()) return;
+
+                    final messenger = ScaffoldMessenger.of(context);
+                    messenger.hideCurrentSnackBar();
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Asignando recurso...')),
+                    );
+
+                    if (controller.resource == null ||
+                        controller.proyecto == null) {
+                      messenger.hideCurrentSnackBar();
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Selecciona un proyecto y un recurso antes de asignar.',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    try {
+                      await controller.assignProject(
+                        controller.proyecto,
+                        controller.resource,
+                        controller.usage.text,
+                        context,
                       );
 
-                      if (controller.resource != null &&
-                          controller.proyecto != null) {
-                        controller.assignProject(
-                          controller.proyecto,
-                          controller.resource,
-                          controller.usage.text,
-                          context,
-                        );
-                      }
+                      messenger.hideCurrentSnackBar();
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('✅ Recurso asignado!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+
+                      // Reset de formulario a valores por defecto
+                      setState(() {
+                        _formKey.currentState!.reset();
+                        controller.descripcionassign.clear();
+                        controller.usage.clear();
+                        controller.priority = null;
+                        controller.proyecto = null;
+                        controller.resource = null;
+                      });
+                    } catch (e) {
+                      messenger.hideCurrentSnackBar();
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('❌ Error al asignar recurso: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
                     }
                   },
                   style: ElevatedButton.styleFrom(

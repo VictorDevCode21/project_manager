@@ -570,42 +570,66 @@ class ResourcesController {
     String? use,
     BuildContext context,
   ) async {
-    String use1 = use!;
-    String project = proyecto!;
-    String resource = recurso!;
-    int uso = int.parse(use1);
-    List<String> lista = List.empty(growable: true);
-    lista.add(project);
-
-    QuerySnapshot snap = await FirebaseFirestore.instance
-        .collection('human-resources')
-        .where('name', isEqualTo: resource)
-        .get();
-    QuerySnapshot snap2 = await FirebaseFirestore.instance
-        .collection('material-resources')
-        .where('name', isEqualTo: resource)
-        .get();
-
-    if (snap.size == 0) {
-      for (var doc in snap2.docs) {
-        if (doc.exists) {
-          await FirebaseFirestore.instance
-              .collection('material-resources')
-              .doc(doc.id)
-              .set({
-                'projects': FieldValue.arrayUnion(lista),
-              }, SetOptions(merge: true));
-        }
+    try {
+      if (proyecto == null || recurso == null || use == null || use.isEmpty) {
+        throw Exception('Datos incompletos para la asignación.');
       }
-    } else {
-      for (var doc in snap.docs) {
-        if (doc.exists) {
-          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-          if (data.containsKey('name')) {
-            final int currentUse = (data['use'] as num? ?? 0).toInt();
-            final int total = (data['totalUsage'] as num? ?? 0).toInt();
 
-            if (currentUse + uso < total) {
+      final int uso = int.parse(use);
+      final String project = proyecto;
+      final String resource = recurso;
+
+      final List<String> lista = <String>[project];
+
+      final humanSnap = await FirebaseFirestore.instance
+          .collection('human-resources')
+          .where('name', isEqualTo: resource)
+          .get();
+
+      final materialSnap = await FirebaseFirestore.instance
+          .collection('material-resources')
+          .where('name', isEqualTo: resource)
+          .get();
+
+      // Caso: es recurso material
+      if (humanSnap.size == 0) {
+        if (materialSnap.size == 0) {
+          throw Exception('No se encontró el recurso seleccionado.');
+        }
+
+        for (final doc in materialSnap.docs) {
+          if (doc.exists) {
+            await FirebaseFirestore.instance
+                .collection('material-resources')
+                .doc(doc.id)
+                .set({
+                  'projects': FieldValue.arrayUnion(lista),
+                }, SetOptions(merge: true));
+          }
+        }
+      } else {
+        // Caso: recurso humano
+        bool updated = false;
+
+        for (final doc in humanSnap.docs) {
+          if (doc.exists) {
+            final data = doc.data() as Map<String, dynamic>;
+            if (data.containsKey('name')) {
+              final int currentUse = (data['use'] as num? ?? 0).toInt();
+              final int total = (data['totalUsage'] as num? ?? 0).toInt();
+
+              if (total <= 0) {
+                throw Exception(
+                  'El recurso no tiene horas totales configuradas.',
+                );
+              }
+
+              if (currentUse + uso > total) {
+                throw Exception(
+                  'Overflow en horas: las horas asignadas superan el total disponible.',
+                );
+              }
+
               await FirebaseFirestore.instance
                   .collection('human-resources')
                   .doc(doc.id)
@@ -613,17 +637,22 @@ class ResourcesController {
                     'projects': FieldValue.arrayUnion(lista),
                     'use': FieldValue.increment(uso),
                   });
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Error al asignar recurso: Overflow en horas'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+
+              updated = true;
             }
           }
         }
+
+        if (!updated) {
+          throw Exception('No se pudo actualizar el recurso humano.');
+        }
       }
+
+      await fetchAndCalculateStats();
+      _updateStream();
+    } catch (e) {
+      debugPrint('Error en assignProject: $e');
+      rethrow;
     }
   }
 
