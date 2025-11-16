@@ -128,23 +128,122 @@ class NotificationController {
     required String projectId,
     required String userId,
   }) async {
+    debugPrint(
+      '[NotificationController][declineProjectInvitation] START '
+      'uid=$userId projectId=$projectId notificationId=$notificationId',
+    );
+
     try {
+      // 1) Load notification document
+      final DocumentReference<Map<String, dynamic>> notificationDocRef =
+          _notificationsRef.doc(notificationId)
+              as DocumentReference<Map<String, dynamic>>;
+
+      final DocumentSnapshot<Map<String, dynamic>> notifSnap =
+          await notificationDocRef.get();
+
+      if (!notifSnap.exists) {
+        debugPrint(
+          '[NotificationController][declineProjectInvitation] '
+          'Notification not found, nothing to decline.',
+        );
+        return false;
+      }
+
+      final Map<String, dynamic> notifData = notifSnap.data()!;
+      final dynamic notifRecipientId = notifData['recipientId'];
+      final Map<String, dynamic> metadata =
+          (notifData['metadata'] as Map<String, dynamic>?) ?? {};
+
+      debugPrint(
+        '[NotificationController][declineProjectInvitation] '
+        'notif.recipientId=$notifRecipientId type=${notifData['type']} relatedId=${notifData['relatedId']}',
+      );
+
+      if (notifRecipientId != userId) {
+        debugPrint(
+          '[NotificationController][declineProjectInvitation] WARNING: '
+          'userId ($userId) != notif.recipientId ($notifRecipientId). '
+          'Delete may be blocked by security rules.',
+        );
+      }
+
+      // 2) Resolve invite reference
+      DocumentReference<Map<String, dynamic>>? inviteRef;
+
+      final String? invitePath = metadata['originalInvitePath'] as String?;
+
+      if (invitePath != null && invitePath.isNotEmpty) {
+        // Use the original invite path from metadata
+        inviteRef = _firestore.doc(invitePath);
+        debugPrint(
+          '[NotificationController][declineProjectInvitation] '
+          'Using inviteRef from metadata: $invitePath',
+        );
+      } else {
+        // Fallback: search in /projects/{projectId}/invites
+        debugPrint(
+          '[NotificationController][declineProjectInvitation] '
+          'No originalInvitePath found, fallback query on invites...',
+        );
+
+        try {
+          final QuerySnapshot<Map<String, dynamic>> query = await _projectsRef
+              .doc(projectId)
+              .collection('invites')
+              .where('recipientId', isEqualTo: userId)
+              .where('status', isEqualTo: 'PENDING')
+              .limit(1)
+              .get();
+
+          debugPrint(
+            '[NotificationController][declineProjectInvitation] '
+            'fallback invites found=${query.docs.length}',
+          );
+
+          if (query.docs.isNotEmpty) {
+            inviteRef = query.docs.first.reference;
+          }
+        } catch (e, st) {
+          debugPrint(
+            '[NotificationController][declineProjectInvitation] '
+            'fallback invites query error: $e\n$st',
+          );
+        }
+      }
+
+      // 3) Build batch: update invite (if found) + delete notification
       final WriteBatch batch = _firestore.batch();
 
-      // Delete invitation inside project.invites (adjust doc id if needed)
-      final DocumentReference inviteDocRef = _projectsRef
-          .doc(projectId)
-          .collection('invites')
-          .doc(notificationId);
-      batch.delete(inviteDocRef);
+      if (inviteRef != null) {
+        debugPrint(
+          '[NotificationController][declineProjectInvitation] '
+          'Adding invite update to batch: ${inviteRef.path}',
+        );
 
-      // Delete notification
-      final DocumentReference notificationDocRef = _notificationsRef.doc(
-        notificationId,
+        batch.update(inviteRef, {
+          'status': 'DECLINED',
+          'declinedAt': FieldValue.serverTimestamp(),
+          'declinedBy': userId,
+        });
+      } else {
+        debugPrint(
+          '[NotificationController][declineProjectInvitation] '
+          'No inviteRef resolved, skipping invite update.',
+        );
+      }
+
+      debugPrint(
+        '[NotificationController][declineProjectInvitation] '
+        'Adding notification delete to batch: ${notificationDocRef.path}',
       );
       batch.delete(notificationDocRef);
 
+      // 4) Commit batch
       await batch.commit();
+      debugPrint(
+        '[NotificationController][declineProjectInvitation] Batch commit OK.',
+      );
       return true;
     } on FirebaseException catch (e, stack) {
       debugPrint(

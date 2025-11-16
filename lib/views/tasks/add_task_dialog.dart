@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:prolab_unimet/controllers/task_controller.dart';
 import 'package:prolab_unimet/models/tasks_model.dart';
 
 class AddTask extends StatefulWidget {
@@ -44,11 +46,18 @@ class _AddTaskState extends State<AddTask> {
   Status? _selectedStatus;
   TaskColumn? _selectedColumn;
 
+  /// Local project selection for the dialog.
+  String? _selectedProjectId;
+  String? _selectedProjectName;
+
   bool get isEditing => widget.task != null;
 
   @override
   void initState() {
     super.initState();
+
+    _selectedProjectId = widget.projectId;
+    _selectedProjectName = widget.projectName;
 
     if (widget.task != null) {
       // Editing existing task
@@ -77,6 +86,31 @@ class _AddTaskState extends State<AddTask> {
 
   @override
   Widget build(BuildContext context) {
+    final TaskController taskController = Provider.of<TaskController>(
+      context,
+      listen: true,
+    );
+
+    // Use controller data if available, fallback to widget props
+    final List<Map<String, dynamic>> availableProjects =
+        taskController.availableProjects;
+    final List<Map<String, String>> members =
+        taskController.projectMembers.isNotEmpty
+        ? taskController.projectMembers
+        : widget.projectMembers;
+    final List<TaskColumn> columns = taskController.columns.isNotEmpty
+        ? taskController.columns
+        : widget.columns;
+
+    // Ensure selected column belongs to current columns list
+    if (_selectedColumn == null && columns.isNotEmpty) {
+      _selectedColumn = columns.first;
+    } else if (_selectedColumn != null &&
+        !columns.contains(_selectedColumn) &&
+        columns.isNotEmpty) {
+      _selectedColumn = columns.first;
+    }
+
     return AlertDialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
       contentPadding: const EdgeInsets.all(16),
@@ -115,15 +149,83 @@ class _AddTaskState extends State<AddTask> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  // Project name (read only)
+                  // Project selector (dropdown instead of plain text)
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Proyecto: ${widget.projectName}',
-                          style: const TextStyle(fontSize: 14),
-                        ),
+                        const Text('Proyecto', style: TextStyle(fontSize: 14)),
+                        const SizedBox(height: 4),
+                        if (availableProjects.isEmpty)
+                          Text(
+                            _selectedProjectName ?? widget.projectName,
+                            style: const TextStyle(fontSize: 14),
+                          )
+                        else
+                          DropdownButtonFormField<String>(
+                            value: _selectedProjectId ?? widget.projectId,
+                            items: availableProjects.map((project) {
+                              final String id = project['id'] as String? ?? '';
+                              final String name =
+                                  project['name'] as String? ?? 'Sin nombre';
+                              return DropdownMenuItem<String>(
+                                value: id,
+                                child: Text(
+                                  name,
+                                  style: const TextStyle(fontSize: 14),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (String? value) async {
+                              if (value == null || value.isEmpty) return;
+
+                              setState(() {
+                                _selectedProjectId = value;
+                              });
+
+                              // Change current project in controller so tasks
+                              // are saved into the correct project path.
+                              await taskController.setCurrentProject(value);
+
+                              if (!mounted) return;
+
+                              setState(() {
+                                _selectedProjectName =
+                                    (taskController.currentProjectData?['name']
+                                        as String?) ??
+                                    widget.projectName;
+
+                                _selectedProjectType =
+                                    (taskController
+                                            .currentProjectData?['consultingType']
+                                        as String?) ??
+                                    widget.projectType;
+
+                                // Reset assignee based on new project members
+                                if (taskController.projectMembers.isNotEmpty) {
+                                  _selectedAssigneeId =
+                                      taskController.projectMembers.first['id'];
+                                } else {
+                                  _selectedAssigneeId = null;
+                                }
+
+                                // Reset column selection for new project
+                                if (taskController.columns.isNotEmpty) {
+                                  _selectedColumn =
+                                      taskController.columns.first;
+                                }
+                              });
+                            },
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -134,7 +236,7 @@ class _AddTaskState extends State<AddTask> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Asignado', style: TextStyle(fontSize: 14)),
-                        if (widget.projectMembers.isEmpty)
+                        if (members.isEmpty)
                           const Padding(
                             padding: EdgeInsets.only(top: 8.0),
                             child: Text(
@@ -147,8 +249,8 @@ class _AddTaskState extends State<AddTask> {
                           )
                         else
                           DropdownButtonFormField<String>(
-                            initialValue: _selectedAssigneeId,
-                            items: widget.projectMembers.map((member) {
+                            value: _selectedAssigneeId ?? members.first['id'],
+                            items: members.map((member) {
                               return DropdownMenuItem(
                                 value: member['id'],
                                 child: Text(
@@ -177,7 +279,7 @@ class _AddTaskState extends State<AddTask> {
                       children: [
                         const Text('Prioridad', style: TextStyle(fontSize: 14)),
                         DropdownButtonFormField<Priority>(
-                          initialValue: _selectedPriority,
+                          value: _selectedPriority,
                           items: Priority.values.map((priority) {
                             return DropdownMenuItem(
                               value: priority,
@@ -203,7 +305,7 @@ class _AddTaskState extends State<AddTask> {
                       children: [
                         const Text('Estado', style: TextStyle(fontSize: 14)),
                         DropdownButtonFormField<Status>(
-                          initialValue: _selectedStatus,
+                          value: _selectedStatus,
                           items: Status.values.map((status) {
                             return DropdownMenuItem(
                               value: status,
@@ -245,8 +347,8 @@ class _AddTaskState extends State<AddTask> {
                       children: [
                         const Text('Columna', style: TextStyle(fontSize: 14)),
                         DropdownButtonFormField<TaskColumn>(
-                          initialValue: _selectedColumn,
-                          items: widget.columns.map((column) {
+                          value: _selectedColumn,
+                          items: columns.map((column) {
                             return DropdownMenuItem(
                               value: column,
                               child: Text(
@@ -353,7 +455,7 @@ class _AddTaskState extends State<AddTask> {
 
     final Task task = Task(
       id: widget.task?.id ?? '',
-      projectId: widget.projectId,
+      projectId: _selectedProjectId ?? widget.projectId,
       title: title,
       description: description,
       projectType: _selectedProjectType ?? widget.projectType,
