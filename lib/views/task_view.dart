@@ -18,7 +18,6 @@ class TaskView extends StatefulWidget {
 class _TaskView extends State<TaskView> {
   final TextEditingController _taskcontroller = TextEditingController();
   String _selectedStatus = 'Prioridades';
-  String _selectedAssignees = 'Responsables';
   late TaskController _taskController;
   bool _isInitialized = false;
 
@@ -54,6 +53,21 @@ class _TaskView extends State<TaskView> {
     _horizontalBoardController.dispose();
     _taskcontroller.dispose();
     super.dispose();
+  }
+
+  /// Maps the selected status label to a Priority enum, or null for "no filter".
+  Priority? _getSelectedPriorityFilter() {
+    switch (_selectedStatus) {
+      case 'Alta':
+        return Priority.high;
+      case 'Media':
+        return Priority.medium;
+      case 'Baja':
+        return Priority.low;
+      case 'Prioridades':
+      default:
+        return null;
+    }
   }
 
   @override
@@ -391,7 +405,11 @@ class _TaskView extends State<TaskView> {
   }
 
   /// Builds the horizontal Kanban board with drag & drop support.
+  /// Applies search by task title and priority filter.
   Widget _buildBoard(TaskController taskController) {
+    final String query = _taskcontroller.text.trim().toLowerCase();
+    final Priority? selectedPriority = _getSelectedPriorityFilter();
+
     return Scrollbar(
       controller: _horizontalBoardController,
       thumbVisibility: true,
@@ -403,9 +421,24 @@ class _TaskView extends State<TaskView> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: taskController.columns.map((TaskColumn column) {
-            final List<Task> columnTasks = taskController.getTasksByColumn(
+            // Base tasks for this column (by status)
+            List<Task> columnTasks = taskController.getTasksByColumn(
               column.name,
             );
+
+            // Filter by search text (title)
+            if (query.isNotEmpty) {
+              columnTasks = columnTasks.where((Task task) {
+                return task.title.toLowerCase().contains(query);
+              }).toList();
+            }
+
+            // Filter by priority if any selected
+            if (selectedPriority != null) {
+              columnTasks = columnTasks
+                  .where((Task task) => task.priority == selectedPriority)
+                  .toList();
+            }
 
             return DragTarget<Map<String, dynamic>>(
               onAccept: (Map<String, dynamic> data) {
@@ -1106,7 +1139,7 @@ class _TaskView extends State<TaskView> {
             controller: _taskcontroller,
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.search),
-              hintText: 'Buscar por nombre de proyecto o cliente...',
+              hintText: 'Buscar por nombre de tarea...',
               filled: true,
               fillColor: Colors.grey[100],
               border: OutlineInputBorder(
@@ -1114,6 +1147,9 @@ class _TaskView extends State<TaskView> {
                 borderSide: BorderSide.none,
               ),
             ),
+            onChanged: (String value) {
+              setState(() {});
+            },
           ),
         ),
         const SizedBox(width: 16),
@@ -1126,7 +1162,8 @@ class _TaskView extends State<TaskView> {
               )
               .toList(),
           onChanged: (String? value) {
-            setState(() => _selectedStatus = value!);
+            if (value == null) return;
+            setState(() => _selectedStatus = value);
           },
         ),
         const SizedBox(width: 16),
@@ -1142,7 +1179,7 @@ class _TaskView extends State<TaskView> {
           controller: _taskcontroller,
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.search),
-            hintText: 'Buscar proyectos...',
+            hintText: 'Buscar por nombre de tarea...',
             filled: true,
             fillColor: Colors.grey[100],
             border: OutlineInputBorder(
@@ -1150,6 +1187,9 @@ class _TaskView extends State<TaskView> {
               borderSide: BorderSide.none,
             ),
           ),
+          onChanged: (String value) {
+            setState(() {});
+          },
         ),
         const SizedBox(height: 12),
         Row(
@@ -1165,26 +1205,12 @@ class _TaskView extends State<TaskView> {
                     )
                     .toList(),
                 onChanged: (String? value) {
-                  setState(() => _selectedStatus = value!);
+                  if (value == null) return;
+                  setState(() => _selectedStatus = value);
                 },
               ),
             ),
             const SizedBox(width: 12),
-            Expanded(
-              child: DropdownButton<String>(
-                value: _selectedAssignees,
-                isExpanded: true,
-                items: <String>['Responsables', 'Alta', 'Media', 'Baja']
-                    .map(
-                      (String e) =>
-                          DropdownMenuItem<String>(value: e, child: Text(e)),
-                    )
-                    .toList(),
-                onChanged: (String? value) {
-                  setState(() => _selectedAssignees = value!);
-                },
-              ),
-            ),
           ],
         ),
       ],
