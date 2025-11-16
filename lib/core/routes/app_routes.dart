@@ -6,6 +6,7 @@ import 'package:prolab_unimet/views/login_view.dart';
 import 'package:prolab_unimet/views/profile_view.dart';
 import 'package:prolab_unimet/views/projects_view.dart';
 import 'package:prolab_unimet/views/register_view.dart';
+import 'package:prolab_unimet/views/reports/reports_view.dart';
 import 'package:prolab_unimet/views/settings_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:prolab_unimet/views/resources_view.dart';
@@ -89,6 +90,11 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/admin-tasks',
           builder: (context, state) => const TaskView(),
+          redirect: (context, state) => _requireAuth(context, userRoles),
+        ),
+        GoRoute(
+          path: '/admin-reports',
+          builder: (context, state) => const ReportsView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
       ],
