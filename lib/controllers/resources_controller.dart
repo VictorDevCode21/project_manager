@@ -15,14 +15,12 @@ class ResourcesController {
   final habilities = TextEditingController();
   final descripcionassign = TextEditingController();
 
-  // ValueNotifiers for filtering status and resource type
   final ValueNotifier<String> resourceType = ValueNotifier<String>('Humanos');
   final ValueNotifier<String> selectedStateFilter = ValueNotifier<String>(
     'Todos los estados',
   );
   final searchC = TextEditingController();
 
-  // ValueNotifier that will contain the Stream of filtered resources (for the UI)
   late final ValueNotifier<Stream<List<ResourcesModel>>>
   filteredResourcesStream;
 
@@ -38,7 +36,6 @@ class ResourcesController {
   String? resource;
   final _firestore = FirebaseFirestore.instance;
 
-  // Constructor: Initializes the stream and adds listeners for searching and filtering
   ResourcesController() {
     filteredResourcesStream = ValueNotifier(_buildResourceStream());
 
@@ -47,7 +44,6 @@ class ResourcesController {
     resourceType.addListener(_updateStream);
   }
 
-  // Method to delete a resource by its ID
   Future<void> deleteResource(String resourceId) async {
     String collection = resourceType.value == 'Humanos'
         ? 'human-resources'
@@ -63,15 +59,14 @@ class ResourcesController {
               'No tienes permisos suficientes (rol: $role) para eliminar este recurso.',
         );
       }
-      // FIN AÑADIDO
 
       await _firestore.collection(collection).doc(resourceId).delete();
 
-      print('Recurso $resourceId eliminado con éxito.');
+      debugPrint('Recurso $resourceId eliminado con éxito.');
 
       await fetchAndCalculateStats();
     } catch (e) {
-      print('Error al eliminar el recurso: $e');
+      debugPrint('Error al eliminar el recurso: $e');
       rethrow;
     }
   }
@@ -115,13 +110,16 @@ class ResourcesController {
 
             if (resourceType.value == 'Humanos') {
               return HumanResources(
-                id: id, // <--- ¡AÑADIDO!
+                id: id,
                 review: data['review'] ?? '',
-                usage: data['use'] ?? 0,
-                totalUsage: data['totalUsage'] ?? 0,
+                usage: (data['use'] as num? ?? 0).toInt(),
+                totalUsage: (data['totalUsage'] as num? ?? 0).toInt(),
                 email: data['mail'] ?? '',
                 habilities: data['habilities'] ?? '',
                 department: data['department'] ?? '',
+                projects: (data['projects'] as List<dynamic>? ?? const [])
+                    .map((e) => e.toString())
+                    .toList(),
                 name: data['name'] ?? 'N/A',
                 state: data['state'] ?? 'N/A',
                 lab: data['lab'] ?? 'N/A',
@@ -130,7 +128,7 @@ class ResourcesController {
               );
             } else {
               return MaterialResource(
-                id: id, // <--- ¡AÑADIDO!
+                id: id,
                 lastMaintenance: data['lastDate'] != null
                     ? DateTime.tryParse(data['lastDate']) ?? DateTime(2000)
                     : DateTime(2000),
@@ -151,23 +149,19 @@ class ResourcesController {
     });
   }
 
-  // Function that is called when the search or filter changes, forcing the reconstruction of the Stream
   void _updateStream() {
     filteredResourcesStream.value = _buildResourceStream();
   }
 
-  // It updates to modify the ValueNotifier (the listener does the rest)
   void changeResourceType(String type) {
     resourceType.value = type;
     searchC.clear();
   }
 
-  // Setter for the state filter (the listener does the rest)
   void changeStateFilter(String state) {
     selectedStateFilter.value = state;
   }
 
-  // Important: Dispose method to release resources (call when destroying the widget)
   void dispose() {
     searchC.removeListener(_updateStream);
     selectedStateFilter.removeListener(_updateStream);
@@ -188,8 +182,6 @@ class ResourcesController {
     email.dispose();
     habilities.dispose();
   }
-
-  // VALIDATION METHODS AND PROPERTIES AND ACTIONS
 
   void clearResourceForm() {
     nameController.clear();
@@ -220,11 +212,11 @@ class ResourcesController {
 
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      final user = await FirebaseFirestore.instance
+      final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
           .get();
-      Map<String, dynamic> data = user.data() as Map<String, dynamic>;
+      Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
       final role = data['role'];
       return role;
     } catch (e) {
@@ -314,7 +306,7 @@ class ResourcesController {
   );
 
   String? validateName(String? value) {
-    if (value!.trim().isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'El campo Nombre esta vacio';
     }
     return null;
@@ -342,7 +334,7 @@ class ResourcesController {
 
   String? validateTarif(String? value) {
     try {
-      if (value!.isNotEmpty) {
+      if (value != null && value.isNotEmpty) {
         int tarifa = int.parse(value);
         if (tarifa < 0) {
           return 'Numero negativo';
@@ -358,14 +350,14 @@ class ResourcesController {
   }
 
   String? validateHabilities(String? value) {
-    if (value!.trim().isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'El campo Habilidades esta vacio';
     }
     return null;
   }
 
   String? validateSpecs(String? value) {
-    if (value!.trim().isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'El campo Specs esta vacio';
     }
     return null;
@@ -461,7 +453,7 @@ class ResourcesController {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Corrige los errores antes de continuar')),
+        const SnackBar(content: Text('Corrige los errores antes de continuar')),
       );
     }
   }
@@ -505,13 +497,13 @@ class ResourcesController {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Corrige los errores antes de continuar')),
+        const SnackBar(content: Text('Corrige los errores antes de continuar')),
       );
     }
   }
 
-  Future<List> getHResources() async {
-    List<Map> lista = List.empty();
+  Future<List<Map<String, dynamic>>> getHResources() async {
+    final List<Map<String, dynamic>> lista = [];
     try {
       QuerySnapshot snap = await FirebaseFirestore.instance
           .collection('human-resources')
@@ -584,6 +576,7 @@ class ResourcesController {
     int uso = int.parse(use1);
     List<String> lista = List.empty(growable: true);
     lista.add(project);
+
     QuerySnapshot snap = await FirebaseFirestore.instance
         .collection('human-resources')
         .where('name', isEqualTo: resource)
@@ -592,18 +585,16 @@ class ResourcesController {
         .collection('material-resources')
         .where('name', isEqualTo: resource)
         .get();
+
     if (snap.size == 0) {
       for (var doc in snap2.docs) {
         if (doc.exists) {
-          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-          if (data['name'] == resource) {
-            await FirebaseFirestore.instance
-                .collection('material-resources')
-                .doc(doc.id)
-                .set({
-                  'projects': FieldValue.arrayUnion(lista),
-                }, SetOptions(merge: true));
-          }
+          await FirebaseFirestore.instance
+              .collection('material-resources')
+              .doc(doc.id)
+              .set({
+                'projects': FieldValue.arrayUnion(lista),
+              }, SetOptions(merge: true));
         }
       }
     } else {
@@ -611,7 +602,10 @@ class ResourcesController {
         if (doc.exists) {
           Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
           if (data.containsKey('name')) {
-            if (data['use'] + uso < data['totalUsage']) {
+            final int currentUse = (data['use'] as num? ?? 0).toInt();
+            final int total = (data['totalUsage'] as num? ?? 0).toInt();
+
+            if (currentUse + uso < total) {
               await FirebaseFirestore.instance
                   .collection('human-resources')
                   .doc(doc.id)
@@ -662,7 +656,7 @@ class ResourcesController {
     if (validateMRFields() == true) {
       try {
         QuerySnapshot snap = await FirebaseFirestore.instance
-            .collection('human-resources')
+            .collection('material-resources')
             .where('name', isEqualTo: mR.name)
             .get();
 
@@ -707,7 +701,7 @@ class ResourcesController {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Corrige los errores antes de continuar')),
+        const SnackBar(content: Text('Corrige los errores antes de continuar')),
       );
     }
   }
