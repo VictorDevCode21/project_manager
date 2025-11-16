@@ -47,13 +47,8 @@ final appRouter = GoRouter(
       builder: (context, state, child) => AdminLayout(child: child),
       routes: [
         GoRoute(
-          path: '/admin-homepage',
-          builder: (context, state) => const HomePageView(),
-          redirect: (context, state) => _requireAuth(context, userRoles),
-        ),
-        GoRoute(
           path: '/admin-dashboard',
-          builder: (context, state) => const DashboardView(),
+          builder: (context, state) => const HomePageView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
         GoRoute(
@@ -62,12 +57,6 @@ final appRouter = GoRouter(
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
 
-        // 2. ADD NEW ROUTE HERE
-        //         GoRoute(
-        //           path: '/admin-settings',
-        //           builder: (context, state) => const SettingsView(),
-        //           redirect: (context, state) => _requireAuth(context, userRoles),
-        //         ),
         GoRoute(
           path: '/admin-profile',
           builder: (context, state) => const ProfileView(),

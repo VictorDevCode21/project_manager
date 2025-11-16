@@ -79,15 +79,16 @@ class LoginController extends ChangeNotifier {
       // 4) Navigate based on role
       if (context.mounted) {
         if (role == 'ADMIN' || role == 'COORDINATOR' || role == 'USER') {
-          context.go('/admin-homepage');
+          context.go('/admin-dashboard');
         } else {
           context.go('/');
         }
       }
     } catch (error) {
-      // Centralized error mapping (handles both wrapped and raw Firebase errors)
-      final String message = _mapLoginErrorToMessage(error);
+      debugPrint('[LoginController] error type: ${error.runtimeType}');
+      debugPrint('[LoginController] error: $error');
 
+      final String message = _mapLoginErrorToMessage(error);
       _errorMessage = message;
 
       if (context.mounted) {

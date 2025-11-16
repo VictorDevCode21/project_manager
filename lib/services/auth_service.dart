@@ -1,58 +1,63 @@
+// lib/services/auth_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 
+/// Handles low level authentication logic with Firebase Auth and Firestore.
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final fb_auth.FirebaseAuth _auth = fb_auth.FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Logs in a user with email and password, returning a normalized user map.
+  ///
+  /// On credential errors it rethrows [fb_auth.FirebaseAuthException] so that
+  /// upper layers (LoginController) can inspect `code` and map messages.
   Future<Map<String, dynamic>> loginUser({
     required String email,
     required String password,
   }) async {
     try {
-      // 1️⃣ Authenticate user with Firebase Auth
-      final UserCredential cred = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
+      // 1) Authenticate user with Firebase Auth
+      final fb_auth.UserCredential cred = await _auth
+          .signInWithEmailAndPassword(email: email.trim(), password: password);
 
-      final User user = cred.user!;
+      final fb_auth.User user = cred.user!;
 
-      // 2️⃣ Retrieve user data from Firestore
-      final DocumentSnapshot userDoc = await _firestore
+      // 2) Retrieve user data from Firestore
+      final DocumentSnapshot<Map<String, dynamic>> userDoc = await _firestore
           .collection('users')
           .doc(user.uid)
           .get();
 
       if (!userDoc.exists) {
-        throw Exception('El perfil del usuario no existe en la base de datos.');
+        // Structural problem: user auth exists but profile does not.
+        throw Exception('AUTH_USER_DOC_NOT_FOUND');
       }
 
-      final data = userDoc.data() as Map<String, dynamic>;
+      final Map<String, dynamic> data = userDoc.data()!;
       final String name = data['name'] ?? 'Sin nombre';
       final String role = data['role'] ?? 'Sin rol';
 
-      // 3️⃣ Retrieve a fresh ID token (JWT)
+      // 3) Retrieve a fresh ID token (JWT)
       final String? token = await user.getIdToken();
 
-      // 4️⃣ Return a structured map containing all useful info
-      return {
+      // 4) Return a structured map containing all useful info
+      return <String, dynamic>{
         'uid': user.uid,
         'email': user.email,
         'name': name,
         'role': role,
         'token': token,
       };
-    } on FirebaseAuthException catch (e) {
-      // 5️⃣ Map Firebase-specific errors to friendly messages
-      throw Exception(_mapFirebaseLoginErrorToSpanish(e));
+    } on fb_auth.FirebaseAuthException catch (e) {
+      rethrow;
     } catch (e) {
-      throw Exception('Error inesperado al iniciar sesión: ${e.toString()}');
+      // Non-Firebase auth error (network, Firestore, etc.)
+      throw Exception('AUTH_LOGIN_GENERIC_ERROR: $e');
     }
   }
 
-  // === REGISTER USER ===
-  Future<User?> registerUser({
+  /// Registers a new user and creates its profile in Firestore.
+  Future<fb_auth.User?> registerUser({
     required String name,
     required String email,
     required String password,
@@ -62,16 +67,17 @@ class AuthService {
     required String personId,
   }) async {
     try {
-      // 1️⃣ Create user in Firebase Auth
-      final UserCredential cred = await _auth.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
+      // 1) Create user in Firebase Auth
+      final fb_auth.UserCredential cred = await _auth
+          .createUserWithEmailAndPassword(
+            email: email.trim(),
+            password: password,
+          );
 
-      final uid = cred.user!.uid;
+      final String uid = cred.user!.uid;
 
-      // 2️⃣ Save user data to Firestore
-      await _firestore.collection('users').doc(uid).set({
+      // 2) Save user data to Firestore
+      await _firestore.collection('users').doc(uid).set(<String, dynamic>{
         'id': uid,
         'name': name,
         'email': email.trim(),
@@ -84,19 +90,18 @@ class AuthService {
         'updated_at': FieldValue.serverTimestamp(),
       });
 
-      // 3️⃣ Return the created user
+      // 3) Return the created user
       return cred.user;
-    } on FirebaseAuthException catch (e) {
-      // Use structured error handling instead of print
+    } on fb_auth.FirebaseAuthException catch (e) {
+      // Keep Spanish mapping here for registration flows
       throw Exception(_mapFirebaseErrorToSpanish(e));
     } catch (e) {
-      // Catch any unexpected errors
       throw Exception('Error desconocido: ${e.toString()}');
     }
   }
 
-  // === MAP FIREBASE ERROR TO USER-FRIENDLY MESSAGE ===
-  String _mapFirebaseErrorToSpanish(FirebaseAuthException e) {
+  /// Maps Firebase registration errors to Spanish messages.
+  String _mapFirebaseErrorToSpanish(fb_auth.FirebaseAuthException e) {
     switch (e.code) {
       case 'email-already-in-use':
         return 'Este correo ya está registrado.';
@@ -111,8 +116,8 @@ class AuthService {
     }
   }
 
-  // === MAP LOGIN ERRORS ===
-  String _mapFirebaseLoginErrorToSpanish(FirebaseAuthException e) {
+  /// Optional mapper kept in case you need it elsewhere (not used by login now).
+  String _mapFirebaseLoginErrorToSpanish(fb_auth.FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
         return 'No existe una cuenta registrada con este correo.';
@@ -129,17 +134,17 @@ class AuthService {
     }
   }
 
-  // === GET USER TOKEN ===
+  /// Returns a fresh ID token for the current user, if any.
   Future<String?> getToken() async {
-    final user = _auth.currentUser;
-    return user != null ? await user.getIdToken() : null;
+    final fb_auth.User? user = _auth.currentUser;
+    return user != null ? user.getIdToken() : null;
   }
 
-  // === SIGN OUT ===
+  /// Signs out the current user.
   Future<void> logout() async {
     await _auth.signOut();
   }
 
-  // === SESSION LISTENER ===
-  Stream<User?> get userChanges => _auth.authStateChanges();
+  /// Exposes auth state changes stream.
+  Stream<fb_auth.User?> get userChanges => _auth.authStateChanges();
 }
