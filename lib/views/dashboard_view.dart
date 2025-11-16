@@ -79,12 +79,9 @@ class DashboardView extends StatelessWidget {
         const SizedBox(height: 15),
 
         ...model.recentProjects.map((project) {
-          String projectId = project.title.replaceAll(' ', '-').toLowerCase();
-
           return _ProjectTile(
             project: project,
-
-            onPressed: () => controller.goToProjectDetails(context, projectId),
+            onPressed: () => controller.goToProjectDetails(context, project.id),
           );
         }),
       ],
