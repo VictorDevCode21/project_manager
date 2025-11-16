@@ -975,7 +975,7 @@ class ResourceList extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {},
-                    child: const Text('Asignar proyecto'),
+                    child: const Text('Asignar recurso'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1085,7 +1085,7 @@ class ResourceList extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {},
-                    child: const Text('Editar'),
+                    child: const Text('Asignar recurso'),
                   ),
                 ),
                 const SizedBox(width: 10),

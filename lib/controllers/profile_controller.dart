@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:prolab_unimet/controllers/register_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:prolab_unimet/services/auth_service.dart';
 import 'package:go_router/go_router.dart';
@@ -76,22 +77,8 @@ class ProfileController {
   }
 
   String? validarPassword(String? v) {
-    if (v == null || v.isEmpty) {
-      return 'Ingresa una contraseña';
-    }
-    if (v.length < 6) {
-      return 'Debe tener al menos 6 caracteres';
-    }
-    if (v.length > 30) {
-      return 'Debe tener a lo sumo 30 caracteres';
-    }
-    if (v == '123456') {
-      return 'Contraseña muy debil';
-    }
-    if (v == 'password') {
-      return 'Contraseña muy debil';
-    }
-    return null;
+    RegisterController regcon = RegisterController();
+    return regcon.validatePassword(v);
   }
 
   String? validarDate() => selectedDate == null ? 'Selecciona una fecha' : null;
