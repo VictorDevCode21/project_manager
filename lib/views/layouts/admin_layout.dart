@@ -144,19 +144,19 @@ class AdminLayout extends StatelessWidget {
                   ),
                   const SizedBox(width: 15),
                   const _NavButton(
-                    icon: Icons.folder_copy_outlined,
+                    icon: Icons.assignment_outlined,
                     label: 'Tareas',
                     route: '/admin-tasks',
                   ),
                   const SizedBox(width: 15),
                   const _NavButton(
-                    icon: Icons.folder_copy_outlined,
+                    icon: Icons.inventory_2_outlined,
                     label: 'Recursos',
                     route: '/admin-resources',
                   ),
                   const SizedBox(width: 15),
                   const _NavButton(
-                    icon: Icons.folder_copy_outlined,
+                    icon: Icons.analytics_outlined,
                     label: 'Reportes',
                     route: '/admin-reports',
                   ),
