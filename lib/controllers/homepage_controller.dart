@@ -2,6 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:prolab_unimet/controllers/task_controller.dart';
+import 'package:prolab_unimet/models/tasks_model.dart' as tasks;
+import 'package:prolab_unimet/views/tasks/add_task_dialog.dart';
+import 'package:provider/provider.dart';
 
 import '../models/homepage_model.dart';
 import '../controllers/project_controller.dart';
@@ -264,16 +268,93 @@ class HomePageController extends ChangeNotifier {
     context.go('/admin-tasks');
   }
 
-  /// Placeholder: connect this to your real Task creation modal.
+  /// Opens the AddTask dialog using the same flow as TaskView.
   Future<void> goToCreateTask(BuildContext context) async {
-    // Aquí deberías abrir tu CreateTaskDialog o similar.
-    // Por ahora dejo un snackbar para no inventar clases que no existen.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'El modal de creación de tareas aún no está conectado al dashboard.',
+    final BuildContext scaffoldContext = context;
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(
+      scaffoldContext,
+    );
+
+    TaskController taskController;
+
+    try {
+      taskController = Provider.of<TaskController>(
+        scaffoldContext,
+        listen: false,
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se encontró el controlador de tareas. Verifica el Provider en el árbol de widgets.',
+          ),
         ),
-      ),
+      );
+      return;
+    }
+
+    // Ensure there is at least one project to attach the task to
+    if (taskController.availableProjects.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('No tienes proyectos disponibles para crear tareas.'),
+        ),
+      );
+      return;
+    }
+
+    // Ensure a current project is selected
+    if (taskController.currentProjectId == null ||
+        taskController.currentProjectId!.isEmpty) {
+      final String firstProjectId =
+          taskController.availableProjects.first['id'] as String;
+      taskController.setCurrentProject(firstProjectId);
+    }
+
+    final String projectType =
+        taskController.currentProjectData?['consultingType'] as String? ??
+        'Proyecto';
+
+    final String projectName =
+        taskController.currentProjectData?['name'] as String? ?? 'Proyecto';
+
+    if (!scaffoldContext.mounted) return;
+
+    showDialog(
+      context: scaffoldContext,
+      builder: (BuildContext dialogContext) {
+        return AddTask(
+          columns: taskController.columns,
+          projectId: taskController.currentProjectId!,
+          projectType: projectType,
+          projectName: projectName,
+          projectMembers: taskController.projectMembers,
+          onAddTask: (tasks.Task newTask) async {
+            try {
+              await taskController.addTask(newTask);
+              if (scaffoldContext.mounted) {
+                ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                  SnackBar(
+                    content: Text('Tarea "${newTask.title}" creada'),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            } catch (e) {
+              if (scaffoldContext.mounted) {
+                ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                  SnackBar(
+                    content: Text('Error creando tarea: $e'),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              }
+            }
+          },
+        );
+      },
     );
   }
 

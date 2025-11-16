@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/homepage_controller.dart';
-
 import '../models/homepage_model.dart';
 
 class DashboardView extends StatelessWidget {
