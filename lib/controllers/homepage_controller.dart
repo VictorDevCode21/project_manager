@@ -42,10 +42,22 @@ class HomePageController extends ChangeNotifier {
 
   /// Loads dashboard KPIs and recent projects based on current user role.
   ///
-  /// Role is resolved from Firebase Auth custom claims (`role`):
-  /// - 'USER'         -> user scope (only projects in visibleTo and user tasks).
-  /// - 'COORDINATOR'  -> coordinator scope (owner-based, full project/tasks).
-  /// - 'ADMIN' / null -> same behavior as coordinator by default.
+  /// Role logic:
+  /// - 'USER':
+  ///   - Projects: only those where user.uid is in `visibleTo`.
+  ///   - Pending tasks: only tasks where `assignee` is uid or email.
+  ///   - Resource utilization: 0 (to avoid permission issues).
+  ///
+  /// - 'COORDINATOR':
+  ///   - Projects: only those where `ownerId == uid`.
+  ///   - Pending tasks: all non-completed tasks in owned projects.
+  ///   - Resource utilization: based on human-resources + material-resources
+  ///     that are assigned to any of the coordinator's projects.
+  ///
+  /// - 'ADMIN' (or anything else treated as admin):
+  ///   - Projects: all projects.
+  ///   - Pending tasks: all non-completed tasks in all projects.
+  ///   - Resource utilization: global, using human-resources + material-resources.
   Future<void> _loadDashboardData() async {
     final User? user = _auth.currentUser;
     if (user == null) {
@@ -60,13 +72,213 @@ class HomePageController extends ChangeNotifier {
       _projectCache.clear();
 
       final String role = await _getCurrentUserRole(user);
+      final String uid = user.uid;
+      final String? email = user.email;
 
-      if (role == 'USER') {
-        await _loadDashboardForUser(user);
+      final DateTime now = DateTime.now();
+      final DateTime monthStart = DateTime(now.year, now.month, 1);
+      final DateTime nextMonthStart = DateTime(now.year, now.month + 1, 1);
+
+      int activeProjects = 0;
+      int expiringThisMonth = 0;
+      int totalProgressSum = 0;
+      int projectsCountForProgress = 0;
+
+      int pendingTasks = 0;
+      int dueSoonTasks = 0;
+
+      final List<Project> recentProjects = [];
+
+      // --------------------------------------------------------------------
+      // 1) Select PROJECTS QUERY depending on role
+      // --------------------------------------------------------------------
+      QuerySnapshot<Map<String, dynamic>> projectsSnap;
+
+      if (role == 'ADMIN') {
+        // Admin sees all projects.
+        projectsSnap = await _firestore.collection('projects').get();
+      } else if (role == 'COORDINATOR') {
+        // Coordinator sees only projects where he is the owner.
+        projectsSnap = await _firestore
+            .collection('projects')
+            .where('ownerId', isEqualTo: uid)
+            .get();
       } else {
-        // Default branch for 'COORDINATOR', 'ADMIN' or any other value.
-        await _loadDashboardForCoordinator(user);
+        // USER: projects where uid is in visibleTo.
+        projectsSnap = await _firestore
+            .collection('projects')
+            .where('visibleTo', arrayContains: uid)
+            .get();
       }
+
+      final List<domain.Project> projects = projectsSnap.docs
+          .map(domain.Project.fromDoc)
+          .toList();
+
+      // --------------------------------------------------------------------
+      // 2) Iterate projects and compute KPIs depending on role
+      // --------------------------------------------------------------------
+      for (final domain.Project p in projects) {
+        _projectCache[p.id] = p;
+
+        final String statusLabel = _mapStatusToLabel(p.status);
+        final String title = p.name.isNotEmpty ? p.name : 'Proyecto sin título';
+        final String client = p.client.isNotEmpty
+            ? p.client
+            : 'Cliente no definido';
+        final String category = p.consultingType.isNotEmpty
+            ? p.consultingType
+            : 'Sin categoría';
+
+        final DateTime? endDate = p.endDate;
+        final String dueLabel = endDate != null
+            ? '${endDate.day.toString().padLeft(2, '0')}/'
+                  '${endDate.month.toString().padLeft(2, '0')}/'
+                  '${endDate.year}'
+            : 'Sin fecha límite';
+
+        // Load project tasks
+        final QuerySnapshot<Map<String, dynamic>> tasksSnapshot =
+            await _firestore
+                .collection('projects')
+                .doc(p.id)
+                .collection('tasks')
+                .get();
+
+        final int totalTasks = tasksSnapshot.docs.length;
+        int completedTasks = 0;
+
+        // These counters are project-level but contribute to global KPIs.
+        int projectPendingTasks = 0;
+        int projectDueSoonTasks = 0;
+
+        for (final taskDoc in tasksSnapshot.docs) {
+          final Map<String, dynamic> tData = taskDoc.data();
+
+          final String rawStatus = (tData['status'] ?? 'pendiente')
+              .toString()
+              .toLowerCase();
+          final bool isCompleted =
+              rawStatus == 'completed' || rawStatus == 'completado';
+
+          DateTime? dueDate;
+          if (tData['dueDate'] != null) {
+            final dynamic rawDue = tData['dueDate'];
+            if (rawDue is Timestamp) {
+              dueDate = rawDue.toDate();
+            } else if (rawDue is String) {
+              dueDate = DateTime.tryParse(rawDue);
+            }
+          }
+
+          if (isCompleted) {
+            completedTasks++;
+          }
+
+          // Decide if this task counts as "pending" and "due soon" in KPIs:
+          // - USER: only tasks assigned to this user (uid or email).
+          // - COORDINATOR / ADMIN: all tasks in the selected projects.
+          bool shouldCountPendingForRole = false;
+
+          if (!isCompleted) {
+            if (role == 'USER') {
+              final String assigneeRaw = (tData['assignee'] ?? '')
+                  .toString()
+                  .trim();
+
+              if (assigneeRaw.isNotEmpty) {
+                if (assigneeRaw == uid ||
+                    (email != null && assigneeRaw == email)) {
+                  shouldCountPendingForRole = true;
+                }
+              }
+            } else {
+              // Coordinator and Admin count all non-completed tasks.
+              shouldCountPendingForRole = true;
+            }
+          }
+
+          if (shouldCountPendingForRole) {
+            projectPendingTasks++;
+
+            if (dueDate != null &&
+                dueDate.isAfter(now) &&
+                dueDate.isBefore(now.add(const Duration(days: 7)))) {
+              projectDueSoonTasks++;
+            }
+          }
+        }
+
+        // Compute project progress (based on all tasks)
+        final int projectProgress = totalTasks == 0
+            ? 0
+            : ((completedTasks / totalTasks) * 100).round();
+
+        // Build dashboard project item
+        recentProjects.add(
+          Project(
+            id: p.id,
+            title: title,
+            client: client,
+            category: category,
+            status: statusLabel,
+            dueDate: dueLabel,
+            progress: projectProgress,
+          ),
+        );
+
+        // Accumulate KPIs
+
+        // Active projects (same rule for all roles).
+        final bool isActive =
+            p.status == domain.ProjectStatus.planning ||
+            p.status == domain.ProjectStatus.inProgress;
+        if (isActive) {
+          activeProjects++;
+        }
+
+        if (endDate != null &&
+            endDate.isAfter(monthStart) &&
+            endDate.isBefore(nextMonthStart)) {
+          expiringThisMonth++;
+        }
+
+        totalProgressSum += projectProgress;
+        projectsCountForProgress++;
+
+        pendingTasks += projectPendingTasks;
+        dueSoonTasks += projectDueSoonTasks;
+      }
+
+      final int generalProgress = projectsCountForProgress == 0
+          ? 0
+          : (totalProgressSum / projectsCountForProgress).round();
+
+      // Sort recent projects by due date string (approximate ordering).
+      recentProjects.sort((a, b) => b.dueDate.compareTo(a.dueDate));
+      final List<Project> limitedRecent = recentProjects.take(5).toList();
+
+      // --------------------------------------------------------------------
+      // 3) Resource Utilization depending on role
+      // --------------------------------------------------------------------
+      int resourceUtilization = 0;
+      if (role == 'ADMIN' || role == 'COORDINATOR') {
+        final double utilization = await _calculateResourceUtilization(
+          role,
+          projects,
+        );
+        resourceUtilization = utilization.round();
+      }
+
+      _model = _model.copyWith(
+        activeProjects: activeProjects,
+        pendingTasks: pendingTasks,
+        expiringThisMonth: expiringThisMonth,
+        dueSoon: dueSoonTasks,
+        resourceUtilization: resourceUtilization,
+        generalProgress: generalProgress,
+        recentProjects: limitedRecent,
+      );
     } catch (e) {
       debugPrint('[HomePageController] _loadDashboardData error: $e');
     } finally {
@@ -75,343 +287,174 @@ class HomePageController extends ChangeNotifier {
     }
   }
 
-  /// Resolves the current user role from Firebase Auth token claims.
-  ///
-  /// This expects a custom claim named `role` with one of:
-  /// 'ADMIN', 'COORDINATOR', 'USER'.
-  /// If anything fails or the claim is missing, it falls back to 'USER'.
+  /// Resolves the current user role using:
+  /// 1) Custom claims: user.getIdTokenResult()
+  /// 2) Fallback: /users/{uid}.role
+  /// If everything fails, defaults to 'USER'.
   Future<String> _getCurrentUserRole(User user) async {
+    String resolvedRole = 'USER';
+
     try {
       final IdTokenResult tokenResult = await user.getIdTokenResult(true);
       final Map<String, dynamic>? claims = tokenResult.claims;
 
       final dynamic rawRole = claims?['role'];
       if (rawRole is String && rawRole.isNotEmpty) {
-        return rawRole;
+        resolvedRole = rawRole;
+      } else {
+        final DocumentSnapshot<Map<String, dynamic>> userDoc = await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        final Map<String, dynamic>? data = userDoc.data();
+        final dynamic docRole = data?['role'];
+
+        if (docRole is String && docRole.isNotEmpty) {
+          resolvedRole = docRole;
+        }
       }
     } catch (e) {
       debugPrint('[HomePageController] _getCurrentUserRole error: $e');
     }
-    return 'USER';
+
+    debugPrint('[HomePageController] Resolved role: $resolvedRole');
+    return resolvedRole;
   }
 
-  /// Loads dashboard data for a regular USER.
+  /// Calculates resource utilization.
   ///
-  /// Behavior:
-  /// - Only counts projects where the user is in `visibleTo`.
-  /// - Only counts ACTIVE projects (PLANNING / IN_PROGRESS) for KPIs.
-  /// - Pending tasks and "due soon" tasks are calculated ONLY for tasks
-  ///   whose `assignee` matches the current user (by uid or email).
-  /// - Project progress is computed using ALL tasks in the project.
-  Future<void> _loadDashboardForUser(User user) async {
-    final DateTime now = DateTime.now();
-    final DateTime monthStart = DateTime(now.year, now.month, 1);
-    final DateTime nextMonthStart = DateTime(now.year, now.month + 1, 1);
+  /// For ADMIN:
+  ///   - Considers all resources that are assigned to any project
+  ///     (i.e. `projects` array contains something different from "No hay proyectos").
+  ///
+  /// For COORDINATOR:
+  ///   - Considers only resources whose `projects` array references at least
+  ///     one of the coordinator's projects (matching by id OR by project name).
+  ///
+  /// Human resources:
+  ///   - If `totalUsage` and `use` exist, ratio = use / totalUsage (clamped).
+  ///   - Otherwise falls back to binary counting (1 if assigned, 0 if not).
+  ///
+  /// Material resources:
+  ///   - Binary counting: 1 if assigned to any relevant project, 0 otherwise.
+  Future<double> _calculateResourceUtilization(
+    String role,
+    List<domain.Project> projects,
+  ) async {
+    double used = 0;
+    double total = 0;
 
-    int activeProjects = 0;
-    int expiringThisMonth = 0;
-    int totalProgressSum = 0;
+    // Prepare sets for quick matching in COORDINATOR mode
+    final Set<String> projectIds = projects
+        .map((p) => p.id)
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    final Set<String> projectNames = projects
+        .map((p) => p.name)
+        .where((name) => name.isNotEmpty)
+        .toSet();
 
-    int pendingTasks = 0; // only tasks assigned to this user
-    int dueSoonTasks = 0; // only tasks assigned to this user
-
-    final List<Project> recentProjects = [];
-
-    // 1) Query projects where the user is in `visibleTo`.
-    final QuerySnapshot<Map<String, dynamic>> projectsSnap = await _firestore
-        .collection('projects')
-        .where('visibleTo', arrayContains: user.uid)
-        .get();
-
-    final List<domain.Project> visibleProjects = projectsSnap.docs
-        .map(domain.Project.fromDoc)
-        .toList();
-
-    for (final domain.Project p in visibleProjects) {
-      _projectCache[p.id] = p;
-
-      final bool isActive =
-          p.status == domain.ProjectStatus.planning ||
-          p.status == domain.ProjectStatus.inProgress;
-
-      // For USER role we only want active projects in KPIs.
-      if (!isActive) {
-        continue;
-      }
-
-      final String statusLabel = _mapStatusToLabel(p.status);
-      final String title = p.name.isNotEmpty ? p.name : 'Proyecto sin título';
-      final String client = p.client.isNotEmpty
-          ? p.client
-          : 'Cliente no definido';
-      final String category = p.consultingType.isNotEmpty
-          ? p.consultingType
-          : 'Sin categoría';
-
-      final DateTime? endDate = p.endDate;
-      final String dueLabel = endDate != null
-          ? '${endDate.day.toString().padLeft(2, '0')}/'
-                '${endDate.month.toString().padLeft(2, '0')}/'
-                '${endDate.year}'
-          : 'Sin fecha límite';
-
-      // 2) Load tasks for this project from Firestore.
-      //    - Project progress uses all tasks.
-      //    - User KPIs use only tasks assigned to this user.
-      final QuerySnapshot<Map<String, dynamic>> tasksSnapshot = await _firestore
-          .collection('projects')
-          .doc(p.id)
-          .collection('tasks')
+    try {
+      // ===========================
+      // Human resources
+      // ===========================
+      final QuerySnapshot<Map<String, dynamic>> hrSnap = await _firestore
+          .collection('human-resources')
           .get();
 
-      final int totalTasks = tasksSnapshot.docs.length;
-      int completedTasks = 0;
+      for (final doc in hrSnap.docs) {
+        final Map<String, dynamic> data = doc.data();
 
-      int projectPendingTasksForUser = 0;
-      int projectDueSoonTasksForUser = 0;
+        final List<dynamic> rawProjects =
+            (data['projects'] as List<dynamic>?) ?? const [];
+        final List<String> resourceProjects = rawProjects
+            .map((e) => e.toString())
+            .toList();
 
-      final String uid = user.uid;
-      final String? email = user.email;
+        bool isAssignedRelevant = false;
 
-      for (final taskDoc in tasksSnapshot.docs) {
-        final Map<String, dynamic> tData = taskDoc.data();
-
-        // Status mapping aligned with TaskController.
-        final String rawStatus = (tData['status'] ?? 'pendiente')
-            .toString()
-            .toLowerCase();
-        final bool isCompleted =
-            rawStatus == 'completado' || rawStatus == 'completed';
-
-        // Assignment detection aligned with TaskController:
-        // we consider a task "mine" if `assignee` matches uid or email.
-        final String assigneeRaw = (tData['assignee'] ?? '').toString().trim();
-
-        bool isAssignedToUser = false;
-        if (assigneeRaw.isNotEmpty) {
-          if (assigneeRaw == uid || (email != null && assigneeRaw == email)) {
-            isAssignedToUser = true;
-          }
-        }
-
-        DateTime? dueDate;
-        if (tData['dueDate'] != null) {
-          final dynamic rawDue = tData['dueDate'];
-          if (rawDue is Timestamp) {
-            dueDate = rawDue.toDate();
-          } else if (rawDue is String) {
-            // TaskController stores dueDate as ISO string.
-            dueDate = DateTime.tryParse(rawDue);
-          }
-        }
-
-        // Progress: all tasks count.
-        if (isCompleted) {
-          completedTasks++;
-        }
-
-        // KPIs: only pending tasks assigned to current user.
-        if (!isCompleted && isAssignedToUser) {
-          projectPendingTasksForUser++;
-
-          if (dueDate != null &&
-              dueDate.isAfter(now) &&
-              dueDate.isBefore(now.add(const Duration(days: 7)))) {
-            projectDueSoonTasksForUser++;
-          }
-        }
-      }
-
-      final int projectProgress = totalTasks == 0
-          ? 0
-          : ((completedTasks / totalTasks) * 100).round();
-
-      // 3) Build dashboard project item.
-      recentProjects.add(
-        Project(
-          id: p.id,
-          title: title,
-          client: client,
-          category: category,
-          status: statusLabel,
-          dueDate: dueLabel,
-          progress: projectProgress,
-        ),
-      );
-
-      // 4) Accumulate KPIs.
-      activeProjects++;
-
-      if (endDate != null &&
-          endDate.isAfter(monthStart) &&
-          endDate.isBefore(nextMonthStart)) {
-        expiringThisMonth++;
-      }
-
-      totalProgressSum += projectProgress;
-      pendingTasks += projectPendingTasksForUser;
-      dueSoonTasks += projectDueSoonTasksForUser;
-    }
-
-    final int generalProgress = recentProjects.isEmpty
-        ? 0
-        : (totalProgressSum / recentProjects.length).round();
-
-    // Sort by dueDate string (dd/mm/yyyy) as a simple approximation.
-    recentProjects.sort((a, b) => b.dueDate.compareTo(a.dueDate));
-    final List<Project> limitedRecent = recentProjects.take(5).toList();
-
-    _model = _model.copyWith(
-      activeProjects: activeProjects,
-      pendingTasks: pendingTasks,
-      expiringThisMonth: expiringThisMonth,
-      dueSoon: dueSoonTasks,
-      resourceUtilization: 0, // Placeholder until resources module exists.
-      generalProgress: generalProgress,
-      recentProjects: limitedRecent,
-    );
-  }
-
-  /// Loads dashboard data for COORDINATOR/ADMIN-like roles.
-  ///
-  /// Behavior:
-  /// - Uses `ProjectController.streamOwnedProjects()` to load projects
-  ///   owned by the current user.
-  /// - Counts ACTIVE projects (PLANNING / IN_PROGRESS) for KPIs.
-  /// - Pending tasks and "due soon" tasks are calculated based on ALL tasks
-  ///   in owned projects, not only tasks assigned to the coordinator.
-  /// - Project progress is computed using all tasks in the project.
-  Future<void> _loadDashboardForCoordinator(User user) async {
-    final DateTime now = DateTime.now();
-    final DateTime monthStart = DateTime(now.year, now.month, 1);
-    final DateTime nextMonthStart = DateTime(now.year, now.month + 1, 1);
-
-    int activeProjects = 0;
-    int expiringThisMonth = 0;
-    int totalProgressSum = 0;
-    int pendingTasks = 0;
-    int dueSoonTasks = 0;
-
-    final List<Project> recentProjects = [];
-
-    // 1) Load owned projects from ProjectController.
-    final List<domain.Project> ownedProjects = await _projectController
-        .streamOwnedProjects()
-        .first;
-
-    for (final domain.Project p in ownedProjects) {
-      _projectCache[p.id] = p;
-
-      final String statusLabel = _mapStatusToLabel(p.status);
-      final String title = p.name.isNotEmpty ? p.name : 'Proyecto sin título';
-      final String client = p.client.isNotEmpty
-          ? p.client
-          : 'Cliente no definido';
-      final String category = p.consultingType.isNotEmpty
-          ? p.consultingType
-          : 'Sin categoría';
-
-      final DateTime? endDate = p.endDate;
-      final String dueLabel = endDate != null
-          ? '${endDate.day.toString().padLeft(2, '0')}/'
-                '${endDate.month.toString().padLeft(2, '0')}/'
-                '${endDate.year}'
-          : 'Sin fecha límite';
-
-      // 2) Load all tasks from Firestore for this project.
-      final QuerySnapshot<Map<String, dynamic>> tasksSnapshot = await _firestore
-          .collection('projects')
-          .doc(p.id)
-          .collection('tasks')
-          .get();
-
-      final int totalTasks = tasksSnapshot.docs.length;
-      int completedTasks = 0;
-      int projectPendingTasks = 0;
-      int projectDueSoonTasks = 0;
-
-      for (final taskDoc in tasksSnapshot.docs) {
-        final Map<String, dynamic> tData = taskDoc.data();
-        final String rawStatus = (tData['status'] ?? 'pendiente')
-            .toString()
-            .toLowerCase();
-
-        final bool isCompleted =
-            rawStatus == 'completed' || rawStatus == 'completado';
-
-        DateTime? dueDate;
-        if (tData['dueDate'] != null) {
-          final dynamic rawDue = tData['dueDate'];
-          if (rawDue is Timestamp) {
-            dueDate = rawDue.toDate();
-          } else if (rawDue is String) {
-            dueDate = DateTime.tryParse(rawDue);
-          }
-        }
-
-        if (isCompleted) {
-          completedTasks++;
+        if (role == 'ADMIN') {
+          // Admin: resource is "assigned" if it has any project different from "No hay proyectos"
+          isAssignedRelevant = resourceProjects.any(
+            (p) => p.trim().toLowerCase() != 'no hay proyectos',
+          );
         } else {
-          projectPendingTasks++;
-          if (dueDate != null &&
-              dueDate.isAfter(now) &&
-              dueDate.isBefore(now.add(const Duration(days: 7)))) {
-            projectDueSoonTasks++;
+          // COORDINATOR: resource counts only if it is linked to one of his projects
+          isAssignedRelevant = resourceProjects.any((p) {
+            final String value = p.toString();
+            return projectIds.contains(value) || projectNames.contains(value);
+          });
+        }
+
+        // Try to use totalUsage/use if present
+        final double totalUsage =
+            (data['totalUsage'] as num?)?.toDouble() ?? 0.0;
+        final double usedUsage = (data['use'] as num?)?.toDouble() ?? 0.0;
+
+        if (totalUsage > 0) {
+          total += totalUsage;
+          if (isAssignedRelevant) {
+            // Clamp to avoid weird values
+            final double clampedUsed = usedUsage
+                .clamp(0.0, totalUsage)
+                .toDouble();
+            used += clampedUsed;
+          }
+        } else {
+          // Fallback binary counting
+          total += 1;
+          if (isAssignedRelevant) {
+            used += 1;
           }
         }
       }
 
-      final int projectProgress = totalTasks == 0
-          ? 0
-          : ((completedTasks / totalTasks) * 100).round();
+      // ===========================
+      // Material resources
+      // ===========================
+      final QuerySnapshot<Map<String, dynamic>> mrSnap = await _firestore
+          .collection('material-resources')
+          .get();
 
-      // 3) Build dashboard project item.
-      recentProjects.add(
-        Project(
-          id: p.id,
-          title: title,
-          client: client,
-          category: category,
-          status: statusLabel,
-          dueDate: dueLabel,
-          progress: projectProgress,
-        ),
+      for (final doc in mrSnap.docs) {
+        final Map<String, dynamic> data = doc.data();
+
+        final List<dynamic> rawProjects =
+            (data['projects'] as List<dynamic>?) ?? const [];
+        final List<String> resourceProjects = rawProjects
+            .map((e) => e.toString())
+            .toList();
+
+        bool isAssignedRelevant = false;
+
+        if (role == 'ADMIN') {
+          isAssignedRelevant = resourceProjects.any(
+            (p) => p.trim().toLowerCase() != 'no hay proyectos',
+          );
+        } else {
+          isAssignedRelevant = resourceProjects.any((p) {
+            final String value = p.toString();
+            return projectIds.contains(value) || projectNames.contains(value);
+          });
+        }
+
+        // For materials we treat each doc as one unit
+        total += 1;
+        if (isAssignedRelevant) {
+          used += 1;
+        }
+      }
+    } catch (e) {
+      debugPrint(
+        '[HomePageController] _calculateResourceUtilization error: $e',
       );
-
-      // 4) Accumulate KPIs.
-      if (p.status == domain.ProjectStatus.planning ||
-          p.status == domain.ProjectStatus.inProgress) {
-        activeProjects++;
-      }
-
-      if (endDate != null &&
-          endDate.isAfter(monthStart) &&
-          endDate.isBefore(nextMonthStart)) {
-        expiringThisMonth++;
-      }
-
-      totalProgressSum += projectProgress;
-      pendingTasks += projectPendingTasks;
-      dueSoonTasks += projectDueSoonTasks;
     }
 
-    final int generalProgress = recentProjects.isEmpty
-        ? 0
-        : (totalProgressSum / recentProjects.length).round();
-
-    // Simple ordering by due date string.
-    recentProjects.sort((a, b) => b.dueDate.compareTo(a.dueDate));
-    final List<Project> limitedRecent = recentProjects.take(5).toList();
-
-    _model = _model.copyWith(
-      activeProjects: activeProjects,
-      pendingTasks: pendingTasks,
-      expiringThisMonth: expiringThisMonth,
-      dueSoon: dueSoonTasks,
-      resourceUtilization: 0, // Placeholder until resources module exists.
-      generalProgress: generalProgress,
-      recentProjects: limitedRecent,
-    );
+    if (total <= 0) {
+      return 0;
+    }
+    return (used / total) * 100.0;
   }
 
   /// Maps domain status enum to a human readable Spanish label.
@@ -442,7 +485,6 @@ class HomePageController extends ChangeNotifier {
     final NavigatorState nav = Navigator.of(context, rootNavigator: true);
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
 
-    // 1) Open modal dialog to capture project data.
     final ProjectCreateData? dto = await showDialog<ProjectCreateData>(
       context: context,
       barrierDismissible: false,
@@ -453,7 +495,6 @@ class HomePageController extends ChangeNotifier {
     if (dto == null) return;
     if (!context.mounted) return;
 
-    // 2) Show loading dialog while creating the project.
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -473,7 +514,7 @@ class HomePageController extends ChangeNotifier {
         endDate: dto.endDate,
       );
 
-      if (nav.canPop()) nav.pop(); // Close loading dialog.
+      if (nav.canPop()) nav.pop();
 
       messenger.showSnackBar(
         SnackBar(content: Text('Proyecto creado con id: $projectId')),
@@ -481,7 +522,7 @@ class HomePageController extends ChangeNotifier {
 
       await refresh();
     } catch (e) {
-      if (nav.canPop()) nav.pop(); // Close loading dialog.
+      if (nav.canPop()) nav.pop();
       messenger.showSnackBar(
         SnackBar(content: Text('Error al crear proyecto: $e')),
       );
@@ -518,7 +559,6 @@ class HomePageController extends ChangeNotifier {
       return;
     }
 
-    // Ensure there is at least one project to attach the task to.
     if (taskController.availableProjects.isEmpty) {
       messenger.showSnackBar(
         const SnackBar(
@@ -528,7 +568,6 @@ class HomePageController extends ChangeNotifier {
       return;
     }
 
-    // Ensure a current project is selected.
     if (taskController.currentProjectId == null ||
         taskController.currentProjectId!.isEmpty) {
       final String firstProjectId =
@@ -603,12 +642,10 @@ class HomePageController extends ChangeNotifier {
     );
   }
 
-  /// Stub for dashboard navigation (already on dashboard).
   void goToDashboard(BuildContext context) {
-    // No-op: this is already the dashboard.
+    // No-op: already on dashboard.
   }
 
-  /// Temporary stub for project progress view.
   void goToProjectProgress(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -619,7 +656,6 @@ class HomePageController extends ChangeNotifier {
     );
   }
 
-  /// Temporary stub for reports view.
   void goToReports(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -630,7 +666,6 @@ class HomePageController extends ChangeNotifier {
     );
   }
 
-  /// Temporary stub for "generate report" action.
   void goToGenerateReport(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
