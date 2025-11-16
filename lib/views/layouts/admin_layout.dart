@@ -443,26 +443,6 @@ class _NotificationsPopover extends StatelessWidget {
 
           // === Footer ===
           const Divider(height: 1, color: Colors.black12),
-          PopupMenuItem<String>(
-            value: 'history',
-            // We use the 'parentContext' here for navigation,
-            // as this widget's 'context' is part of the popup route.
-            child: InkWell(
-              onTap: () {
-                Navigator.of(context).pop(); // Close popup
-                GoRouter.of(parentContext).go('/admin-notifications');
-              },
-              child: Center(
-                child: Text(
-                  'Ver Historial Completo (${notifications.length})',
-                  style: TextStyle(
-                    color: Theme.of(parentContext).primaryColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
