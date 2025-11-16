@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
-import 'package:prolab_unimet/views/dashboard_view.dart';
 import 'package:prolab_unimet/views/landing_page_view.dart';
 import 'package:prolab_unimet/views/layouts/admin_layout.dart';
 import 'package:prolab_unimet/views/login_view.dart';
@@ -12,7 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:prolab_unimet/views/resources_view.dart';
 import 'package:prolab_unimet/views/task_view.dart';
 import 'package:provider/provider.dart';
-import 'package:prolab_unimet/views/homepage_view.dart';
+import 'package:prolab_unimet/views/dashboard_view.dart';
 
 // Define user roles for authorization
 const userRoles = ['USER', 'ADMIN', 'COORDINATOR'];
@@ -48,7 +47,7 @@ final appRouter = GoRouter(
       routes: [
         GoRoute(
           path: '/admin-dashboard',
-          builder: (context, state) => const HomePageView(),
+          builder: (context, state) => const DashboardView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
         GoRoute(
