@@ -1130,18 +1130,6 @@ class _TaskView extends State<TaskView> {
           },
         ),
         const SizedBox(width: 16),
-        DropdownButton<String>(
-          value: _selectedAssignees,
-          items: <String>['Responsables', 'Alta', 'Media', 'Baja']
-              .map(
-                (String e) =>
-                    DropdownMenuItem<String>(value: e, child: Text(e)),
-              )
-              .toList(),
-          onChanged: (String? value) {
-            setState(() => _selectedAssignees = value!);
-          },
-        ),
       ],
     );
   }
