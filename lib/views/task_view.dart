@@ -103,7 +103,7 @@ class _TaskView extends State<TaskView> {
                                 style: TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xff1b5bf5),
+                                  color: Color(0xff1a1a1a),
                                 ),
                               ),
                               SizedBox(height: 4),
@@ -111,7 +111,6 @@ class _TaskView extends State<TaskView> {
                                 'Tablero para gestionar tareas de proyectos',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w600,
                                   color: Colors.grey,
                                 ),
                               ),
@@ -181,7 +180,7 @@ class _TaskView extends State<TaskView> {
                               ),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xff2d55fa),
+                              backgroundColor: const Color(0xff253f8d),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
                                 vertical: 14,
