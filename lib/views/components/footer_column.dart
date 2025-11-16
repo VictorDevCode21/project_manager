@@ -6,8 +6,7 @@ class FooterColumn extends StatelessWidget {
   final String title;
   final List<String> items;
 
-  const FooterColumn({Key? key, required this.title, required this.items})
-    : super(key: key);
+  const FooterColumn({super.key, required this.title, required this.items});
 
   @override
   Widget build(BuildContext context) {

@@ -46,16 +46,16 @@ class LandingPageView extends StatelessWidget {
           ), // Asegúrate de tener este asset
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
-            Colors.blue.shade900.withOpacity(1),
-            BlendMode.overlay,
+            Colors.blue.shade900.withOpacity(0.6),
+            BlendMode.darken,
           ),
         ),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.blue.shade50.withOpacity(0.8),
-            Colors.white.withOpacity(0.7),
+            Colors.black.withOpacity(0.8), // capa sutil sobre la imagen
+            Colors.transparent,
           ],
         ),
       ),
@@ -128,7 +128,7 @@ class LandingPageView extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton(
                         // Llama a la acción del controlador
-                        onPressed: _controller.onLoginPressed,
+                        onPressed: () => _controller.onLoginPressed(context),
                         style: ElevatedButton.styleFrom(
                           side: const BorderSide(color: Colors.white, width: 2),
                           backgroundColor: Colors.transparent,

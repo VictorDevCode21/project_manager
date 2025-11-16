@@ -6,7 +6,7 @@ import '../../models/feature_model.dart';
 class BenefitCard extends StatelessWidget {
   final FeatureModel model;
 
-  const BenefitCard({Key? key, required this.model}) : super(key: key);
+  const BenefitCard({super.key, required this.model});
 
   @override
   Widget build(BuildContext context) {
