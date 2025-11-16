@@ -147,7 +147,7 @@ class _AddTaskState extends State<AddTask> {
                           )
                         else
                           DropdownButtonFormField<String>(
-                            value: _selectedAssigneeId,
+                            initialValue: _selectedAssigneeId,
                             items: widget.projectMembers.map((member) {
                               return DropdownMenuItem(
                                 value: member['id'],
@@ -177,7 +177,7 @@ class _AddTaskState extends State<AddTask> {
                       children: [
                         const Text('Prioridad', style: TextStyle(fontSize: 14)),
                         DropdownButtonFormField<Priority>(
-                          value: _selectedPriority,
+                          initialValue: _selectedPriority,
                           items: Priority.values.map((priority) {
                             return DropdownMenuItem(
                               value: priority,
@@ -203,7 +203,7 @@ class _AddTaskState extends State<AddTask> {
                       children: [
                         const Text('Estado', style: TextStyle(fontSize: 14)),
                         DropdownButtonFormField<Status>(
-                          value: _selectedStatus,
+                          initialValue: _selectedStatus,
                           items: Status.values.map((status) {
                             return DropdownMenuItem(
                               value: status,
@@ -245,7 +245,7 @@ class _AddTaskState extends State<AddTask> {
                       children: [
                         const Text('Columna', style: TextStyle(fontSize: 14)),
                         DropdownButtonFormField<TaskColumn>(
-                          value: _selectedColumn,
+                          initialValue: _selectedColumn,
                           items: widget.columns.map((column) {
                             return DropdownMenuItem(
                               value: column,

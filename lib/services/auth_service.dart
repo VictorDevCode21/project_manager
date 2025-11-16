@@ -1,44 +1,63 @@
+// lib/services/auth_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 
+/// Handles low level authentication logic with Firebase Auth and Firestore.
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final fb_auth.FirebaseAuth _auth = fb_auth.FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // -------------------------
-  // SCHEMA: users/{uid}
-  // {
-  //   id, name, email, role, phone, personId,
-  //   birthDate (Timestamp),
-  //   createdAt (serverTimestamp), updatedAt (serverTimestamp)
-  // }
-  // -------------------------
-
-  // Helper: create or update Firestore profile idempotently
-  Future<void> _ensureUserProfile({
-    required String uid,
+  /// Logs in a user with email and password, returning a normalized user map.
+  ///
+  /// On credential errors it rethrows [fb_auth.FirebaseAuthException] so that
+  /// upper layers (LoginController) can inspect `code` and map messages.
+  Future<Map<String, dynamic>> loginUser({
     required String email,
-    String? name,
-    String role = 'USER',
-    String? phone,
-    String? personId,
-    DateTime? birthDate,
+    required String password,
   }) async {
-    await _firestore.collection('users').doc(uid).set({
-      'id': uid,
-      'email': email.toLowerCase(),
-      'name': name ?? '',
-      'role': role,
-      'phone': phone ?? '',
-      'personId': personId ?? '',
-      if (birthDate != null) 'birthDate': Timestamp.fromDate(birthDate),
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true)); // merge = idempotent
+    try {
+      // 1) Authenticate user with Firebase Auth
+      final fb_auth.UserCredential cred = await _auth
+          .signInWithEmailAndPassword(email: email.trim(), password: password);
+
+      final fb_auth.User user = cred.user!;
+
+      // 2) Retrieve user data from Firestore
+      final DocumentSnapshot<Map<String, dynamic>> userDoc = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        // Structural problem: user auth exists but profile does not.
+        throw Exception('AUTH_USER_DOC_NOT_FOUND');
+      }
+
+      final Map<String, dynamic> data = userDoc.data()!;
+      final String name = data['name'] ?? 'Sin nombre';
+      final String role = data['role'] ?? 'Sin rol';
+
+      // 3) Retrieve a fresh ID token (JWT)
+      final String? token = await user.getIdToken();
+
+      // 4) Return a structured map containing all useful info
+      return <String, dynamic>{
+        'uid': user.uid,
+        'email': user.email,
+        'name': name,
+        'role': role,
+        'token': token,
+      };
+    } on fb_auth.FirebaseAuthException catch (e) {
+      rethrow;
+    } catch (e) {
+      // Non-Firebase auth error (network, Firestore, etc.)
+      throw Exception('AUTH_LOGIN_GENERIC_ERROR: $e');
+    }
   }
 
-  // === REGISTER USER ===
-  Future<User?> registerUser({
+  /// Registers a new user and creates its profile in Firestore.
+  Future<fb_auth.User?> registerUser({
     required String name,
     required String email,
     required String password,
@@ -48,100 +67,41 @@ class AuthService {
     required String personId,
   }) async {
     try {
-      // 1) Auth signup
-      final cred = await _auth.createUserWithEmailAndPassword(
-        email: email.trim().toLowerCase(),
-        password: password,
-      );
-      final user = cred.user;
-      if (user == null) return null;
+      // 1) Create user in Firebase Auth
+      final fb_auth.UserCredential cred = await _auth
+          .createUserWithEmailAndPassword(
+            email: email.trim(),
+            password: password,
+          );
 
-      // 2) Optional cosmetic update in Auth profile
-      await user.updateDisplayName(name);
+      final String uid = cred.user!.uid;
 
-      // 3) Firestore profile (canonical, camelCase keys)
-      await _ensureUserProfile(
-        uid: user.uid,
-        email: email,
-        name: name,
-        role: role,
-        phone: phoneNumber,
-        personId: personId,
-        birthDate: birthDate,
-      );
-
-      return user;
-    } on FirebaseAuthException catch (e) {
-      throw Exception(_mapFirebaseRegisterErrorEs(e));
-    } on FirebaseException catch (e) {
-      // Firestore/permission issues
-      throw Exception(_mapFirestoreErrorEs(e));
-    } catch (e) {
-      throw Exception('Error desconocido en registro.');
-    }
-  }
-
-  // === LOGIN USER ===
-  Future<Map<String, dynamic>> loginUser({
-    required String email,
-    required String password,
-  }) async {
-    try {
-      // 1) Auth signIn
-      final cred = await _auth.signInWithEmailAndPassword(
-        email: email.trim().toLowerCase(),
-        password: password,
-      );
-      final user = cred.user!;
-      final uid = user.uid;
-
-      // 2) Try to read profile
-      final ref = _firestore.collection('users').doc(uid);
-      var snap = await ref.get();
-
-      // 3) Backfill profile if missing (legacy users)
-      if (!snap.exists) {
-        await _ensureUserProfile(
-          uid: uid,
-          email: user.email ?? email,
-          name: user.displayName,
-          role: 'USER',
-        );
-        snap = await ref.get(); // read again
-      }
-
-      final data = snap.data() ?? {};
-      final name = (data['name'] as String?) ?? (user.displayName ?? '');
-      final role = (data['role'] as String?) ?? 'USER';
-      final freshToken = await user.getIdToken(true); // force refresh
-
-      return {
-        'uid': uid,
-        'email': user.email,
+      // 2) Save user data to Firestore
+      await _firestore.collection('users').doc(uid).set(<String, dynamic>{
+        'id': uid,
         'name': name,
+        'email': email.trim(),
+        'phone_number': phoneNumber,
         'role': role,
-        'token': freshToken,
-      };
-    } on FirebaseAuthException catch (e) {
-      throw Exception(_mapFirebaseLoginErrorEs(e));
-    } on FirebaseException catch (e) {
-      throw Exception(_mapFirestoreErrorEs(e));
-    } catch (_) {
-      throw Exception('Error inesperado al iniciar sesión.');
+        'description': '',
+        'personId': personId,
+        'birth_date': birthDate.toIso8601String(),
+        'created_at': FieldValue.serverTimestamp(),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+
+      // 3) Return the created user
+      return cred.user;
+    } on fb_auth.FirebaseAuthException catch (e) {
+      // Keep Spanish mapping here for registration flows
+      throw Exception(_mapFirebaseErrorToSpanish(e));
+    } catch (e) {
+      throw Exception('Error desconocido: ${e.toString()}');
     }
   }
 
-  // === SIGN OUT ===
-  Future<void> logout() async => _auth.signOut();
-
-  // === TOKEN ===
-  Future<String?> getToken() async {
-    final user = _auth.currentUser;
-    return user != null ? await user.getIdToken() : null;
-  }
-
-  // === ERROR MAPPING (Auth) ===
-  String _mapFirebaseRegisterErrorEs(FirebaseAuthException e) {
+  /// Maps Firebase registration errors to Spanish messages.
+  String _mapFirebaseErrorToSpanish(fb_auth.FirebaseAuthException e) {
     switch (e.code) {
       case 'email-already-in-use':
         return 'Este correo ya está registrado.';
@@ -150,37 +110,41 @@ class AuthService {
       case 'weak-password':
         return 'La contraseña es demasiado débil.';
       case 'operation-not-allowed':
-        return 'Método de registro deshabilitado.';
+        return 'El registro con correo y contraseña no está habilitado.';
       default:
-        return 'No se pudo registrar. (${e.code})';
+        return 'Ocurrió un error durante el registro. Intenta nuevamente.';
     }
   }
 
-  String _mapFirebaseLoginErrorEs(FirebaseAuthException e) {
+  /// Optional mapper kept in case you need it elsewhere (not used by login now).
+  String _mapFirebaseLoginErrorToSpanish(fb_auth.FirebaseAuthException e) {
     switch (e.code) {
       case 'user-not-found':
-        return 'No existe una cuenta con este correo.';
+        return 'No existe una cuenta registrada con este correo.';
       case 'wrong-password':
         return 'La contraseña es incorrecta.';
       case 'invalid-email':
-        return 'Correo inválido.';
+        return 'El correo ingresado no es válido.';
       case 'user-disabled':
-        return 'Esta cuenta está deshabilitada.';
+        return 'Esta cuenta ha sido deshabilitada.';
       case 'too-many-requests':
-        return 'Demasiados intentos. Intenta luego.';
+        return 'Demasiados intentos fallidos. Intenta más tarde.';
       default:
-        return 'No se pudo iniciar sesión. (${e.code})';
+        return 'Error al iniciar sesión. Intenta nuevamente.';
     }
   }
 
-  // === ERROR MAPPING (Firestore) ===
-  String _mapFirestoreErrorEs(FirebaseException e) {
-    if (e.code == 'permission-denied') {
-      return 'Acceso denegado en Firestore. Revisa reglas y dominios.';
-    }
-    if (e.code == 'unavailable') {
-      return 'Servicio de base de datos no disponible temporalmente.';
-    }
-    return 'Error de base de datos: ${e.code}';
+  /// Returns a fresh ID token for the current user, if any.
+  Future<String?> getToken() async {
+    final fb_auth.User? user = _auth.currentUser;
+    return user != null ? user.getIdToken() : null;
   }
+
+  /// Signs out the current user.
+  Future<void> logout() async {
+    await _auth.signOut();
+  }
+
+  /// Exposes auth state changes stream.
+  Stream<fb_auth.User?> get userChanges => _auth.authStateChanges();
 }

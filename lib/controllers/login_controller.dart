@@ -85,9 +85,10 @@ class LoginController extends ChangeNotifier {
         }
       }
     } catch (error) {
-      // Centralized error mapping (handles both wrapped and raw Firebase errors)
-      final String message = _mapLoginErrorToMessage(error);
+      debugPrint('[LoginController] error type: ${error.runtimeType}');
+      debugPrint('[LoginController] error: $error');
 
+      final String message = _mapLoginErrorToMessage(error);
       _errorMessage = message;
 
       if (context.mounted) {
