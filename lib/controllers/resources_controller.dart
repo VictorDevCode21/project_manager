@@ -221,11 +221,14 @@ class ResourcesController {
     }
 
     try {
-      final idTokenResult = await user.getIdTokenResult(true);
-
-      debugPrint("Claims del Token: ${idTokenResult.claims}");
-      final role = idTokenResult.claims?['role'] ?? 'USER';
-      return role.toString().toUpperCase();
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final user = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+      Map<String, dynamic> data = user.data() as Map<String, dynamic>;
+      final role = data['role'];
+      return role;
     } catch (e) {
       debugPrint("Error fetching user role from token: $e");
       return 'USER';
@@ -340,14 +343,12 @@ class ResourcesController {
       priority == null ? 'Selecciona la prioridad' : null;
 
   String? validateTarif(String? value) {
-    debugPrint(value);
     try {
       if (value!.isNotEmpty || value == null) {
         int tarifa = int.parse(value);
         if (tarifa < 0) {
           return 'Numero negativo';
         } else {
-          debugPrint(value);
           return null;
         }
       }
@@ -403,31 +404,23 @@ class ResourcesController {
   }
 
   bool validateHRFields() {
-    if (validateDepartment() != null &&
+    return validateDepartment() == null &&
         validateHabilities(habilities.text) == null &&
         validateEmail(email.text) == null &&
-        validateState() != null &&
+        validateState() == null &&
         validateTarif(tarifController.text) == null &&
-        validateTarif(usage.text) == null &&
-        validateLab() != null &&
-        validateName(nameController.text) == null) {
-      return true;
-    } else {
-      return false;
-    }
+        validateTarif(totalUsage.text) == null &&
+        validateLab() == null &&
+        validateName(nameController.text) == null;
   }
 
   bool validateMRFields() {
-    if (validateLastDate() != null &&
+    return validateLastDate() == null &&
         validateNextDate() == null &&
-        validateState() != null &&
+        validateState() == null &&
         validateSpecs(specs.text) == null &&
-        validateLab() != null &&
-        validateName(nameController.text) == null) {
-      return true;
-    } else {
-      return false;
-    }
+        validateLab() == null &&
+        validateName(nameController.text) == null;
   }
 
   Future<void> createHResource(BuildContext context) async {
@@ -440,32 +433,43 @@ class ResourcesController {
               'name': nameController.text,
               'state': stateC,
               'lab': labC,
-              'projects': ['No hay proyectos'],
+              'projects': [],
               'mail': email.text.trim(),
-              'tarif': int.parse(tarifController.text),
-              'use': int.parse(usage.text),
+              'tarif': double.tryParse(tarifController.text) ?? 0.0,
+              'use': 0,
+              'totalUsage': int.tryParse(totalUsage.text) ?? 0,
               'habilities': habilities.text,
               'department': departmentC,
             });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Recurso humano creado correctamente')),
-        );
-      } catch (e) {}
+        await fetchAndCalculateStats();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Recurso humano creado correctamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Error al crear recurso humano: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Epale te falta algo')));
-      debugPrint(validateName(nameController.text));
-      debugPrint(validateTarif(usage.text));
-      debugPrint(validateHabilities(habilities.text));
-      debugPrint(validateState());
-      debugPrint(validateTarif(tarifController.text));
-      debugPrint(validateEmail(email.text));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Corrige los errores antes de continuar')),
+      );
     }
   }
 
   Future<void> createMResource(BuildContext context) async {
-    if (validateHRFields() == true) {
+    if (validateMRFields() == true) {
       try {
         await FirebaseFirestore.instance
             .collection("material-resources")
@@ -473,20 +477,38 @@ class ResourcesController {
             .set({
               'name': nameController.text,
               'state': stateC,
-              'projects': ['No hay proyectos'],
+              'projects': [],
               'lab': labC,
+              'tarif': double.tryParse(tarifController.text) ?? 0.0,
+              'condition': conditionC,
               'lastDate': lastDate!.toIso8601String(),
-              'habilities': nextDate!.toIso8601String(),
+              'nextDate': nextDate!.toIso8601String(),
               'specs': specs.text,
             });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Recurso humano creado correctamente')),
-        );
-      } catch (e) {}
+        await fetchAndCalculateStats();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Recurso material creado correctamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Error al crear recurso material: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Epale te falta algo')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Corrige los errores antes de continuar')),
+      );
     }
   }
 

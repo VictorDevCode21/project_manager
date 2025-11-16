@@ -1337,10 +1337,6 @@ class _Screen2State extends State<Screen2> {
                               child: Text('Ocupado'),
                             ),
                             DropdownMenuItem(
-                              value: 'Mantenimiento',
-                              child: Text('Mantenimiento'),
-                            ),
-                            DropdownMenuItem(
                               value: 'En Uso',
                               child: Text('En Uso'),
                             ),
@@ -1472,11 +1468,7 @@ class _Screen2State extends State<Screen2> {
                             const SnackBar(content: Text('Creando recurso...')),
                           );
 
-                          if (widget.runtimeType == Screen2) {
-                            await controller.createHResource(context);
-                          } else if (widget.runtimeType == Screen3) {
-                            await controller.createMResource(context);
-                          }
+                          controller.createHResource(context);
 
                           controller.clearResourceForm();
 
