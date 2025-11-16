@@ -73,14 +73,33 @@ class ProfileManager extends StatefulWidget {
 }
 
 class _ProfileManagerState extends State<ProfileManager> {
-  ProfileController controller = ProfileController();
+  late final ProfileController controller;
+  final GlobalKey<FormState> _profileFormKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    controller = ProfileController();
+
+    // Load current user data once after first build
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await controller.cancelarAccion(context);
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    controller.cancelarAccion(context);
     return Center(
       child: Container(
         width: 900,
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           border: Border.all(color: Theme.of(context).dividerColor),
           borderRadius: BorderRadius.circular(10),
@@ -106,44 +125,46 @@ class _ProfileManagerState extends State<ProfileManager> {
               ],
             ),
             Row(
-              children: [
+              children: const [
                 Text('Actualiza tu información personal y datos de contacto'),
               ],
             ),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+              children: const [
                 CircleAvatar(
                   radius: 55,
                   child: Icon(Icons.person, size: 80, color: Colors.white),
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Form(
+              key: _profileFormKey,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(child: column1()),
-                  SizedBox(width: 30),
+                  const SizedBox(width: 30),
                   Expanded(child: column2()),
                 ],
               ),
             ),
             descriptionBox(),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 cancel1(),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 saveChanges(),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 authChange(),
               ],
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
           ],
         ),
       ),
@@ -168,9 +189,9 @@ class _ProfileManagerState extends State<ProfileManager> {
           controller: controller.newnameController,
           validator: controller.validarNombre,
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Text(
-          'Telefono',
+          'Teléfono',
           style: TextStyle(
             color: Theme.of(context).textTheme.bodyMedium!.color,
             fontWeight: FontWeight.bold,
@@ -178,7 +199,7 @@ class _ProfileManagerState extends State<ProfileManager> {
         ),
         CustomTextField(
           labelText: 'telefono',
-          hintText: '01234567890',
+          hintText: '04141234567',
           iconData: Icons.phone,
           controller: controller.newphoneController,
           validator: controller.validarPhone,
@@ -192,7 +213,7 @@ class _ProfileManagerState extends State<ProfileManager> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Cedula',
+          'Cédula',
           style: TextStyle(
             color: Theme.of(context).textTheme.bodyMedium!.color,
             fontWeight: FontWeight.bold,
@@ -200,12 +221,12 @@ class _ProfileManagerState extends State<ProfileManager> {
         ),
         CustomTextField(
           labelText: 'cedula',
-          hintText: 'Numero de cedula',
+          hintText: 'Número de cédula',
           iconData: Icons.info,
           controller: controller.newpersonIdController,
           validator: controller.validarCedula,
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Text(
           'Fecha de nacimiento',
           style: TextStyle(
@@ -216,11 +237,18 @@ class _ProfileManagerState extends State<ProfileManager> {
         TextFormField(
           readOnly: true,
           onTap: () async {
-            final pickedDate = await showDatePicker(
+            final DateTime now = DateTime.now();
+            final DateTime firstDate = DateTime(
+              now.year - 120,
+              now.month,
+              now.day,
+            );
+
+            final DateTime? pickedDate = await showDatePicker(
               context: context,
-              firstDate: DateTime(1950),
-              initialDate: DateTime(2000),
-              lastDate: DateTime.now(),
+              firstDate: firstDate,
+              initialDate: controller.selectedDate ?? DateTime(2000),
+              lastDate: now,
             );
             if (pickedDate != null) {
               setState(() => controller.selectedDate = pickedDate);
@@ -244,7 +272,7 @@ class _ProfileManagerState extends State<ProfileManager> {
 
   Widget descriptionBox() {
     return Container(
-      padding: EdgeInsets.all(10),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: Theme.of(context).dividerColor),
@@ -265,31 +293,28 @@ class _ProfileManagerState extends State<ProfileManager> {
 
   Widget cancel1() {
     return OutlinedButton(
-      onPressed: () {
-        setState(() {
-          try {
-            controller.cancelarAccion(context);
-          } catch (e) {
-            debugPrint(e.toString());
-          }
-        });
+      onPressed: () async {
+        try {
+          await controller.cancelarAccion(context);
+          if (mounted) setState(() {});
+        } catch (e) {
+          debugPrint(e.toString());
+        }
       },
-      child: Text('Cancelar'),
+      child: const Text('Cancelar'),
     );
   }
 
   Widget saveChanges() {
     return TextButton.icon(
-      onPressed: () {
-        setState(() {
-          if (mounted) {
-            try {
-              controller.modificarPerfil(context);
-            } catch (e) {
-              debugPrint('Error');
-            }
-          }
-        });
+      onPressed: () async {
+        if (!mounted) return;
+        try {
+          await controller.modificarPerfil(context);
+          if (mounted) setState(() {});
+        } catch (e) {
+          debugPrint('[ProfileManager] saveChanges error: $e');
+        }
       },
       icon: Icon(Icons.save, color: Theme.of(context).colorScheme.onPrimary),
       label: Text(
@@ -310,17 +335,16 @@ class _ProfileManagerState extends State<ProfileManager> {
   Widget authChange() {
     return TextButton.icon(
       onPressed: () {
-        setState(() {
-          if (mounted) {
-            try {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const ModificarAuth()),
-              );
-            } catch (e) {
-              debugPrint('Error');
-            }
-          }
-        });
+        if (!mounted) return;
+        try {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (BuildContext context) => const ModificarAuth(),
+            ),
+          );
+        } catch (e) {
+          debugPrint('Error: $e');
+        }
       },
       icon: Icon(
         Icons.app_registration_rounded,
