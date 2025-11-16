@@ -95,31 +95,6 @@ class _TaskView extends State<TaskView> {
                         spacing: 20,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          TextButton.icon(
-                            onPressed: () {
-                              // Navigation can be handled from parent.
-                            },
-                            icon: const Icon(
-                              Icons.arrow_back,
-                              color: Colors.grey,
-                            ),
-                            label: const Text(
-                              'Volver',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            style: TextButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                            ),
-                          ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: const [

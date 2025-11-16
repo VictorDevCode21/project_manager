@@ -412,31 +412,6 @@ class ResourcesBar extends StatelessWidget {
       children: [
         Row(
           children: [
-            TextButton.icon(
-              onPressed: () {
-                context.go('/admin-dashboard');
-              },
-              icon: Icon(
-                Icons.arrow_back,
-                color: Theme.of(context).textTheme.bodyMedium!.color,
-              ),
-              label: const Text(
-                'Volver',
-                style: TextStyle(color: Colors.black, fontSize: 16),
-              ),
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(color: Colors.grey.shade300),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 10,
-                ),
-              ),
-            ),
-            const SizedBox(width: 20),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
