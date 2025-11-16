@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:prolab_unimet/models/tasks_model.dart';
 
+/// Shows a read-only view of a task with options to edit or delete it.
 class TaskDetailsDialog extends StatelessWidget {
   final Task task;
+  final String assigneeDisplayName;
+  final String projectName;
   final VoidCallback onEditPressed;
   final VoidCallback onDeletePressed;
 
   const TaskDetailsDialog({
     super.key,
     required this.task,
+    required this.assigneeDisplayName,
+    required this.projectName,
     required this.onEditPressed,
     required this.onDeletePressed,
   });
@@ -16,167 +21,103 @@ class TaskDetailsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      contentPadding: EdgeInsets.all(20),
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              'Detalles de la Tarea',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: Color(0xff253f8d),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: Icon(Icons.close, color: Colors.grey),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+      contentPadding: const EdgeInsets.all(16),
+      title: Text(
+        task.title,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+          color: Color(0xff253f8d),
+        ),
       ),
       content: SingleChildScrollView(
         child: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.8,
+          width: MediaQuery.of(context).size.width * 0.6,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                task.title,
+              _buildDetailRow('Proyecto:', projectName),
+              const SizedBox(height: 8),
+              _buildDetailRow('Responsable:', assigneeDisplayName),
+              const SizedBox(height: 8),
+              _buildDetailRow('Estado:', _getStatusText(task.status)),
+              const SizedBox(height: 8),
+              _buildDetailRow('Prioridad:', _getPriorityText(task.priority)),
+              const SizedBox(height: 8),
+              _buildDetailRow(
+                'Horas estimadas:',
+                '${task.estimatedHours.toInt()} h',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Descripción',
                 style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: Color(0xff253f8d),
                 ),
               ),
-              SizedBox(height: 16),
-
-              if (task.description.isNotEmpty) ...[
-                Text(
-                  'Descripción:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
-                  ),
+              const SizedBox(height: 6),
+              Text(
+                task.description.isEmpty ? 'Sin descripción' : task.description,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: task.description.isEmpty
+                      ? Colors.grey
+                      : Colors.grey[800],
                 ),
-                SizedBox(height: 4),
-                Text(
-                  task.description,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[800]),
-                ),
-                SizedBox(height: 16),
-              ],
-
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    _buildDetailRow('Proyecto:', task.projectType),
-                    _buildDetailRow('Asignado a:', task.assignee),
-                    _buildDetailRow(
-                      'Prioridad:',
-                      _getPriorityText(task.priority),
-                    ),
-                    _buildDetailRow('Estado:', _getStatusText(task.status)),
-                    _buildDetailRow(
-                      'Horas estimadas:',
-                      '${task.estimatedHours} h',
-                    ),
-                    if (task.dueTime != null)
-                      _buildDetailRow(
-                        'Fecha límite:',
-                        _formatDate(task.dueTime!),
-                      ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 20),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: onDeletePressed,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: BorderSide(color: Colors.red),
-                      ),
-                      child: Text('Eliminar'),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text('Cerrar'),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: onEditPressed,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xff253f8d),
-                      ),
-                      child: Text(
-                        'Editar Tarea',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: onDeletePressed,
+          child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text('Cerrar', style: TextStyle(color: Colors.grey[700])),
+        ),
+        ElevatedButton(
+          onPressed: onEditPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xff2d55fa),
+          ),
+          child: const Text('Editar', style: TextStyle(color: Colors.white)),
+        ),
+      ],
     );
   }
 
+  /// Builds a single row with label and value.
   Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xff253f8d),
             ),
           ),
-          Expanded(
-            child: Text(value, style: TextStyle(color: Colors.grey[800])),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  String _getPriorityText(Priority priority) {
-    switch (priority) {
-      case Priority.alta:
-        return 'Alta';
-      case Priority.media:
-        return 'Media';
-      case Priority.baja:
-        return 'Baja';
-    }
-  }
-
+  /// Returns Spanish text for status.
   String _getStatusText(Status status) {
     switch (status) {
       case Status.pendiente:
@@ -190,7 +131,15 @@ class TaskDetailsDialog extends StatelessWidget {
     }
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+  /// Returns Spanish text for priority.
+  String _getPriorityText(Priority priority) {
+    switch (priority) {
+      case Priority.low:
+        return 'Baja';
+      case Priority.medium:
+        return 'Media';
+      case Priority.high:
+        return 'Alta';
+    }
   }
 }

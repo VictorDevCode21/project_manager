@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum Priority { baja, media, alta }
+enum Priority { low, medium, high }
 
 enum Status { pendiente, enProgreso, enRevision, completado }
 

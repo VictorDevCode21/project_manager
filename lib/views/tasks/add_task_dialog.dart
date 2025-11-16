@@ -7,7 +7,15 @@ class AddTask extends StatefulWidget {
   final String projectId;
   final Function(Task)? onUpdateTask;
   final Task? task;
+
+  /// Project type used for storage, not editable from UI.
   final String projectType;
+
+  /// Human readable project name to show in the dialog.
+  final String projectName;
+
+  /// Project members list (id + name).
+  final List<Map<String, String>> projectMembers;
 
   const AddTask({
     super.key,
@@ -17,6 +25,8 @@ class AddTask extends StatefulWidget {
     this.onUpdateTask,
     this.task,
     required this.projectType,
+    required this.projectName,
+    required this.projectMembers,
   });
 
   @override
@@ -27,37 +37,37 @@ class _AddTaskState extends State<AddTask> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _hoursController = TextEditingController();
-  String? _selectedtProjectType;
-  String? _selectedAssignee;
+
+  String? _selectedProjectType;
+  String? _selectedAssigneeId;
   Priority? _selectedPriority;
   Status? _selectedStatus;
   TaskColumn? _selectedColumn;
+
   bool get isEditing => widget.task != null;
-
-  final List<String> _projectTypes = [
-    'Calidad Ambiental',
-    'Construcción',
-    'Tecnología',
-  ];
-
-  final List<String> _assignees = ['Maria', 'Juan', 'Alcachofa'];
 
   @override
   void initState() {
     super.initState();
+
     if (widget.task != null) {
+      // Editing existing task
       _titleController.text = widget.task!.title;
       _descriptionController.text = widget.task!.description;
-      _hoursController.text = widget.task!.estimatedHours.toString();
-      _selectedtProjectType = widget.task!.projectType;
-      _selectedAssignee = widget.task!.assignee;
+      _hoursController.text = widget.task!.estimatedHours.toInt().toString();
+      _selectedProjectType = widget.task!.projectType;
+      _selectedAssigneeId = widget.task!.assignee;
       _selectedPriority = widget.task!.priority;
       _selectedStatus = widget.task!.status;
     } else {
-      _selectedtProjectType = _projectTypes.first;
-      _selectedAssignee = _assignees.first;
-      _selectedPriority = Priority.media;
+      // New task defaults
+      _selectedProjectType = widget.projectType;
+      _selectedPriority = Priority.medium;
       _selectedStatus = Status.pendiente;
+
+      if (widget.projectMembers.isNotEmpty) {
+        _selectedAssigneeId = widget.projectMembers.first['id'];
+      }
     }
 
     if (widget.columns.isNotEmpty) {
@@ -68,11 +78,11 @@ class _AddTaskState extends State<AddTask> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      contentPadding: EdgeInsets.all(16),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+      contentPadding: const EdgeInsets.all(16),
       title: Text(
         isEditing ? 'Editar tarea' : 'Crear nueva tarea',
-        style: TextStyle(
+        style: const TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: 18,
           color: Color(0xff253f8d),
@@ -87,82 +97,85 @@ class _AddTaskState extends State<AddTask> {
             children: [
               TextField(
                 controller: _titleController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Título de la tarea',
                   border: OutlineInputBorder(),
                 ),
                 autofocus: true,
               ),
-              SizedBox(height: 12),
-
+              const SizedBox(height: 12),
               TextField(
                 controller: _descriptionController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Descripción',
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
               ),
-              SizedBox(height: 12),
-
+              const SizedBox(height: 12),
               Row(
                 children: [
+                  // Project name (read only)
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Proyecto: ${widget.projectType}',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        DropdownButtonFormField<String>(
-                          value: _selectedtProjectType,
-                          items: _projectTypes.map((type) {
-                            return DropdownMenuItem(
-                              value: type,
-                              child: Text(type, style: TextStyle(fontSize: 14)),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() => _selectedtProjectType = value);
-                          },
-                          isExpanded: true,
+                          'Proyecto: ${widget.projectName}',
+                          style: const TextStyle(fontSize: 14),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 12),
+                  // Assignee (project member)
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Asignado', style: TextStyle(fontSize: 14)),
-                        DropdownButtonFormField<String>(
-                          value: _selectedAssignee,
-                          items: _assignees.map((type) {
-                            return DropdownMenuItem(
-                              value: type,
-                              child: Text(type, style: TextStyle(fontSize: 14)),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() => _selectedAssignee = value);
-                          },
-                          isExpanded: true,
-                        ),
+                        const Text('Asignado', style: TextStyle(fontSize: 14)),
+                        if (widget.projectMembers.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              'Este proyecto no tiene miembros asignados.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.redAccent,
+                              ),
+                            ),
+                          )
+                        else
+                          DropdownButtonFormField<String>(
+                            value: _selectedAssigneeId,
+                            items: widget.projectMembers.map((member) {
+                              return DropdownMenuItem(
+                                value: member['id'],
+                                child: Text(
+                                  member['name'] ?? 'Sin nombre',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() => _selectedAssigneeId = value);
+                            },
+                            isExpanded: true,
+                          ),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(width: 12),
+              const SizedBox(height: 12),
               Row(
                 children: [
+                  // Priority
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Prioridad', style: TextStyle(fontSize: 14)),
+                        const Text('Prioridad', style: TextStyle(fontSize: 14)),
                         DropdownButtonFormField<Priority>(
                           value: _selectedPriority,
                           items: Priority.values.map((priority) {
@@ -170,7 +183,7 @@ class _AddTaskState extends State<AddTask> {
                               value: priority,
                               child: Text(
                                 _getPriorityText(priority),
-                                style: TextStyle(fontSize: 14),
+                                style: const TextStyle(fontSize: 14),
                               ),
                             );
                           }).toList(),
@@ -182,12 +195,13 @@ class _AddTaskState extends State<AddTask> {
                       ],
                     ),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
+                  // Status
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Estado', style: TextStyle(fontSize: 14)),
+                        const Text('Estado', style: TextStyle(fontSize: 14)),
                         DropdownButtonFormField<Status>(
                           value: _selectedStatus,
                           items: Status.values.map((status) {
@@ -195,7 +209,7 @@ class _AddTaskState extends State<AddTask> {
                               value: status,
                               child: Text(
                                 _getStatusText(status),
-                                style: TextStyle(fontSize: 14),
+                                style: const TextStyle(fontSize: 14),
                               ),
                             );
                           }).toList(),
@@ -209,26 +223,27 @@ class _AddTaskState extends State<AddTask> {
                   ),
                 ],
               ),
-              SizedBox(height: 12),
-
+              const SizedBox(height: 12),
               Row(
                 children: [
+                  // Estimated hours
                   Expanded(
                     child: TextField(
                       controller: _hoursController,
                       keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Horas estimadas',
                         border: OutlineInputBorder(),
                       ),
                     ),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
+                  // Column
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Columna', style: TextStyle(fontSize: 14)),
+                        const Text('Columna', style: TextStyle(fontSize: 14)),
                         DropdownButtonFormField<TaskColumn>(
                           value: _selectedColumn,
                           items: widget.columns.map((column) {
@@ -236,7 +251,7 @@ class _AddTaskState extends State<AddTask> {
                               value: column,
                               child: Text(
                                 column.name,
-                                style: TextStyle(fontSize: 14),
+                                style: const TextStyle(fontSize: 14),
                               ),
                             );
                           }).toList(),
@@ -250,7 +265,7 @@ class _AddTaskState extends State<AddTask> {
                   ),
                 ],
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -261,49 +276,111 @@ class _AddTaskState extends State<AddTask> {
           child: Text('Cancelar', style: TextStyle(color: Colors.grey[700])),
         ),
         ElevatedButton(
-          onPressed: _titleController.text.trim().isEmpty
-              ? null
-              : () {
-                  final task = Task(
-                    id: widget.task?.id ?? '',
-                    projectId: widget.projectId,
-                    title: _titleController.text.trim(),
-                    description: _descriptionController.text.trim(),
-                    projectType: _selectedtProjectType ?? 'Calidad Ambiental',
-                    assignee: _selectedAssignee ?? 'Maria',
-                    priority: _selectedPriority ?? Priority.media,
-                    status: _selectedStatus ?? Status.pendiente,
-                    estimatedHours: double.tryParse(_hoursController.text) ?? 0,
-                    dueTime: widget.task?.dueTime,
-                    tags: widget.task?.tags ?? [],
-                  );
-
-                  if (isEditing) {
-                    widget.onUpdateTask?.call(task);
-                  } else {
-                    widget.onAddTask?.call(task);
-                  }
-                  Navigator.of(context).pop();
-                },
+          onPressed: _handleSubmit,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xff2d55fa),
           ),
           child: Text(
             isEditing ? 'Actualizar Tarea' : 'Crear Tarea',
-            style: TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white),
           ),
         ),
       ],
     );
   }
 
+  /// Handles form submission with regex validation.
+  void _handleSubmit() {
+    final RegExp onlyDigitsRegex = RegExp(r'^\d+$');
+    final RegExp integerRegex = RegExp(r'^[0-9]+$');
+
+    final String title = _titleController.text.trim();
+    final String description = _descriptionController.text.trim();
+    final String hoursText = _hoursController.text.trim();
+
+    final List<String> errors = <String>[];
+
+    // Title: required, at least 3 chars, not only numbers
+    if (title.isEmpty) {
+      errors.add('El título es obligatorio.');
+    } else if (title.length < 3) {
+      errors.add('El título debe tener al menos 3 caracteres.');
+    } else if (onlyDigitsRegex.hasMatch(title)) {
+      errors.add('El título no puede ser solo numérico.');
+    }
+
+    // Description: optional, but cannot be only numbers
+    if (description.isNotEmpty && onlyDigitsRegex.hasMatch(description)) {
+      errors.add('La descripción no puede ser solo numérica.');
+    }
+
+    // Hours: required, integer only, no decimals
+    if (hoursText.isEmpty) {
+      errors.add('Las horas estimadas son obligatorias.');
+    } else if (!integerRegex.hasMatch(hoursText)) {
+      errors.add(
+        'Las horas estimadas deben ser un número entero (sin decimales).',
+      );
+    }
+
+    // Assignee: cannot be null or empty
+    if (_selectedAssigneeId == null || _selectedAssigneeId!.trim().isEmpty) {
+      errors.add('Debes seleccionar un responsable.');
+    }
+
+    // Status: cannot be null
+    if (_selectedStatus == null) {
+      errors.add('Debes seleccionar un estado.');
+    }
+
+    // Column: cannot be null
+    if (_selectedColumn == null) {
+      errors.add('Debes seleccionar una columna.');
+    }
+
+    if (errors.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errors.join('\n')),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
+    final int parsedHours = int.parse(hoursText);
+
+    final Task task = Task(
+      id: widget.task?.id ?? '',
+      projectId: widget.projectId,
+      title: title,
+      description: description,
+      projectType: _selectedProjectType ?? widget.projectType,
+      assignee: _selectedAssigneeId!,
+      priority: _selectedPriority ?? Priority.medium,
+      status: _selectedStatus ?? Status.pendiente,
+      estimatedHours: parsedHours.toDouble(),
+      dueTime: widget.task?.dueTime,
+      tags: widget.task?.tags ?? <String>[],
+    );
+
+    if (isEditing) {
+      widget.onUpdateTask?.call(task);
+    } else {
+      widget.onAddTask?.call(task);
+    }
+
+    Navigator.of(context).pop();
+  }
+
   String _getPriorityText(Priority priority) {
     switch (priority) {
-      case Priority.baja:
+      case Priority.low:
         return 'Baja';
-      case Priority.media:
+      case Priority.medium:
         return 'Media';
-      case Priority.alta:
+      case Priority.high:
         return 'Alta';
     }
   }
