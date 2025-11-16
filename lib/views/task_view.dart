@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:prolab_unimet/controllers/task_controller.dart';
 import 'package:prolab_unimet/models/tasks_model.dart';
 import 'package:prolab_unimet/views/tasks/add_task_dialog.dart';
@@ -24,10 +25,39 @@ class _TaskView extends State<TaskView> {
   /// Horizontal scroll controller for the Kanban board.
   late final ScrollController _horizontalBoardController;
 
+  /// Role resolved from Firebase Auth custom claims.
+  /// Expected values: 'ADMIN', 'COORDINATOR', 'USER'.
+  /// Default to 'USER' if something fails.
+  String _userRole = 'USER';
+
   @override
   void initState() {
     super.initState();
     _horizontalBoardController = ScrollController();
+    _loadUserRole();
+  }
+
+  /// Loads current user role from Firebase Auth custom claims.
+  Future<void> _loadUserRole() async {
+    try {
+      final User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        return;
+      }
+
+      final IdTokenResult tokenResult = await user.getIdTokenResult(true);
+      final Map<String, dynamic>? claims = tokenResult.claims;
+
+      final dynamic rawRole = claims?['role'];
+      if (rawRole is String && rawRole.isNotEmpty) {
+        setState(() {
+          _userRole = rawRole;
+        });
+      }
+    } catch (e) {
+      // Si algo falla, se queda como 'USER' y ya.
+      debugPrint('[TaskView] Error loading user role: $e');
+    }
   }
 
   @override
@@ -132,6 +162,7 @@ class _TaskView extends State<TaskView> {
                         spacing: 16,
                         alignment: WrapAlignment.end,
                         children: [
+                          // "Nueva Columna" SIEMPRE visible (USER puede agregar columnas)
                           ElevatedButton.icon(
                             onPressed: () {
                               _showAddColumnDialog(context, taskController);
@@ -164,33 +195,35 @@ class _TaskView extends State<TaskView> {
                               ),
                             ),
                           ),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              _showAddTaskDialog(context, taskController);
-                            },
-                            icon: const Icon(
-                              Icons.add,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                            label: const Text(
-                              'Nueva Tarea',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
+                          // "Nueva Tarea" SOLO si el rol NO es USER
+                          if (_userRole != 'USER')
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                _showAddTaskDialog(context, taskController);
+                              },
+                              icon: const Icon(
+                                Icons.add,
+                                size: 18,
                                 color: Colors.white,
                               ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xff2d55fa),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 14,
+                              label: const Text(
+                                'Nueva Tarea',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xff2d55fa),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -929,6 +962,10 @@ class _TaskView extends State<TaskView> {
                           ),
                         ),
                         autofocus: true,
+                        onChanged: (_) {
+                          // Para que se habilite/deshabilite el botón
+                          setStateDialog(() {});
+                        },
                       ),
                       const SizedBox(height: 12),
                       const Text(
@@ -1077,8 +1114,9 @@ class _TaskView extends State<TaskView> {
     if (newStatus != null && task.status != newStatus) {
       try {
         await _taskController.updateTaskStatus(task.id, newStatus);
-      } catch (_) {
+      } catch (e) {
         // Error can be handled with snackbar if needed.
+        debugPrint('[TaskView] Error updating task status: $e');
       }
     }
   }
