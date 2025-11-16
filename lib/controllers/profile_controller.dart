@@ -1,11 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:prolab_unimet/controllers/register_controller.dart';
 
 class ProfileController {
   TextEditingController newnameController = TextEditingController();
+  TextEditingController oldemailController = TextEditingController();
   TextEditingController newemailController = TextEditingController();
   TextEditingController newphoneController = TextEditingController();
+  TextEditingController oldpasswordController = TextEditingController();
   TextEditingController newpasswordController = TextEditingController();
   TextEditingController newpersonIdController = TextEditingController();
   TextEditingController descController = TextEditingController();
@@ -55,34 +58,22 @@ class ProfileController {
     return null;
   }
 
-  String? validarPhone(String? v) {
-    var regex2 = RegExp(r'^\d{7,11}$');
-    if (v == null || v.isEmpty) {
+  String? validarPhone(String? value) {
+    if (value == null || value.trim().isEmpty) {
       return 'Ingresa tu número de teléfono';
     }
-    if (regex2.hasMatch(v)) {
-      return 'Número inválido';
+    final regex = RegExp(r'^0(424|412|414|416|422)\d{7}$');
+
+    if (!regex.hasMatch(value.trim())) {
+      return 'Número inválido. Formato: 0(414|424|412|422|416 ) + 7 dígitos';
     }
+
     return null;
   }
 
   String? validarPassword(String? v) {
-    if (v == null || v.isEmpty) {
-      return 'Ingresa una contraseña';
-    }
-    if (v.length < 6) {
-      return 'Debe tener al menos 6 caracteres';
-    }
-    if (v.length > 30) {
-      return 'Debe tener a lo sumo 30 caracteres';
-    }
-    if (v == '123456') {
-      return 'Contraseña muy debil';
-    }
-    if (v == 'password') {
-      return 'Contraseña muy debil';
-    }
-    return null;
+    RegisterController regcon = RegisterController();
+    return regcon.validatePassword(v);
   }
 
   String? validarDate() => selectedDate == null ? 'Selecciona una fecha' : null;
@@ -109,71 +100,79 @@ class ProfileController {
 
   Future<void> modificarPerfil(BuildContext context) async {
     if (validarCedula(newpersonIdController.text) == null &&
-        validarCorreo(newemailController.text) == null &&
         validarNombre(newnameController.text) == null &&
         validarPhone(newphoneController.text) == null) {
       try {
         var user = FirebaseAuth.instance.currentUser;
-
         String uid = user!.uid;
-        var snapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .get();
-        var usermod = snapshot.data();
-        var rol = usermod!['role'];
-        final creadoen = usermod['created-at'];
-        await FirebaseFirestore.instance.collection('users').doc(uid).set({
-          'id': uid,
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
           'name': newnameController.text,
-          'email': newemailController.text.trim(),
           'phone_number': newphoneController.text,
-          'role': rol,
           'description': descController.text,
           'personId': newpersonIdController.text,
-          'birth_date': selectedDate?.toIso8601String(),
-          'created_at': creadoen,
+          'birth_date': selectedDate?.toIso8601String(), //Cambiar luego
           'updated_at': FieldValue.serverTimestamp(),
         });
-        user.verifyBeforeUpdateEmail(newemailController.text.trim());
-        if (newpasswordController.text != '') {
-          if (validarCedula(newpasswordController.text) == null) {
-            user.updatePassword(newpasswordController.text);
-          } else {
-            cancelarAccion(context);
-          }
-        } else {
-          debugPrint('Guardado sin contraseña');
-        }
-        debugPrint('Accion exitosa');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Se han realizado los cambios correctamente'),
+            content: Text('✅ Perfil modificado correctamente'),
+            backgroundColor: Colors.green,
           ),
         );
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'requires-recent-login') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Debe loguearse de nuevo para proceder con la accion',
-              ),
-            ),
-          );
-        } else if (e.code == 'email-already-in-use') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error: Este correo ya existe')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error en la modificacion de perfil')),
-          );
-        }
+        cancelarAccion(context);
+      } catch (e) {
+        debugPrint(e.toString());
       }
     } else {
-      cancelarAccion(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: algun campo no esta bien puesto')),
+        SnackBar(
+          content: Text('❌ Error al modificar los datos '),
+          backgroundColor: Colors.red,
+        ),
+      );
+      cancelarAccion(context);
+    }
+  }
+
+  Future<void> modificarLogin(BuildContext context) async {
+    if (validarPassword(oldpasswordController.text) == null &&
+        validarPassword(newpasswordController.text) == null &&
+        validarCorreo(oldemailController.text) == null &&
+        validarCorreo(newemailController.text) == null &&
+        FirebaseAuth.instance.currentUser!.email ==
+            oldemailController.text.trim()) {
+      try {
+        var user = FirebaseAuth.instance.currentUser;
+        String uid = user!.uid;
+        AuthCredential credential = EmailAuthProvider.credential(
+          email: oldemailController.text.trim(),
+          password: oldpasswordController.text,
+        );
+        await user.reauthenticateWithCredential(credential);
+        if (user.email != newemailController.text.trim()) {
+          user.verifyBeforeUpdateEmail(newemailController.text.trim());
+        }
+        if (oldpasswordController.text != newpasswordController.text) {
+          user.updatePassword(newpasswordController.text);
+        }
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'email': newemailController.text.trim(),
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Datos modificados correctamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        debugPrint(e.toString());
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Error al modificar los datos '),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }

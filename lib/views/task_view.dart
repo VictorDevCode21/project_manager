@@ -441,9 +441,11 @@ class _TaskView extends State<TaskView> {
             }
 
             return DragTarget<Map<String, dynamic>>(
-              onAccept: (Map<String, dynamic> data) {
-                _handleTaskDrop(data['task'] as Task, column.name);
-              },
+              onAcceptWithDetails:
+                  (DragTargetDetails<Map<String, dynamic>> details) {
+                    final Map<String, dynamic> data = details.data;
+                    _handleTaskDrop(data['task'] as Task, column.name);
+                  },
               builder:
                   (
                     BuildContext context,
