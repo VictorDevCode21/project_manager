@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
+
 import '../controllers/homepage_controller.dart';
 import '../models/homepage_model.dart';
-import 'package:go_router/go_router.dart';
+import '../providers/auth_provider.dart';
 
 class DashboardView extends StatelessWidget {
   const DashboardView({super.key});
@@ -11,9 +13,12 @@ class DashboardView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => HomePageController(),
-      child: Consumer<HomePageController>(
-        builder: (context, controller, child) {
-          final model = controller.model;
+      child: Consumer2<HomePageController, AuthProvider>(
+        builder: (context, controller, auth, child) {
+          final HomePageModel model = controller.model;
+          final String? role = auth.role; // 'ADMIN', 'COORDINATOR', 'USER'
+          final bool isUserOnly = role == 'USER';
+
           return Scaffold(
             body: SingleChildScrollView(
               padding: const EdgeInsets.all(20.0),
@@ -38,13 +43,15 @@ class DashboardView extends StatelessWidget {
                   _buildKPIsRow(context, model),
                   const SizedBox(height: 25),
 
-                  _buildManagementCards(context, controller),
+                  _buildManagementCards(context, controller, isUserOnly),
                   const SizedBox(height: 25),
 
                   _buildBottomCards(context, controller),
                   const SizedBox(height: 25),
 
-                  _buildRecentProjects(context, model, controller),
+                  // Only show recent projects section to non-USER roles
+                  if (!isUserOnly)
+                    _buildRecentProjects(context, model, controller),
 
                   const SizedBox(height: 20),
                 ],
@@ -128,7 +135,42 @@ class DashboardView extends StatelessWidget {
   Widget _buildManagementCards(
     BuildContext context,
     HomePageController controller,
+    bool isUserOnly,
   ) {
+    // Restricted view for USER role: hide resources management
+    if (isUserOnly) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          // Expanded(
+          //   child: _ManagementCard(
+          //     icon: Icons.list_alt,
+          //     title: 'Gestión de Proyectos',
+          //     subtitle: 'Ver proyectos en los que participas',
+          //     primaryButtonText: 'Ver Proyectos',
+          //     primaryOnPressed: () => controller.goToAllProjects(context),
+          //     secondaryButtonText: 'Ver Detalles de Proyecto',
+          //     secondaryOnPressed: () => controller.goToAllProjects(context),
+          //   ),
+          // ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: _ManagementCard(
+              icon: Icons.calendar_today,
+              title: 'Gestión de Tareas',
+              subtitle: 'Ver y actualizar tus tareas pendientes',
+              primaryButtonText: 'Ver Todas las Tareas',
+              primaryOnPressed: () => controller.goToAllTasks(context),
+              secondaryButtonText: 'Crear Nueva Tarea',
+              secondaryOnPressed: () => controller.goToCreateTask(context),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Full view for ADMIN / COORDINATOR
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,10 +205,8 @@ class DashboardView extends StatelessWidget {
             title: 'Gestión de Recursos',
             subtitle: 'Asignar personal y materiales a proyectos',
             primaryButtonText: 'Ver Recursos Disponibles',
-            // Aquí: ir directo a /admin-resources
             primaryOnPressed: () => context.go('/admin-resources'),
             secondaryButtonText: 'Asignar Recursos',
-            // Aquí: abrir flujo/modal de asignación en /admin-resources/assign
             secondaryOnPressed: () => context.go('/admin-resources/assign'),
           ),
         ),
@@ -181,32 +221,7 @@ class DashboardView extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        // Expanded(
-        //   child: _ManagementCard(
-        //     icon: Icons.bar_chart,
-        //     title: 'Dashboard y Seguimiento',
-        //     subtitle: 'Monitorear progreso en tiempo real',
-        //     primaryButtonText: 'Ver Dashboard',
-        //     primaryOnPressed: () => controller.goToDashboard(context),
-        //     secondaryButtonText: 'Ver Progreso de Proyectos',
-        //     secondaryOnPressed: () => controller.goToProjectProgress(context),
-        //   ),
-        // ),
-        // const SizedBox(width: 20),
-        // Expanded(
-        //   child: _ManagementCard(
-        //     icon: Icons.analytics,
-        //     title: 'Reportes y Analytics',
-        //     subtitle: 'Generar reportes y análisis detallados',
-        //     primaryButtonText: 'Ver Reportes',
-        //     primaryOnPressed: () => controller.goToReports(context),
-        //     secondaryButtonText: 'Generar Nuevo Reporte',
-        //     secondaryOnPressed: () => controller.goToGenerateReport(context),
-        //   ),
-        // ),
-        const Spacer(),
-      ],
+      children: <Widget>[const Spacer()],
     );
   }
 }

@@ -2,7 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:prolab_unimet/models/notification_model.dart'; // Make sure you import your model
+import 'package:prolab_unimet/models/notification_model.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
 import 'package:prolab_unimet/providers/notification_provider.dart';
 import 'package:provider/provider.dart';
@@ -26,19 +26,14 @@ class AdminLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext buildContext) {
-    // We get the authProvider here just for the profile menu,
-    // but Consumer2 will handle the toast logic.
+    // We still get authProvider for the profile menu/logout callbacks
     final authProvider = Provider.of<AuthProvider>(buildContext, listen: false);
     const Color navBarColor = Color(0xff253f8d);
     const Color iconColor = Colors.white70;
     const Color textColor = Colors.white;
 
-    // === 🚀 FIX START ===
-    // We REMOVED the redundant MultiProvider.
-    // We now start with Consumer2, which reads the providers
-    // from main.dart.
     return Consumer2<NotificationProvider, AuthProvider>(
-      builder: (context, notifProvider, auth, layoutChild) {
+      builder: (context, notifProvider, auth, _) {
         // --- Toast/Snackbar logic (unchanged) ---
         if (notifProvider.toastNotification != null) {
           final notification = notifProvider.toastNotification!;
@@ -83,195 +78,208 @@ class AdminLayout extends StatelessWidget {
             auth.clearNewLoginUser();
           });
         }
-        // --- End of Toast logic ---
 
-        // This returns the Scaffold (defined below in the 'child' property)
-        return layoutChild!;
-      },
-      // The 'layoutChild' that Consumer2 receives is this Scaffold:
-      child: Scaffold(
-        backgroundColor: const Color(0xfff4f6f7),
-        body: Column(
-          children: [
-            // ===== NAVBAR =====
-            Container(
-              height: 70,
-              color: navBarColor,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  // Logo (remains the same)
-                  Row(
-                    children: [
-                      Image.asset('assets/Logo.png', height: 40, width: 40),
-                      const SizedBox(width: 10),
-                      const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'ProLab UNIMET',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+        // ===== Role-based navbar logic =====
+        // Adjust this property name according to your AuthProvider
+        final String? role = auth.role; // e.g. 'ADMIN', 'COORDINATOR', 'USER'
+        final bool isUserOnly = role == 'USER';
+
+        return Scaffold(
+          backgroundColor: const Color(0xfff4f6f7),
+          body: Column(
+            children: [
+              // ===== NAVBAR =====
+              Container(
+                height: 70,
+                color: navBarColor,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    // Logo
+                    Row(
+                      children: [
+                        Image.asset('assets/Logo.png', height: 40, width: 40),
+                        const SizedBox(width: 10),
+                        const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'ProLab UNIMET',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
-                          ),
-                          Text(
-                            'Panel de Administrador',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
+                            Text(
+                              'Panel de Administrador',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 40),
+
+                    // ===== Navbar Buttons (role-based) =====
+                    const _NavButton(
+                      icon: Icons.dashboard_outlined,
+                      label: 'Dashboard',
+                      route: '/admin-dashboard',
+                    ),
+                    const SizedBox(width: 15),
+
+                    // Proyectos: only for non-USER
+                    if (!isUserOnly) ...[
+                      const _NavButton(
+                        icon: Icons.folder_copy_outlined,
+                        label: 'Proyectos',
+                        route: '/admin-projects',
+                      ),
+                      const SizedBox(width: 15),
+                    ],
+
+                    // Tareas: visible for all
+                    const _NavButton(
+                      icon: Icons.folder_copy_outlined,
+                      label: 'Tareas',
+                      route: '/admin-tasks',
+                    ),
+
+                    // Recursos: only for non-USER
+                    if (!isUserOnly) ...[
+                      const SizedBox(width: 15),
+                      const _NavButton(
+                        icon: Icons.folder_copy_outlined,
+                        label: 'Recursos',
+                        route: '/admin-resources',
                       ),
                     ],
-                  ),
-                  const SizedBox(width: 40),
 
-                  // Navbar Buttons (remains the same)
-                  const _NavButton(
-                    icon: Icons.dashboard_outlined,
-                    label: 'Dashboard',
-                    route: '/admin-dashboard',
-                  ),
-                  const SizedBox(width: 15),
-                  const _NavButton(
-                    icon: Icons.folder_copy_outlined,
-                    label: 'Proyectos',
-                    route: '/admin-projects',
-                  ),
-                  const SizedBox(width: 15),
-                  const _NavButton(
-                    icon: Icons.folder_copy_outlined,
-                    label: 'Tareas',
-                    route: '/admin-tasks',
-                  ),
-                  const SizedBox(width: 15),
-                  const _NavButton(
-                    icon: Icons.folder_copy_outlined,
-                    label: 'Recursos',
-                    route: '/admin-resources',
-                  ),
-                  const SizedBox(width: 15),
-                  const _NavButton(
-                    icon: Icons.folder_copy_outlined,
-                    label: 'Reportes',
-                    route: '/admin-reports',
-                  ),
+                    // Reportes: only for non-USER
+                    if (!isUserOnly) ...[
+                      const SizedBox(width: 15),
+                      const _NavButton(
+                        icon: Icons.folder_copy_outlined,
+                        label: 'Reportes',
+                        route: '/admin-reports',
+                      ),
+                    ],
 
-                  const Spacer(),
+                    const Spacer(),
 
-                  // 🔔 Notifications + Profile
-                  const _NotificationBell(), // <-- Simplified
+                    // 🔔 Notifications + Profile
+                    const _NotificationBell(),
 
-                  const SizedBox(width: 10),
+                    const SizedBox(width: 10),
 
-                  // Profile Menu (remains the same)
-                  PopupMenuButton<String>(
-                    tooltip: 'Opciones de perfil',
-                    color: navBarColor,
-                    offset: const Offset(0, 55),
-                    onSelected: (value) async {
-                      // We use 'buildContext' here because it's from the original widget
-                      final messenger = ScaffoldMessenger.of(buildContext);
-                      final router = GoRouter.of(buildContext);
+                    // Profile Menu
+                    PopupMenuButton<String>(
+                      tooltip: 'Opciones de perfil',
+                      color: navBarColor,
+                      offset: const Offset(0, 55),
+                      onSelected: (value) async {
+                        final messenger = ScaffoldMessenger.of(buildContext);
+                        final router = GoRouter.of(buildContext);
 
-                      switch (value) {
-                        case 'profile':
-                          router.go('/admin-profile');
-                          break;
-                        case 'logout':
-                          await authProvider.logout();
-                          messenger.showSnackBar(
+                        switch (value) {
+                          case 'profile':
+                            router.go('/admin-profile');
+                            break;
+                          case 'logout':
+                            await authProvider.logout();
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Has cerrado sesión.'),
+                              ),
+                            );
+                            router.go('/login');
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'profile',
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: ListTile(
+                              leading: Icon(
+                                Icons.account_circle,
+                                color: iconColor,
+                              ),
+                              title: Text(
+                                'Perfil',
+                                style: TextStyle(color: textColor),
+                              ),
+                            ),
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'logout',
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: ListTile(
+                              leading: Icon(Icons.logout, color: iconColor),
+                              title: Text(
+                                'Cerrar Sesión',
+                                style: TextStyle(color: textColor),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                      child: const CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.white24,
+                        child: Icon(Icons.person_outline, color: iconColor),
+                      ),
+                    ),
+
+                    // Logout Icon Button
+                    IconButton(
+                      onPressed: () async {
+                        final authProviderLocal = Provider.of<AuthProvider>(
+                          buildContext,
+                          listen: false,
+                        );
+
+                        await authProviderLocal.logout();
+
+                        if (buildContext.mounted) {
+                          GoRouter.of(buildContext).go('/login');
+                          ScaffoldMessenger.of(buildContext).showSnackBar(
                             const SnackBar(
-                              content: Text('Has cerrado sesión.'),
+                              content: Text('Sesión cerrada correctamente'),
                             ),
                           );
-                          router.go('/login');
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'profile',
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: ListTile(
-                            leading: Icon(
-                              Icons.account_circle,
-                              color: iconColor,
-                            ),
-                            title: Text(
-                              'Perfil',
-                              style: TextStyle(color: textColor),
-                            ),
-                          ),
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'logout',
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: ListTile(
-                            leading: Icon(Icons.logout, color: iconColor),
-                            title: Text(
-                              'Cerrar Sesión',
-                              style: TextStyle(color: textColor),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                    child: const CircleAvatar(
-                      radius: 18,
-                      backgroundColor: Colors.white24,
-                      child: Icon(Icons.person_outline, color: iconColor),
+                        }
+                      },
+                      icon: const Icon(Icons.logout, color: Colors.white),
                     ),
-                  ),
-                  // Logout Icon Button (remains the same)
-                  IconButton(
-                    onPressed: () async {
-                      // We use 'buildContext' here as well
-                      final authProviderLocal = Provider.of<AuthProvider>(
-                        buildContext,
-                        listen: false,
-                      );
-
-                      await authProviderLocal.logout();
-
-                      if (buildContext.mounted) {
-                        GoRouter.of(buildContext).go('/login');
-                        ScaffoldMessenger.of(buildContext).showSnackBar(
-                          const SnackBar(
-                            content: Text('Sesión cerrada correctamente'),
-                          ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.logout, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-
-            // ===== CONTENT BELOW NAVBAR =====
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: child,
+                  ],
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
+
+              // ===== CONTENT BELOW NAVBAR =====
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1200),
+                    child: child,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
-    // === 🚀 FIX END ===
   }
 }
 
@@ -312,21 +320,14 @@ class _NavButton extends StatelessWidget {
 }
 
 // =======================================================================
-// === 🚀 MODIFIED NOTIFICATION WIDGETS START HERE ===
+// === NOTIFICATION WIDGETS (unchanged from tu última versión) ===
 // =======================================================================
 
-///
-/// This is the modified Notification Bell.
-/// It no longer requires 'originalContext' because its own 'context'
-/// can already see the providers from main.dart.
-///
 class _NotificationBell extends StatelessWidget {
-  // const _NotificationBell({required this.originalContext}); // 👈 REMOVED
-  const _NotificationBell(); // 👈 ADDED
+  const _NotificationBell();
 
   @override
   Widget build(BuildContext context) {
-    // We can now safely use the widget's own 'context' to read the provider.
     final provider = Provider.of<NotificationProvider>(context);
     final unreadCount = provider.unreadCount;
 
@@ -338,22 +339,17 @@ class _NotificationBell extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       onSelected: (value) {
         if (value == 'history') {
-          // Close the popover first
           Navigator.of(context).pop();
-          // Then navigate using the widget's 'context'
           GoRouter.of(context).go('/admin-notifications');
         }
       },
       itemBuilder: (BuildContext popupContext) {
-        // We return a list with ONE item: our custom popover
         return [
           PopupMenuItem<String>(
             enabled: false,
             padding: EdgeInsets.zero,
             child: _NotificationsPopover(
-              // Pass the provider we fetched above
               provider: provider,
-              // Pass the widget's context for navigation from the footer
               parentContext: context,
             ),
           ),
@@ -369,13 +365,9 @@ class _NotificationBell extends StatelessWidget {
   }
 }
 
-///
-/// This is the custom popover widget.
-/// It now uses 'parentContext' to navigate from the footer.
-///
 class _NotificationsPopover extends StatelessWidget {
   final NotificationProvider provider;
-  final BuildContext parentContext; // The context from _NotificationBell
+  final BuildContext parentContext;
 
   const _NotificationsPopover({
     required this.provider,
@@ -384,7 +376,6 @@ class _NotificationsPopover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 'provider' is passed in, so we don't need to read it here.
     final notifications = provider.notifications;
 
     return Container(
@@ -397,7 +388,6 @@ class _NotificationsPopover extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // === Header ===
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Text(
@@ -410,8 +400,6 @@ class _NotificationsPopover extends StatelessWidget {
             ),
           ),
           const Divider(height: 1, color: Colors.black12),
-
-          // === Notification List ===
           Expanded(
             child: (provider.isLoading)
                 ? const Center(child: CircularProgressIndicator())
@@ -440,8 +428,6 @@ class _NotificationsPopover extends StatelessWidget {
                     ),
                   ),
           ),
-
-          // === Footer ===
           const Divider(height: 1, color: Colors.black12),
         ],
       ),
@@ -449,10 +435,6 @@ class _NotificationsPopover extends StatelessWidget {
   }
 }
 
-///
-/// This widget represents a single notification card
-/// (Unchanged from the version I gave you previously)
-///
 class _NotificationItemCard extends StatelessWidget {
   final NotificationModel notification;
   final NotificationProvider provider;
@@ -468,18 +450,14 @@ class _NotificationItemCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      color: notification.isRead
-          ? Colors.white
-          : const Color(0xFFF0F4FF), // Highlight unread
+      color: notification.isRead ? Colors.white : const Color(0xFFF0F4FF),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // === Title and Dismiss Button ===
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title
               Expanded(
                 child: Text(
                   notification.title,
@@ -490,7 +468,6 @@ class _NotificationItemCard extends StatelessWidget {
                   ),
                 ),
               ),
-              // Dismiss ('x') button
               InkWell(
                 onTap: () {
                   provider.dismissNotification(notification.id);
@@ -501,20 +478,15 @@ class _NotificationItemCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-
-          // === Timestamp ===
           Text(
             _formatTimeAgo(notification.createdAt),
             style: const TextStyle(color: Colors.black54, fontSize: 13),
           ),
-
-          // === Action Buttons (Conditional) ===
           if (isInvitation)
             Padding(
               padding: const EdgeInsets.only(top: 12.0),
               child: Row(
                 children: [
-                  // Accept Button
                   ElevatedButton(
                     onPressed: () async {
                       final messenger = ScaffoldMessenger.of(context);
@@ -548,8 +520,6 @@ class _NotificationItemCard extends StatelessWidget {
                     child: const Text('Aceptar'),
                   ),
                   const SizedBox(width: 10),
-
-                  // Decline Button
                   ElevatedButton(
                     onPressed: () {
                       provider.declineInvitation(notification);
