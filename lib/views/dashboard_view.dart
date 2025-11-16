@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/homepage_controller.dart';
 import '../models/homepage_model.dart';
+import 'package:go_router/go_router.dart';
 
 class DashboardView extends StatelessWidget {
   const DashboardView({super.key});
@@ -42,6 +43,7 @@ class DashboardView extends StatelessWidget {
 
                   _buildBottomCards(context, controller),
                   const SizedBox(height: 25),
+
                   _buildRecentProjects(context, model, controller),
 
                   const SizedBox(height: 20),
@@ -161,9 +163,11 @@ class DashboardView extends StatelessWidget {
             title: 'Gestión de Recursos',
             subtitle: 'Asignar personal y materiales a proyectos',
             primaryButtonText: 'Ver Recursos Disponibles',
-            primaryOnPressed: () => controller.goToViewResources(context),
+            // Aquí: ir directo a /admin-resources
+            primaryOnPressed: () => context.go('/admin-resources'),
             secondaryButtonText: 'Asignar Recursos',
-            secondaryOnPressed: () => controller.goToAssignResources(context),
+            // Aquí: abrir flujo/modal de asignación en /admin-resources/assign
+            secondaryOnPressed: () => context.go('/admin-resources/assign'),
           ),
         ),
       ],
@@ -178,29 +182,29 @@ class DashboardView extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Expanded(
-          child: _ManagementCard(
-            icon: Icons.bar_chart,
-            title: 'Dashboard y Seguimiento',
-            subtitle: 'Monitorear progreso en tiempo real',
-            primaryButtonText: 'Ver Dashboard',
-            primaryOnPressed: () => controller.goToDashboard(context),
-            secondaryButtonText: 'Ver Progreso de Proyectos',
-            secondaryOnPressed: () => controller.goToProjectProgress(context),
-          ),
-        ),
-        const SizedBox(width: 20),
-        Expanded(
-          child: _ManagementCard(
-            icon: Icons.analytics,
-            title: 'Reportes y Analytics',
-            subtitle: 'Generar reportes y análisis detallados',
-            primaryButtonText: 'Ver Reportes',
-            primaryOnPressed: () => controller.goToReports(context),
-            secondaryButtonText: 'Generar Nuevo Reporte',
-            secondaryOnPressed: () => controller.goToGenerateReport(context),
-          ),
-        ),
+        // Expanded(
+        //   child: _ManagementCard(
+        //     icon: Icons.bar_chart,
+        //     title: 'Dashboard y Seguimiento',
+        //     subtitle: 'Monitorear progreso en tiempo real',
+        //     primaryButtonText: 'Ver Dashboard',
+        //     primaryOnPressed: () => controller.goToDashboard(context),
+        //     secondaryButtonText: 'Ver Progreso de Proyectos',
+        //     secondaryOnPressed: () => controller.goToProjectProgress(context),
+        //   ),
+        // ),
+        // const SizedBox(width: 20),
+        // Expanded(
+        //   child: _ManagementCard(
+        //     icon: Icons.analytics,
+        //     title: 'Reportes y Analytics',
+        //     subtitle: 'Generar reportes y análisis detallados',
+        //     primaryButtonText: 'Ver Reportes',
+        //     primaryOnPressed: () => controller.goToReports(context),
+        //     secondaryButtonText: 'Generar Nuevo Reporte',
+        //     secondaryOnPressed: () => controller.goToGenerateReport(context),
+        //   ),
+        // ),
         const Spacer(),
       ],
     );
@@ -219,6 +223,7 @@ class _AppBarButton extends StatelessWidget {
       icon: Icon(icon, color: Colors.white, size: 18),
       label: Text(label, style: const TextStyle(color: Colors.white)),
       onPressed: () {
+        // ignore: avoid_print
         print('Navegando a: $label');
       },
     );
@@ -336,7 +341,6 @@ class _ManagementCard extends StatelessWidget {
             children: [
               if (icon != null) Icon(icon, color: Colors.green.shade200),
               if (icon != null) const SizedBox(width: 8),
-
               Expanded(
                 child: Text(
                   title,
@@ -465,7 +469,6 @@ class _ProjectTile extends StatelessWidget {
           const SizedBox(width: 5),
           Text(project.dueDate, style: const TextStyle(color: Colors.grey)),
           const SizedBox(width: 20),
-
           SizedBox(
             width: 150,
             child: Row(
@@ -493,7 +496,6 @@ class _ProjectTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 20),
-
           OutlinedButton.icon(
             onPressed: onPressed,
             icon: const Icon(Icons.remove_red_eye, size: 18),
