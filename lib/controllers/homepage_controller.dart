@@ -106,7 +106,7 @@ class HomePageController extends ChangeNotifier {
         for (final taskDoc in tasksSnapshot.docs) {
           final Map<String, dynamic> tData = taskDoc.data();
           final String tStatus =
-              (tData['status'] ?? 'PENDING') as String; // PENDING / COMPLETED
+              (tData['status'] ?? 'pendiente') as String; // PENDING / COMPLETED
 
           DateTime? dueDate;
           if (tData['dueDate'] != null) {
@@ -118,7 +118,7 @@ class HomePageController extends ChangeNotifier {
             }
           }
 
-          final bool isCompleted = tStatus == 'COMPLETED';
+          final bool isCompleted = tStatus == 'completado';
 
           if (isCompleted) {
             completedTasks++;
