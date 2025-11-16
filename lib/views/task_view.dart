@@ -5,6 +5,7 @@ import 'package:prolab_unimet/models/tasks_model.dart';
 import 'package:prolab_unimet/views/tasks/add_task_dialog.dart';
 import 'package:prolab_unimet/views/tasks/task_details_dialog.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Main view that renders the tasks board (Kanban) and project selector.
 class TaskView extends StatefulWidget {
@@ -37,7 +38,7 @@ class _TaskView extends State<TaskView> {
     _loadUserRole();
   }
 
-  /// Loads current user role from Firebase Auth custom claims.
+  /// Loads current user role from Firebase Auth custom claims or Firestore user doc.
   Future<void> _loadUserRole() async {
     try {
       final User? user = FirebaseAuth.instance.currentUser;
@@ -45,17 +46,40 @@ class _TaskView extends State<TaskView> {
         return;
       }
 
+      String resolvedRole = 'USER';
+
+      // First, try to read role from custom claims
       final IdTokenResult tokenResult = await user.getIdTokenResult(true);
       final Map<String, dynamic>? claims = tokenResult.claims;
-
       final dynamic rawRole = claims?['role'];
+
       if (rawRole is String && rawRole.isNotEmpty) {
-        setState(() {
-          _userRole = rawRole;
-        });
+        resolvedRole = rawRole;
+      } else {
+        // Fallback: read role from /users/{uid} document
+        final DocumentSnapshot<Map<String, dynamic>> userDoc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .get();
+
+        final Map<String, dynamic>? data = userDoc.data();
+        final dynamic docRole = data?['role'];
+
+        if (docRole is String && docRole.isNotEmpty) {
+          resolvedRole = docRole;
+        }
       }
+
+      if (!mounted) return;
+
+      setState(() {
+        _userRole = resolvedRole;
+      });
+
+      debugPrint('[TaskView] Resolved user role: $_userRole');
     } catch (e) {
-      // Si algo falla, se queda como 'USER' y ya.
+      // If something fails, keep "USER" and log the error
       debugPrint('[TaskView] Error loading user role: $e');
     }
   }
