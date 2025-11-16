@@ -24,6 +24,10 @@ class ResourcesController {
   );
   final searchC = TextEditingController();
 
+  // ValueNotifier that will contain the Stream of filtered resources (for the UI)
+  late final ValueNotifier<Stream<List<ResourcesModel>>>
+  filteredResourcesStream;
+
   String? labC;
   String? stateC;
   String? departmentC;
@@ -34,11 +38,11 @@ class ResourcesController {
   String? priority;
   String? proyecto;
   String? resource;
-  var filteredResourcesStream;
+  final _firestore = FirebaseFirestore.instance;
 
   // Constructor: Initializes the stream and adds listeners for searching and filtering
   ResourcesController() {
-    var filteredResourcesStream = ValueNotifier(_buildResourceStream());
+    filteredResourcesStream = ValueNotifier(_buildResourceStream());
 
     searchC.addListener(_updateStream);
     selectedStateFilter.addListener(_updateStream);
@@ -63,10 +67,7 @@ class ResourcesController {
       }
       // FIN AÑADIDO
 
-      await FirebaseFirestore.instance
-          .collection(collection)
-          .doc(resourceId)
-          .delete();
+      await _firestore.collection(collection).doc(resourceId).delete();
 
       print('Recurso $resourceId eliminado con éxito.');
 
@@ -116,7 +117,7 @@ class ResourcesController {
 
             if (resourceType.value == 'Humanos') {
               return HumanResources(
-                id: id,
+                id: id, // <--- ¡AÑADIDO!
                 review: data['review'] ?? '',
                 usage: data['use'] ?? 0,
                 totalUsage: data['totalUsage'] ?? 0,
@@ -214,29 +215,21 @@ class ResourcesController {
 
   Future<String> getCurrentUserRole() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      try {
-        final uid = user.uid;
-        var snapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .get();
-        var usermod = snapshot.data();
 
-        if (usermod != null && usermod.containsKey('role')) {
-          final role = usermod['role'] as String;
-          return role;
-        }
-
-        // Case: User logged in, but document/role field is missing
-        return 'USER';
-      } catch (e) {
-        debugPrint("Error fetching user role from Firestore: $e");
-        return 'USER';
-      }
+    if (user == null) {
+      return 'GUEST';
     }
 
-    return 'GUEST';
+    try {
+      final idTokenResult = await user.getIdTokenResult(true);
+
+      debugPrint("Claims del Token: ${idTokenResult.claims}");
+      final role = idTokenResult.claims?['role'] ?? 'USER';
+      return role.toString().toUpperCase();
+    } catch (e) {
+      debugPrint("Error fetching user role from token: $e");
+      return 'USER';
+    }
   }
 
   Future<void> fetchAndCalculateStats() async {
@@ -462,6 +455,12 @@ class ResourcesController {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Epale te falta algo')));
+      debugPrint(validateName(nameController.text));
+      debugPrint(validateTarif(usage.text));
+      debugPrint(validateHabilities(habilities.text));
+      debugPrint(validateState());
+      debugPrint(validateTarif(tarifController.text));
+      debugPrint(validateEmail(email.text));
     }
   }
 
@@ -469,7 +468,7 @@ class ResourcesController {
     if (validateHRFields() == true) {
       try {
         await FirebaseFirestore.instance
-            .collection("material_resource")
+            .collection("material-resources")
             .doc()
             .set({
               'name': nameController.text,

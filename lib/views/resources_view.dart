@@ -841,16 +841,18 @@ class ResourceList extends StatelessWidget {
     );
   }
 
-  Widget _buildHResourceCard(
-    HumanResources resource,
-    VoidCallback onDelete,
-    BuildContext context,
-  ) {
+  Widget _buildHResourceCard(HumanResources resource, VoidCallback onDelete) {
     double progress = (resource.totalUsage > 0)
         ? (resource.usage / resource.totalUsage).clamp(0.0, 1.0)
         : 0.0;
 
-    List<String> projects = ['No hay proyectos'];
+    // Simula los proyectos actuales (asumiendo que 'projects' no es una lista en tu modelo HumanResources)
+    // Usaremos valores fijos o ajustamos según tu modelo real
+    List<String> projects = [
+      'Análisis de Agua',
+      'Gestión de Proyectos',
+      'Investigación',
+    ];
 
     return Card(
       shadowColor: Colors.black,
@@ -972,10 +974,8 @@ class ResourceList extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {
-                      context.go('/admin-resources/assign');
-                    },
-                    child: const Text('Asignar recurso'),
+                    onPressed: () {},
+                    child: const Text('Asignar proyecto'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -999,11 +999,7 @@ class ResourceList extends StatelessWidget {
     );
   }
 
-  Widget _buildMResourceCard(
-    MaterialResource resource,
-    VoidCallback onDelete,
-    BuildContext context,
-  ) {
+  Widget _buildMResourceCard(MaterialResource resource, VoidCallback onDelete) {
     return Card(
       shadowColor: Colors.black,
       child: Container(
@@ -1088,10 +1084,8 @@ class ResourceList extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {
-                      context.go('/admin-resources/assign');
-                    },
-                    child: const Text('Asignar recurso'),
+                    onPressed: () {},
+                    child: const Text('Editar'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1115,19 +1109,17 @@ class ResourceList extends StatelessWidget {
     );
   }
 
-  Widget _buildResourceCard(ResourcesModel resource, BuildContext context) {
+  Widget _buildResourceCard(ResourcesModel resource) {
     final String resourceId = resource.id;
     if (resource is HumanResources) {
       return _buildHResourceCard(
         resource,
         () => controller.deleteResource(resourceId),
-        context,
       );
     } else if (resource is MaterialResource) {
       return _buildMResourceCard(
         resource,
         () => controller.deleteResource(resourceId),
-        context,
       );
     }
     return const SizedBox.shrink();
@@ -1181,7 +1173,7 @@ class ResourceList extends StatelessWidget {
               ),
               itemBuilder: (context, index) {
                 final resource = resources[index];
-                return _buildResourceCard(resource, context);
+                return _buildResourceCard(resource);
               },
             );
           },
