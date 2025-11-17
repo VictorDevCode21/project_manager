@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+// Tu AuthProvider personalizado
+import 'package:prolab_unimet/providers/auth_provider.dart';
 import 'package:prolab_unimet/widgets/custom_text_field_widget.dart';
 import 'package:prolab_unimet/controllers/profile_controller.dart';
 import 'package:go_router/go_router.dart';
+// CORRECCIÓN AQUÍ: Ocultamos 'AuthProvider' de Firebase para evitar el conflicto
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
@@ -12,13 +17,30 @@ class ProfileView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          NavButton1(
-            icon: Icons.arrow_back,
-            label: 'Volver al dashboard',
-            route: '/admin-dashboard',
+          // Botón de volver
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: InkWell(
+              onTap: () => context.go('/admin-dashboard'),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.arrow_back, color: Theme.of(context).primaryColor),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Volver al dashboard',
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          Text(
-            'Modificar Perfil',
+
+          const Text(
+            'Mi Perfil',
             textAlign: TextAlign.left,
             style: TextStyle(
               fontSize: 28,
@@ -27,40 +49,12 @@ class ProfileView extends StatelessWidget {
             ),
           ),
 
-          Text(
-            'Actualiza tu información personal y datos de contacto',
-            textAlign: TextAlign.left,
-          ),
-          SizedBox(height: 40),
-          ProfileManager(),
+          const SizedBox(height: 20),
+
+          // Gestor principal que carga los datos y muestra la UI
+          const ProfileManager(),
         ],
       ),
-    );
-  }
-}
-
-class ComeBackButton extends StatelessWidget {
-  const ComeBackButton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          'Modificar Perfil',
-          textAlign: TextAlign.left,
-          style: TextStyle(
-            fontSize: 28,
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        Text(
-          'Actualiza tu información personal y datos de contacto',
-          textAlign: TextAlign.left,
-        ),
-        ProfileManager(),
-      ],
     );
   }
 }
@@ -73,19 +67,30 @@ class ProfileManager extends StatefulWidget {
 }
 
 class _ProfileManagerState extends State<ProfileManager> {
-  late final ProfileController controller;
-  final GlobalKey<FormState> _profileFormKey = GlobalKey<FormState>();
+  final ProfileController controller = ProfileController();
+  late Future<String> _userDataFuture;
 
   @override
   void initState() {
     super.initState();
-    controller = ProfileController();
+    _userDataFuture = _loadUserData();
+  }
 
-    // Load current user data once after first build
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await controller.cancelarAccion(context);
-      if (mounted) setState(() {});
-    });
+  Future<String> _loadUserData() async {
+    try {
+      // 1. Cargar datos de Firestore
+      await controller.getName();
+
+      // 2. Pre-llenar datos de Auth
+      final user = FirebaseAuth.instance.currentUser;
+      if (user?.email != null) {
+        controller.newemailController.text = user!.email!;
+        controller.oldemailController.text = user.email!;
+      }
+      return "Datos cargados";
+    } catch (e) {
+      return "Error";
+    }
   }
 
   @override
@@ -96,500 +101,262 @@ class _ProfileManagerState extends State<ProfileManager> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 900,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          border: Border.all(color: Theme.of(context).dividerColor),
-          borderRadius: BorderRadius.circular(10),
-          color: Theme.of(context).cardColor,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
+    // Ahora Dart sabe que este AuthProvider es el tuyo (de prolab_unimet)
+    final authProvider = Provider.of<AuthProvider>(context);
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    return FutureBuilder<String>(
+      future: _userDataFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        // Lógica de visualización del nombre
+        String displayNombre = 'Usuario';
+
+        if (controller.newnameController.text.isNotEmpty) {
+          displayNombre = controller.newnameController.text;
+        } else if (authProvider.name != null && authProvider.name!.isNotEmpty) {
+          displayNombre = authProvider.name!;
+          controller.newnameController.text = displayNombre;
+        } else if (currentUser?.displayName != null) {
+          displayNombre = currentUser!.displayName!;
+        }
+
+        final String displayEmail = currentUser?.email ?? 'Sin correo';
+        final String displayRole = authProvider.role ?? 'MIEMBRO';
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.person_2_outlined,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                Text(
-                  'Informacion personal',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w800,
+            // ============================================================
+            // TARJETA DE INFORMACIÓN
+            // ============================================================
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.15),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
                   ),
-                ),
-              ],
-            ),
-            Row(
-              children: const [
-                Text('Actualiza tu información personal y datos de contacto'),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                CircleAvatar(
-                  radius: 55,
-                  child: Icon(Icons.person, size: 80, color: Colors.white),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Form(
-              key: _profileFormKey,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
+                ],
+                border: Border.all(color: Colors.indigo.withOpacity(0.1)),
+              ),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: column1()),
-                  const SizedBox(width: 30),
-                  Expanded(child: column2()),
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundColor: const Color(0xff253f8d).withOpacity(0.1),
+                    child: Text(
+                      displayNombre.isNotEmpty ? displayNombre[0].toUpperCase() : 'U',
+                      style: const TextStyle(
+                          fontSize: 32,
+                          color: Color(0xff253f8d),
+                          fontWeight: FontWeight.w900
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayRole.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          displayNombre,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          displayEmail,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-            descriptionBox(),
-            const SizedBox(height: 10),
+
+            const SizedBox(height: 40),
+
+            // Separador
             Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                cancel1(),
+                const Icon(Icons.edit_note, color: Colors.indigo),
+                const SizedBox(width: 8),
+                const Text(
+                  'Editar Información',
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.indigo
+                  ),
+                ),
                 const SizedBox(width: 10),
-                saveChanges(),
-                const SizedBox(width: 10),
-                authChange(),
+                Expanded(child: Divider(color: Colors.grey.shade300)),
               ],
             ),
-            const SizedBox(height: 10),
-          ],
-        ),
-      ),
-    );
-  }
+            const SizedBox(height: 20),
 
-  Widget column1() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Nombre completo',
-          style: TextStyle(
-            color: Theme.of(context).textTheme.bodyMedium!.color,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        CustomTextField(
-          labelText: 'nombre',
-          hintText: 'Tu nombre completo',
-          iconData: Icons.person,
-          controller: controller.newnameController,
-          validator: controller.validarNombre,
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Teléfono',
-          style: TextStyle(
-            color: Theme.of(context).textTheme.bodyMedium!.color,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        CustomTextField(
-          labelText: 'telefono',
-          hintText: '04141234567',
-          iconData: Icons.phone,
-          controller: controller.newphoneController,
-          validator: controller.validarPhone,
-        ),
-      ],
-    );
-  }
+            // ============================================================
+            // FORMULARIO
+            // ============================================================
 
-  Widget column2() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Cédula',
-          style: TextStyle(
-            color: Theme.of(context).textTheme.bodyMedium!.color,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        CustomTextField(
-          labelText: 'cedula',
-          hintText: 'Número de cédula',
-          iconData: Icons.info,
-          controller: controller.newpersonIdController,
-          validator: controller.validarCedula,
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Fecha de nacimiento',
-          style: TextStyle(
-            color: Theme.of(context).textTheme.bodyMedium!.color,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        TextFormField(
-          readOnly: true,
-          onTap: () async {
-            final DateTime now = DateTime.now();
-            final DateTime firstDate = DateTime(
-              now.year - 120,
-              now.month,
-              now.day,
-            );
-
-            final DateTime? pickedDate = await showDatePicker(
-              context: context,
-              firstDate: firstDate,
-              initialDate: controller.selectedDate ?? DateTime(2000),
-              lastDate: now,
-            );
-            if (pickedDate != null) {
-              setState(() => controller.selectedDate = pickedDate);
-            }
-          },
-          controller: TextEditingController(
-            text: controller.selectedDate == null
-                ? ''
-                : '${controller.selectedDate!.day}/${controller.selectedDate!.month}/${controller.selectedDate!.year}',
-          ),
-          validator: (_) => controller.validarDate(),
-          decoration: InputDecoration(
-            hintText: 'dd/mm/yyyy',
-            prefixIcon: const Icon(Icons.calendar_today_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget descriptionBox() {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Theme.of(context).dividerColor),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Descripción personal',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          TextField(controller: controller.descController, maxLines: 10),
-        ],
-      ),
-    );
-  }
-
-  Widget cancel1() {
-    return OutlinedButton(
-      onPressed: () async {
-        try {
-          await controller.cancelarAccion(context);
-          if (mounted) setState(() {});
-        } catch (e) {
-          debugPrint(e.toString());
-        }
-      },
-      child: const Text('Cancelar'),
-    );
-  }
-
-  Widget saveChanges() {
-    return TextButton.icon(
-      onPressed: () async {
-        if (!mounted) return;
-        try {
-          await controller.modificarPerfil(context);
-          if (mounted) setState(() {});
-        } catch (e) {
-          debugPrint('[ProfileManager] saveChanges error: $e');
-        }
-      },
-      icon: Icon(Icons.save, color: Theme.of(context).colorScheme.onPrimary),
-      label: Text(
-        'Guardar cambios',
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onPrimary,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      style: TextButton.styleFrom(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-      ),
-    );
-  }
-
-  Widget authChange() {
-    return TextButton.icon(
-      onPressed: () {
-        if (!mounted) return;
-        try {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (BuildContext context) => const ModificarAuth(),
+            _buildLabel('Nombre completo'),
+            CustomTextField(
+              labelText: 'Nombre completo',
+              controller: controller.newnameController,
+              iconData: Icons.person_outline,
             ),
-          );
-        } catch (e) {
-          debugPrint('Error: $e');
-        }
-      },
-      icon: Icon(
-        Icons.app_registration_rounded,
-        color: Theme.of(context).colorScheme.onPrimary,
-      ),
-      label: Text(
-        'Modificar autenticación',
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onPrimary,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      style: TextButton.styleFrom(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-      ),
-    );
-  }
-}
 
-//Boton de navegación con algunos cambios
-class NavButton1 extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String route;
+            const SizedBox(height: 15),
 
-  const NavButton1({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.route,
-  });
+            _buildLabel('Número de teléfono'),
+            CustomTextField(
+              labelText: 'Número de teléfono',
+              controller: controller.newphoneController,
+              iconData: Icons.phone_outlined,
+              keyboardType: TextInputType.phone,
+            ),
 
-  @override
-  Widget build(BuildContext context) {
-    return TextButton.icon(
-      onPressed: () => context.go(route),
-      icon: Icon(icon, color: Theme.of(context).textTheme.bodyMedium!.color),
-      label: Text(
-        label,
-        style: TextStyle(
-          color: Theme.of(context).textTheme.bodyMedium!.color,
-          fontWeight: FontWeight.normal,
-        ),
-      ),
-      style: TextButton.styleFrom(
-        backgroundColor: Theme.of(context).cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-      ),
-    );
-  }
-}
+            const SizedBox(height: 15),
 
-class ModificarAuth extends StatefulWidget {
-  const ModificarAuth({super.key});
+            _buildLabel('Fecha de Nacimiento'),
+            TextFormField(
+              readOnly: true,
+              controller: TextEditingController(
+                text: controller.selectedDate == null
+                    ? ''
+                    : '${controller.selectedDate!.day}/${controller.selectedDate!.month}/${controller.selectedDate!.year}',
+              ),
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: controller.selectedDate ?? DateTime.now(),
+                  firstDate: DateTime(1900),
+                  lastDate: DateTime.now(),
+                );
+                if (picked != null) {
+                  setState(() {
+                    controller.selectedDate = picked;
+                  });
+                }
+              },
+              decoration: InputDecoration(
+                hintText: 'Seleccionar fecha',
+                prefixIcon: const Icon(Icons.calendar_today_outlined),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                    color: Color.fromARGB(255, 164, 205, 191),
+                    width: 1.3,
+                  ),
+                ),
+              ),
+            ),
 
-  @override
-  State<ModificarAuth> createState() => _ModificarAuthState();
-}
+            const SizedBox(height: 30),
+            const Text(
+              'Seguridad de la Cuenta',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black54),
+            ),
+            const SizedBox(height: 15),
 
-class _ModificarAuthState extends State<ModificarAuth> {
-  ProfileController controller = ProfileController();
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
+            _buildLabel('Correo Electrónico'),
+            CustomTextField(
+              labelText: 'correo@unimet.edu.ve',
+              controller: controller.newemailController,
+              iconData: Icons.email_outlined,
+              keyboardType: TextInputType.emailAddress,
+            ),
+
+            const SizedBox(height: 15),
+
+            _buildLabel('Contraseña Actual (Requerida para cambios)'),
+            CustomTextField(
+              labelText: 'Ingresa tu contraseña actual',
+              controller: controller.oldpasswordController,
+              obscureText: true,
+              iconData: Icons.lock_outline,
+            ),
+
+            const SizedBox(height: 15),
+
+            _buildLabel('Nueva Contraseña (Opcional)'),
+            CustomTextField(
+              labelText: 'Ingresa la nueva contraseña',
+              controller: controller.newpasswordController,
+              obscureText: true,
+              iconData: Icons.lock_reset,
+            ),
+
+            const SizedBox(height: 40),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  await controller.modificarLogin(context);
+                  setState(() {
+                    _userDataFuture = _loadUserData();
+                  });
                 },
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: Theme.of(context).textTheme.bodyMedium!.color,
-                ),
+                icon: const Icon(Icons.save),
                 label: const Text(
-                  'Volver',
-                  style: TextStyle(color: Colors.black, fontSize: 16),
+                  'Guardar Cambios',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.transparent,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xff253f8d),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
-                    side: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 10,
                   ),
                 ),
               ),
-              SizedBox(width: 10),
-              Column(
-                children: [
-                  Text(
-                    'Modificar datos de inicio de sesión',
-                    style: TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.indigo,
-                    ),
-                  ),
-                  Text(
-                    'Modificar los datos del correo y contraseña',
-                    style: TextStyle(fontSize: 15),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          SizedBox(height: 25),
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.black),
-              borderRadius: BorderRadius.all(Radius.circular(8)),
             ),
-            child: Form(
-              autovalidateMode: AutovalidateMode.always,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.app_registration_rounded,
-                        size: 50,
-                        color: Colors.indigo,
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Datos de inicio de sesión',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.indigo,
-                            ),
-                          ),
-                          Text(
-                            'Modificar los datos del correo y contraseña',
-                            style: TextStyle(fontSize: 14, color: Colors.black),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+            const SizedBox(height: 50),
+          ],
+        );
+      },
+    );
+  }
 
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.app_registration_rounded,
-                        size: 100,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ],
-                  ),
-                  Text(
-                    'Antiguo Correo',
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyMedium!.color,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  CustomTextField(
-                    labelText: 'oldemail',
-                    controller: controller.oldemailController,
-                    validator: controller.validarCorreo,
-                  ),
-                  Text(
-                    'Nuevo correo',
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyMedium!.color,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  CustomTextField(
-                    labelText: 'newemail',
-                    controller: controller.newemailController,
-                    validator: controller.validarCorreo,
-                  ),
-                  Text(
-                    'Antigua contraseña',
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyMedium!.color,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  CustomTextField(
-                    labelText: 'oldpassword',
-                    controller: controller.oldpasswordController,
-                    validator: controller.validarPassword,
-                  ),
-                  Text(
-                    'Nueva contraseña',
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyMedium!.color,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  CustomTextField(
-                    labelText: 'newpassword',
-                    controller: controller.newpasswordController,
-                    validator: controller.validarPassword,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: 10),
-          TextButton.icon(
-            onPressed: () {
-              try {
-                controller.modificarLogin(context);
-              } catch (e) {}
-            },
-            icon: Icon(
-              Icons.save,
-              color: Theme.of(context).colorScheme.onPrimary,
-            ),
-            label: Text(
-              'Guardar cambios',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            style: TextButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-            ),
-          ),
-        ],
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0, left: 2.0),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+          color: Colors.black87,
+        ),
       ),
     );
   }
