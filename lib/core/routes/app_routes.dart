@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
-import 'package:prolab_unimet/views/dashboard_view.dart';
 import 'package:prolab_unimet/views/landing_page_view.dart';
 import 'package:prolab_unimet/views/layouts/admin_layout.dart';
 import 'package:prolab_unimet/views/login_view.dart';
 import 'package:prolab_unimet/views/profile_view.dart';
 import 'package:prolab_unimet/views/projects_view.dart';
 import 'package:prolab_unimet/views/register_view.dart';
+import 'package:prolab_unimet/views/reports/reports_view.dart';
 import 'package:prolab_unimet/views/settings_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:prolab_unimet/views/resources_view.dart';
 import 'package:prolab_unimet/views/task_view.dart';
 import 'package:provider/provider.dart';
-import 'package:prolab_unimet/views/homepage_view.dart';
+import 'package:prolab_unimet/views/dashboard_view.dart';
 import 'package:prolab_unimet/views/help_module_view.dart';
 
 // Define user roles for authorization
@@ -47,11 +47,6 @@ final appRouter = GoRouter(
     ShellRoute(
       builder: (context, state, child) => AdminLayout(child: child),
       routes: [
-        GoRoute(
-          path: '/admin-homepage',
-          builder: (context, state) => const HomePageView(),
-          redirect: (context, state) => _requireAuth(context, userRoles),
-        ),
         GoRoute(
           path: '/admin-dashboard',
           builder: (context, state) => const DashboardView(),
@@ -96,6 +91,11 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/admin-tasks',
           builder: (context, state) => const TaskView(),
+          redirect: (context, state) => _requireAuth(context, userRoles),
+        ),
+        GoRoute(
+          path: '/admin-reports',
+          builder: (context, state) => const ReportsView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
       ],

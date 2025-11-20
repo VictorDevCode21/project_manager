@@ -2,11 +2,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:prolab_unimet/models/notification_model.dart'; // Make sure you import your model
+import 'package:prolab_unimet/models/notification_model.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
 import 'package:prolab_unimet/providers/notification_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:prolab_unimet/controllers/settings_controller.dart';
 
 // This function remains the same.
 String _formatTimeAgo(Timestamp timestamp) {
@@ -27,22 +26,14 @@ class AdminLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext buildContext) {
-    // We get the authProvider here just for the profile menu,
-    // but Consumer2 will handle the toast logic.
+    // We still get authProvider for the profile menu/logout callbacks
     final authProvider = Provider.of<AuthProvider>(buildContext, listen: false);
     const Color navBarColor = Color(0xff253f8d);
     const Color iconColor = Colors.white70;
     const Color textColor = Colors.white;
 
-    // === 🚀 FIX START ===
-    // We REMOVED the redundant MultiProvider.
-    // We now start with Consumer2, which reads the providers
-    // from main.dart.
     return Consumer2<NotificationProvider, AuthProvider>(
-      builder: (context, notifProvider, auth, layoutChild) {
-        final userRole = auth.role;
-        final bool canViewResources =
-            userRole == 'ADMIN' || userRole == 'COORDINATOR';
+      builder: (context, notifProvider, auth, _) {
         // --- Toast/Snackbar logic (unchanged) ---
         if (notifProvider.toastNotification != null) {
           final notification = notifProvider.toastNotification!;
@@ -87,7 +78,11 @@ class AdminLayout extends StatelessWidget {
             auth.clearNewLoginUser();
           });
         }
-        // --- End of Toast logic ---
+
+        // ===== Role-based navbar logic =====
+        // Adjust this property name according to your AuthProvider
+        final String? role = auth.role; // e.g. 'ADMIN', 'COORDINATOR', 'USER'
+        final bool isUserOnly = role == 'USER';
 
         return Scaffold(
           backgroundColor: const Color(0xfff4f6f7),
@@ -100,7 +95,7 @@ class AdminLayout extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   children: [
-                    // Logo (remains the same)
+                    // Logo
                     Row(
                       children: [
                         Image.asset('assets/Logo.png', height: 40, width: 40),
@@ -130,50 +125,55 @@ class AdminLayout extends StatelessWidget {
                     ),
                     const SizedBox(width: 40),
 
-                    // Navbar Buttons (remains the same)
+                    // ===== Navbar Buttons (role-based) =====
                     const _NavButton(
-                      icon: Icons.home,
-                      label: 'Inicio',
-                      route: '/admin-homepage',
-                    ),
-
-                    const SizedBox(width: 15),
-                    const _NavButton(
-                      icon: Icons.folder_outlined,
-                      label: 'Proyectos',
-                      route: '/admin-projects',
-                    ),
-                    const SizedBox(width: 15),
-                    const _NavButton(
-                      icon: Icons.calendar_today_outlined,
-                      label: 'Tareas',
-                      route: '/admin-tasks',
-                    ),
-                    const SizedBox(width: 15),
-                    if (canViewResources)
-                      const _NavButton(
-                        icon: Icons.people_outline,
-                        label: 'Recursos',
-                        route: '/admin-resources',
-                      ),
-
-                    if (canViewResources) const SizedBox(width: 15),
-                    const _NavButton(
-                      icon: Icons.bar_chart_outlined,
+                      icon: Icons.dashboard_outlined,
                       label: 'Dashboard',
                       route: '/admin-dashboard',
                     ),
                     const SizedBox(width: 15),
+
+                    // Proyectos: only for non-USER
+                    if (!isUserOnly) ...[
+                      const _NavButton(
+                        icon: Icons.folder_copy_outlined,
+                        label: 'Proyectos',
+                        route: '/admin-projects',
+                      ),
+                      const SizedBox(width: 15),
+                    ],
+
+                    // Tareas: visible for all
                     const _NavButton(
-                      icon: Icons.description_outlined,
-                      label: 'Reportes',
-                      route: '/admin-reports',
+                      icon: Icons.folder_copy_outlined,
+                      label: 'Tareas',
+                      route: '/admin-tasks',
                     ),
+
+                    // Recursos: only for non-USER
+                    if (!isUserOnly) ...[
+                      const SizedBox(width: 15),
+                      const _NavButton(
+                        icon: Icons.folder_copy_outlined,
+                        label: 'Recursos',
+                        route: '/admin-resources',
+                      ),
+                    ],
+
+                    // Reportes: only for non-USER
+                    if (!isUserOnly) ...[
+                      const SizedBox(width: 15),
+                      const _NavButton(
+                        icon: Icons.folder_copy_outlined,
+                        label: 'Reportes',
+                        route: '/admin-reports',
+                      ),
+                    ],
 
                     const Spacer(),
 
                     // 🔔 Notifications + Profile
-                    const _NotificationBell(), // <-- Simplified
+                    const _NotificationBell(),
 
                     const SizedBox(width: 10),
 
@@ -236,10 +236,10 @@ class AdminLayout extends StatelessWidget {
                         }
                       },
                     ),
-                    // Logout Icon Button (remains the same)
+
+                    // Logout Icon Button
                     IconButton(
                       onPressed: () async {
-                        // We use 'buildContext' here as well
                         final authProviderLocal = Provider.of<AuthProvider>(
                           buildContext,
                           listen: false,
@@ -277,9 +277,7 @@ class AdminLayout extends StatelessWidget {
           ),
         );
       },
-      child: child,
     );
-    // === 🚀 FIX END ===
   }
 }
 
@@ -320,21 +318,14 @@ class _NavButton extends StatelessWidget {
 }
 
 // =======================================================================
-// === 🚀 MODIFIED NOTIFICATION WIDGETS START HERE ===
+// === NOTIFICATION WIDGETS (unchanged from tu última versión) ===
 // =======================================================================
 
-///
-/// This is the modified Notification Bell.
-/// It no longer requires 'originalContext' because its own 'context'
-/// can already see the providers from main.dart.
-///
 class _NotificationBell extends StatelessWidget {
-  // const _NotificationBell({required this.originalContext}); // 👈 REMOVED
-  const _NotificationBell(); // 👈 ADDED
+  const _NotificationBell();
 
   @override
   Widget build(BuildContext context) {
-    // We can now safely use the widget's own 'context' to read the provider.
     final provider = Provider.of<NotificationProvider>(context);
     final unreadCount = provider.unreadCount;
 
@@ -346,22 +337,17 @@ class _NotificationBell extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       onSelected: (value) {
         if (value == 'history') {
-          // Close the popover first
           Navigator.of(context).pop();
-          // Then navigate using the widget's 'context'
           GoRouter.of(context).go('/admin-notifications');
         }
       },
       itemBuilder: (BuildContext popupContext) {
-        // We return a list with ONE item: our custom popover
         return [
           PopupMenuItem<String>(
             enabled: false,
             padding: EdgeInsets.zero,
             child: _NotificationsPopover(
-              // Pass the provider we fetched above
               provider: provider,
-              // Pass the widget's context for navigation from the footer
               parentContext: context,
             ),
           ),
@@ -377,13 +363,9 @@ class _NotificationBell extends StatelessWidget {
   }
 }
 
-///
-/// This is the custom popover widget.
-/// It now uses 'parentContext' to navigate from the footer.
-///
 class _NotificationsPopover extends StatelessWidget {
   final NotificationProvider provider;
-  final BuildContext parentContext; // The context from _NotificationBell
+  final BuildContext parentContext;
 
   const _NotificationsPopover({
     required this.provider,
@@ -392,7 +374,6 @@ class _NotificationsPopover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 'provider' is passed in, so we don't need to read it here.
     final notifications = provider.notifications;
 
     return Container(
@@ -405,7 +386,6 @@ class _NotificationsPopover extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // === Header ===
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Text(
@@ -418,8 +398,6 @@ class _NotificationsPopover extends StatelessWidget {
             ),
           ),
           const Divider(height: 1, color: Colors.black12),
-
-          // === Notification List ===
           Expanded(
             child: (provider.isLoading)
                 ? const Center(child: CircularProgressIndicator())
@@ -448,8 +426,6 @@ class _NotificationsPopover extends StatelessWidget {
                     ),
                   ),
           ),
-
-          // === Footer ===
           const Divider(height: 1, color: Colors.black12),
         ],
       ),
@@ -457,10 +433,6 @@ class _NotificationsPopover extends StatelessWidget {
   }
 }
 
-///
-/// This widget represents a single notification card
-/// (Unchanged from the version I gave you previously)
-///
 class _NotificationItemCard extends StatelessWidget {
   final NotificationModel notification;
   final NotificationProvider provider;
@@ -476,18 +448,14 @@ class _NotificationItemCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      color: notification.isRead
-          ? Colors.white
-          : const Color(0xFFF0F4FF), // Highlight unread
+      color: notification.isRead ? Colors.white : const Color(0xFFF0F4FF),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // === Title and Dismiss Button ===
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title
               Expanded(
                 child: Text(
                   notification.title,
@@ -498,7 +466,6 @@ class _NotificationItemCard extends StatelessWidget {
                   ),
                 ),
               ),
-              // Dismiss ('x') button
               InkWell(
                 onTap: () {
                   provider.dismissNotification(notification.id);
@@ -509,20 +476,15 @@ class _NotificationItemCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-
-          // === Timestamp ===
           Text(
             _formatTimeAgo(notification.createdAt),
             style: const TextStyle(color: Colors.black54, fontSize: 13),
           ),
-
-          // === Action Buttons (Conditional) ===
           if (isInvitation)
             Padding(
               padding: const EdgeInsets.only(top: 12.0),
               child: Row(
                 children: [
-                  // Accept Button
                   ElevatedButton(
                     onPressed: () async {
                       final messenger = ScaffoldMessenger.of(context);
@@ -556,8 +518,6 @@ class _NotificationItemCard extends StatelessWidget {
                     child: const Text('Aceptar'),
                   ),
                   const SizedBox(width: 10),
-
-                  // Decline Button
                   ElevatedButton(
                     onPressed: () {
                       provider.declineInvitation(notification);

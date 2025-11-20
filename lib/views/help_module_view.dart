@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../controllers/help_module_controller.dart';
 import '../models/help_module_model.dart';
 
@@ -12,7 +11,6 @@ const Color softGrey = Color(0xFF424242);
 const Color cardBorderColor = Color(0xFFE9ECEF);
 const Color validationGreen = Color(0xFF4CAF50);
 
-// Estilos de Texto
 const TextStyle headlineStyle = TextStyle(
   fontSize: 24,
   fontWeight: FontWeight.bold,
@@ -109,6 +107,10 @@ class HelpModuleView extends StatelessWidget {
   }
 }
 
+// -----------------------------------------------------------------
+// SECCIÓN DE BÚSQUEDA - APLICANDO BORDE VERDE AL ENFOQUE
+// -----------------------------------------------------------------
+
 class _SearchSection extends StatelessWidget {
   const _SearchSection();
 
@@ -137,17 +139,16 @@ class _SearchSection extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: cardBorderColor, width: 1.0),
-        ),
-
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: validationGreen, width: 1.5),
+          borderSide: const BorderSide(color: validationGreen, width: 1.0),
         ),
       ),
     );
   }
 }
+
+// -----------------------------------------------------------------
+// SECCIÓN DE FUNCIONALIDADES PRINCIPALES
+// -----------------------------------------------------------------
 
 class _MainFeaturesSection extends StatelessWidget {
   const _MainFeaturesSection();
@@ -156,39 +157,54 @@ class _MainFeaturesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Provider.of<HelpModuleController>(context);
     final features = controller.features;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Funcionalidades Principales',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: validationGreen.withOpacity(0.5), width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: primaryDarkBlue.withOpacity(0.05),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 2),
           ),
-        ),
-        const SizedBox(height: 5),
-        const Text(
-          'Conoce todas las herramientas disponibles en tu sistema de gestión',
-          style: subtitleStyle,
-        ),
-        const SizedBox(height: 15),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: features.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 20.0,
-            mainAxisSpacing: 20.0,
-            childAspectRatio: 1.8,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Funcionalidades Principales',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: primaryDarkBlue,
+            ),
           ),
-          itemBuilder: (context, index) {
-            return _FeatureCard(feature: features[index]);
-          },
-        ),
-      ],
+          const SizedBox(height: 5),
+          const Text(
+            'Conoce todas las herramientas disponibles en tu sistema de gestión',
+            style: subtitleStyle,
+          ),
+          const SizedBox(height: 15),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: features.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 20.0,
+              mainAxisSpacing: 20.0,
+              childAspectRatio: 1.8,
+            ),
+            itemBuilder: (context, index) {
+              return _FeatureCard(feature: features[index]);
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -201,17 +217,11 @@ class _FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ver más sobre ${feature.title}')),
-        );
-      },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-
           border: Border.all(
             color: validationGreen.withOpacity(0.5),
             width: 1.0,
@@ -228,19 +238,28 @@ class _FeatureCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.bar_chart,
-              color: primaryDarkBlue.withOpacity(0.8),
-              size: 24,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              feature.title,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(
+                  feature.iconData,
+                  size: 24,
+                  color: primaryDarkBlue.withOpacity(0.8),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    feature.title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: primaryDarkBlue,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 5),
             Expanded(
@@ -269,69 +288,148 @@ class _FaqSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Provider.of<HelpModuleController>(context);
     final faqs = controller.filteredFaqs;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(
-          children: [
-            Icon(Icons.help_outline, color: primaryDarkBlue, size: 20),
-            SizedBox(width: 8),
-            Text(
-              'Preguntas Frecuentes',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: validationGreen.withOpacity(0.5), width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: primaryDarkBlue.withOpacity(0.05),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.help_outline, color: primaryDarkBlue, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Preguntas Frecuentes',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: primaryDarkBlue,
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 5),
-        const Text(
-          'Respuestas a las preguntas más comunes sobre el uso de la aplicación',
-          style: subtitleStyle,
-        ),
-        const SizedBox(height: 15),
+            ],
+          ),
+          const SizedBox(height: 5),
+          const Text(
+            'Respuestas a las preguntas más comunes sobre el uso de la aplicación',
+            style: subtitleStyle,
+          ),
+          const SizedBox(height: 15),
+          Consumer<HelpModuleController>(
+            builder: (context, controller, child) {
+              final faqs = controller.filteredFaqs;
 
-        ...faqs
-            .map((faq) => _FaqItemWidget(faq: faq, controller: controller))
-            .toList(),
-      ],
+              if (faqs.isEmpty && controller.searchTerm.isNotEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Text(
+                    'No se encontraron resultados para "${controller.searchTerm}".',
+                    style: const TextStyle(color: softGrey),
+                  ),
+                );
+              }
+
+              return Column(
+                children: faqs.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final faq = entry.value;
+
+                  return _FaqItem(
+                    faq: faq,
+                    index: index,
+                    isExpanded: controller.expandedFaqIndex == index,
+                    onTap: controller.toggleFaqExpansion,
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _FaqItemWidget extends StatelessWidget {
+class _FaqItem extends StatelessWidget {
   final FaqItem faq;
-  final HelpModuleController controller;
-
-  const _FaqItemWidget({required this.faq, required this.controller});
+  final int index;
+  final bool isExpanded;
+  final ValueChanged<int> onTap;
+  const _FaqItem({
+    required this.faq,
+    required this.index,
+    required this.isExpanded,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => controller.handleFaqTap(context, faq.question),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(5),
-
+          borderRadius: BorderRadius.circular(8.0),
           border: Border.all(
             color: validationGreen.withOpacity(0.5),
             width: 1.0,
           ),
         ),
-        child: ListTile(
+        child: ExpansionTile(
+          key: isExpanded
+              ? ValueKey('expanded_${faq.question}')
+              : ValueKey('closed_${faq.question}'),
+          initiallyExpanded: isExpanded,
+
+          onExpansionChanged: (_) {
+            onTap(index);
+          },
+
           title: Text(
             faq.question,
-            style: const TextStyle(fontSize: 15, color: softGrey),
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              color: primaryDarkBlue,
+            ),
           ),
-          trailing: const Icon(Icons.chevron_right, color: softGrey),
-          contentPadding: const EdgeInsets.symmetric(
+
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 16.0,
+                right: 16.0,
+                bottom: 12.0,
+                top: 4.0,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  faq.answer,
+                  style: const TextStyle(fontSize: 13, color: Colors.black),
+                ),
+              ),
+            ),
+          ],
+
+          trailing: Icon(
+            isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+            color: primaryDarkBlue,
+          ),
+          tilePadding: const EdgeInsets.symmetric(
             horizontal: 16.0,
-            vertical: 0,
+            vertical: 4.0,
           ),
         ),
       ),
@@ -364,7 +462,7 @@ class _NeedHelpSection extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: primaryDarkBlue,
             ),
           ),
           const SizedBox(height: 15),
@@ -372,21 +470,24 @@ class _NeedHelpSection extends StatelessWidget {
             icon: Icons.chat_bubble_outline,
             title: 'Chat en vivo',
             subtitle: 'Lun-Vie 9:00-18:00',
-            onTap: () => _showContactSnackBar(context, 'Abrir Chat'),
+            color: primaryDarkBlue,
+            onTap: () => _showContactSnackBar(context, 'Proximamente'),
           ),
           const Divider(height: 20, color: cardBorderColor),
           _ContactOption(
             icon: Icons.email_outlined,
             title: 'Email',
             subtitle: 'soporte@empresa.com',
-            onTap: () => _showContactSnackBar(context, 'Enviar Email'),
+            color: primaryDarkBlue,
+            onTap: () => _showContactSnackBar(context, 'Proximamente'),
           ),
           const Divider(height: 20, color: cardBorderColor),
           _ContactOption(
             icon: Icons.phone_outlined,
             title: 'Teléfono',
             subtitle: '+58 212 123-4567',
-            onTap: () => _showContactSnackBar(context, 'Llamar'),
+            color: primaryDarkBlue,
+            onTap: () => _showContactSnackBar(context, 'Proximamente'),
           ),
         ],
       ),
@@ -404,12 +505,14 @@ class _ContactOption extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final Color color;
   final VoidCallback onTap;
 
   const _ContactOption({
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.color,
     required this.onTap,
   });
 
@@ -429,7 +532,7 @@ class _ContactOption extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black87,
+                  color: primaryDarkBlue,
                 ),
               ),
               Text(
@@ -461,7 +564,6 @@ class _QuickLinksSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-
         border: Border.all(color: validationGreen.withOpacity(0.5), width: 1.0),
       ),
       child: Column(
@@ -472,7 +574,7 @@ class _QuickLinksSection extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: primaryDarkBlue,
             ),
           ),
           const SizedBox(height: 10),

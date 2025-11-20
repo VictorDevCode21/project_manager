@@ -79,7 +79,7 @@ class LoginController extends ChangeNotifier {
       // 4) Navigate based on role
       if (context.mounted) {
         if (role == 'ADMIN' || role == 'COORDINATOR' || role == 'USER') {
-          context.go('/admin-homepage');
+          context.go('/admin-dashboard');
         } else {
           context.go('/');
         }

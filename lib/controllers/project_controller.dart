@@ -80,7 +80,6 @@ class ProjectController {
           'createdAt': FieldValue.serverTimestamp(),
         });
 
-      // --- 👇 AÑADE ESTAS LÍNEAS DE DEPURACIÓN AQUÍ ---
       debugPrint('>>> [DEBUG] Auth UID: ${user.uid}');
       debugPrint('>>> [DEBUG] Payload ownerId: ${data['ownerId']}');
 
@@ -286,7 +285,6 @@ class _Normalized {
 
 extension ProjectMembersOps on ProjectController {
   /// Exposes current user's uid to views.
-  ///
   String? get currentUserUid => _auth.currentUser?.uid;
 
   /// Streams the members of a given project.
@@ -323,28 +321,40 @@ extension ProjectMembersOps on ProjectController {
 // ===================== INVITES =====================
 
 extension ProjectInvitesOps on ProjectController {
-  // === NEW METHOD ===
-  ///
-  /// Finds a user's UID by their email.
+  /// Finds a user's UID by their emailLower field in /users.
   /// Returns UID string if found, null otherwise.
-  ///
+  /// Finds a user's UID by their email (exact string match).
   Future<String?> _findUidByEmail(String email) async {
+    // Do not change case, only trim spaces
+    final candidate = email.trim();
+
     try {
+      debugPrint('[DEBUG] _findUidByEmail search: "$candidate"');
+
       final query = await _db
-          .collection("users")
-          .where("email", isEqualTo: email.trim().toLowerCase())
+          .collection('users')
+          .where('email', isEqualTo: candidate)
           .limit(1)
           .get();
-      if (query.docs.isNotEmpty) {
-        return query.docs.first.id; // Return the user's UID
+
+      debugPrint(
+        '[DEBUG] _findUidByEmail("$candidate") -> ${query.docs.length} docs',
+      );
+
+      if (query.docs.isEmpty) {
+        debugPrint('[DEBUG] _findUidByEmail: no user found for "$candidate"');
+        return null;
       }
-      return null; // No user found
+
+      final uid = query.docs.first.id;
+      debugPrint('[DEBUG] _findUidByEmail resolved uid: $uid');
+      return uid;
     } catch (e) {
-      _logError("find_user_by_email_failed", {
-        "email": email,
-        "error": e.toString(),
+      _logError('find_user_by_email_failed', {
+        'email': candidate,
+        'error': e.toString(),
       });
-      return null; // Fail safe
+      return null;
     }
   }
 
@@ -355,13 +365,10 @@ extension ProjectInvitesOps on ProjectController {
     return '$b$p';
   }
 
-  // === MODIFIED SECTION ===
-  ///
   /// Creates an invite, sends an email, and handles both
   /// existing and non-existing users.
   /// - If user exists: creates an in-app notification.
   /// - If user does NOT exist: creates a 'pendingInvites' lookup doc.
-  ///
   Future<void> createInviteAndSendEmail({
     required String projectId,
     required String projectName,
@@ -376,13 +383,16 @@ extension ProjectInvitesOps on ProjectController {
     final inviterName =
         inviter.displayName ?? inviter.email ?? 'un administrador';
 
-    final email = recipientEmail.trim().toLowerCase();
+    final email = recipientEmail.trim();
     if (email.isEmpty) {
       throw ArgumentError('Email is required.');
     }
 
     // 1) Check if user exists *before* doing anything else
     final recipientId = await _findUidByEmail(email);
+    debugPrint(
+      '[DEBUG] createInviteAndSendEmail recipientId: $recipientId for $email',
+    );
 
     final WriteBatch batch = _db.batch();
 
@@ -397,17 +407,16 @@ extension ProjectInvitesOps on ProjectController {
       'email': email,
       'status': 'PENDING',
       'invitedBy': inviter.uid,
-      'inviterName': inviterName, // Store this for context
-      'projectName': projectName, // Store this for context
+      'inviterName': inviterName,
+      'projectName': projectName,
       'createdAt': FieldValue.serverTimestamp(),
       'acceptedAt': null,
-      'recipientId': recipientId, // Store UID if we found one
+      'recipientId': recipientId,
     });
 
-    // 3) --- Handle the two different scenarios ---
+    // 3) Handle existing vs non-existing user
     if (recipientId != null) {
-      // --- SCENARIO A: User exists ---
-      // Create an in-app notification immediately
+      // User exists: create notification
       final notificationRef = _db.collection('notifications').doc();
       batch.set(notificationRef, {
         'recipientId': recipientId,
@@ -417,19 +426,16 @@ extension ProjectInvitesOps on ProjectController {
         'relatedId': projectId,
         'createdAt': FieldValue.serverTimestamp(),
         'isRead': false,
-        // Store the invite path so the "accept" button works
         'metadata': {
           'originalInvitePath': inviteRef.path,
           'originalInviteId': inviteRef.id,
         },
       });
     } else {
-      // --- SCENARIO B: User does NOT exist ---
-      // Create the denormalized "lookup" document in /pendingInvites
-      // so the register_controller can find it.
+      // User does not exist: create pendingInvites lookup
       final pendingInviteRef = _db
           .collection('pendingInvites')
-          .doc(inviteRef.id); // Use same ID
+          .doc(inviteRef.id);
 
       batch.set(pendingInviteRef, {
         'email': email,
@@ -441,16 +447,15 @@ extension ProjectInvitesOps on ProjectController {
       });
     }
 
-    // 4) Commit the batch (creates EITHER invite+notification OR invite+pendingInvite)
+    // 4) Commit the batch
     try {
       await batch.commit();
     } catch (e) {
-      _logError("invite_batch_failed", {"error": e.toString()});
-      throw Exception("No se pudo crear la invitación. Intenta de nuevo.");
+      _logError('invite_batch_failed', {'error': e.toString()});
+      throw Exception('No se pudo crear la invitación. Intenta de nuevo.');
     }
 
-    // 5) Send email via Lambda (Your existing logic)
-    // Read public env vars directly
+    // 5) Send email via Lambda
     final functionUrl = dotenv.env['FUNCTION_URL']?.trim() ?? '';
     final baseUrl = dotenv.env['INVITE_ACCEPT_BASE_URL']?.trim() ?? '';
 
@@ -461,23 +466,14 @@ extension ProjectInvitesOps on ProjectController {
       throw Exception('INVITE_ACCEPT_BASE_URL is missing in .env');
     }
 
-    // 6) Decide path: We already know if the user exists!
     final exists = recipientId != null;
     final path = exists ? '/login' : '/register';
 
-    // 7) Build accept URL
     final base = _joinBaseAndPath(baseUrl, path);
-    // Use the *original* invite ID in the URL
     final acceptUrl = Uri.parse(base)
-        .replace(
-          queryParameters: {
-            'pid': projectId,
-            'inviteId': inviteRef.id, // Send the inviteId
-          },
-        )
+        .replace(queryParameters: {'pid': projectId, 'inviteId': inviteRef.id})
         .toString();
 
-    // 8) Send email via Lambda
     final mailer = InviteService();
     try {
       await mailer.sendInviteEmail(
@@ -486,14 +482,11 @@ extension ProjectInvitesOps on ProjectController {
         functionUrl: functionUrl,
       );
     } catch (e, _) {
-      // Do not break UX if mailer fails; the invite exists.
       _logError('mailer_failed', {'error': e.toString(), 'email': email});
     }
   }
 
   /// Streams invites for a project, filtered to PENDING only.
-  /// If Firestore asks for a composite index (status+createdAt),
-  /// create it or remove the orderBy if you want zero-index setup.
   Stream<List<ProjectInvite>> streamInvites(
     String projectId, {
     String status = 'PENDING',
@@ -509,7 +502,6 @@ extension ProjectInvitesOps on ProjectController {
   }
 
   /// Cancels an invite (rules define who is allowed).
-  /// Throws a user-friendly [Exception] if the update fails.
   Future<void> cancelInvite(String projectId, String inviteId) async {
     final ref = _db
         .collection('projects')
@@ -518,31 +510,27 @@ extension ProjectInvitesOps on ProjectController {
         .doc(inviteId);
 
     try {
-      // Add 'cancelledAt' and 'cancelledBy' for better data tracking
       await ref.update({
         'status': 'CANCELLED',
         'cancelledAt': FieldValue.serverTimestamp(),
         'cancelledBy': _auth.currentUser?.uid ?? 'unknown_user',
       });
     } on FirebaseException catch (e) {
-      // Use your existing logger
-      _logError("cancel_invite_failed", {
-        "projectId": projectId,
-        "inviteId": inviteId,
-        "code": e.code,
-        "message": e.message,
+      _logError('cancel_invite_failed', {
+        'projectId': projectId,
+        'inviteId': inviteId,
+        'code': e.code,
+        'message': e.message,
       });
-      // Re-throw a cleaner message for the View to catch
       throw Exception(
         'Error al cancelar la invitación: ${e.message ?? e.code}',
       );
     } catch (e) {
-      _logError("cancel_invite_failed_unknown", {
-        "projectId": projectId,
-        "inviteId": inviteId,
-        "error": e.toString(),
+      _logError('cancel_invite_failed_unknown', {
+        'projectId': projectId,
+        'inviteId': inviteId,
+        'error': e.toString(),
       });
-      // Re-throw a generic error
       throw Exception('Ocurrió un error inesperado al cancelar la invitación.');
     }
   }

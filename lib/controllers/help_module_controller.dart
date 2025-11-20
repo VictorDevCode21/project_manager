@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../models/help_module_model.dart';
+import 'package:go_router/go_router.dart';
 
 class HelpModuleController extends ChangeNotifier {
   final List<Feature> _features = HelpData.getFeatures();
@@ -16,48 +17,42 @@ class HelpModuleController extends ChangeNotifier {
   List<FaqItem> _filteredFaqs = HelpData.getFaqs();
   List<FaqItem> get filteredFaqs => _filteredFaqs;
 
+  String _searchTerm = '';
+  String get searchTerm => _searchTerm;
+
+  int? _expandedFaqIndex;
+  int? get expandedFaqIndex => _expandedFaqIndex;
+
+  void toggleFaqExpansion(int index) {
+    if (_expandedFaqIndex == index) {
+      _expandedFaqIndex = null;
+    } else {
+      _expandedFaqIndex = index;
+    }
+    notifyListeners();
+  }
+
   void searchFaqs(String query) {
-    if (query.isEmpty) {
+    final cleanQuery = query.trim().toLowerCase();
+    _searchTerm = cleanQuery;
+
+    if (cleanQuery.isEmpty) {
       _filteredFaqs = _faqs;
     } else {
       _filteredFaqs = _faqs
           .where(
-            (faq) => faq.question.toLowerCase().contains(query.toLowerCase()),
+            (faq) =>
+                faq.question.toLowerCase().contains(cleanQuery) ||
+                faq.answer.toLowerCase().contains(cleanQuery),
           )
           .toList();
     }
-    // Notifica a la vista para que se reconstruya con los nuevos datos
+
+    _expandedFaqIndex = null;
     notifyListeners();
   }
 
-  // Lógica de navegación para Enlaces Rápidos (simulación)
   void navigateTo(BuildContext context, String routeName) {
-    // Aquí se implementaría la lógica de navegación real, por ejemplo:
-    // Navigator.pushNamed(context, routeName);
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Navegando a la ruta: $routeName')));
-    print('Intentando navegar a: $routeName');
-  }
-
-  void handleFaqTap(BuildContext context, String question) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(question),
-          content: const Text(
-            'Esta es la respuesta a la pregunta seleccionada. se cargaría el contenido completo.',
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cerrar'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        );
-      },
-    );
+    GoRouter.of(context).go(routeName);
   }
 }

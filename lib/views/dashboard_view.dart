@@ -1,493 +1,557 @@
-// lib/views/dashboard_view.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../controllers/dashboard_controller.dart';
-import '../models/dashboard_model.dart';
+import 'package:go_router/go_router.dart';
+
+import '../controllers/homepage_controller.dart';
+import '../models/homepage_model.dart';
+import '../providers/auth_provider.dart';
 
 class DashboardView extends StatelessWidget {
   const DashboardView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Inicializa el controlador y carga los datos.
-    // Usamos ChangeNotifierProvider para que la vista se actualice
-    // automáticamente cuando el controlador cambie (notifyListeners).
     return ChangeNotifierProvider(
-      create: (_) => DashboardController()..loadDashboardData(),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Dashboard de Proyectos'),
-          centerTitle: false,
-          actions: const [_TimeRangeSelector(), _ExportButton()],
-        ),
-        body: Consumer<DashboardController>(
-          builder: (context, controller, child) {
-            if (controller.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      create: (context) => HomePageController(),
+      child: Consumer2<HomePageController, AuthProvider>(
+        builder: (context, controller, auth, child) {
+          final HomePageModel model = controller.model;
+          final String? role = auth.role; // 'ADMIN', 'COORDINATOR', 'USER'
+          final bool isUserOnly = role == 'USER';
 
-            if (controller.errorMessage != null) {
-              return Center(child: Text(controller.errorMessage!));
-            }
-
-            if (controller.dashboardData == null) {
-              return const Center(child: Text('No hay datos disponibles.'));
-            }
-
-            final data = controller.dashboardData!;
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+          return Scaffold(
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // --- Sección de Métricas Principales ---
-                  _MetricsGrid(metrics: data.metricCards),
-
-                  const SizedBox(height: 24),
-
-                  // --- Pestañas de Navegación ---
-                  const _DashboardTabs(),
-
-                  const SizedBox(height: 24),
-
-                  // --- Gráfico de Progreso de Proyectos ---
+                children: <Widget>[
                   const Text(
-                    'Progreso de Proyectos',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    'Bienvenido a ProLab UNIMET',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E3A8A),
+                    ),
                   ),
+                  const SizedBox(height: 4),
                   const Text(
-                    'Evolución mensual de proyectos por estado',
-                    style: TextStyle(color: Colors.grey),
+                    'Sistema de Gestión de Proyectos - Laboratorios de Ingeniería',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
                   ),
-                  const SizedBox(height: 8),
-                  _ProjectProgressChart(progressData: data.progressData),
+                  const SizedBox(height: 25),
 
-                  const SizedBox(height: 24),
+                  _buildKPIsRow(context, model),
+                  const SizedBox(height: 25),
 
-                  // --- Gráfico de Distribución por Tipo ---
-                  const Text(
-                    'Distribución por Tipo',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const Text(
-                    'Proyectos activos por área de consultoría',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 8),
-                  _DistributionPieChart(
-                    distributionData: data.distributionData,
-                  ),
+                  _buildManagementCards(context, controller, isUserOnly),
+                  const SizedBox(height: 25),
+
+                  _buildBottomCards(context, controller),
+                  const SizedBox(height: 25),
+
+                  // Only show recent projects section to non-USER roles
+                  if (!isUserOnly)
+                    _buildRecentProjects(context, model, controller),
+
+                  const SizedBox(height: 20),
                 ],
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
-}
 
-// --- WIDGETS AUXILIARES PARA LA VISTA ---
+  Widget _buildRecentProjects(
+    BuildContext context,
+    HomePageModel model,
+    HomePageController controller,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Proyectos Recientes',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E3A8A),
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Últimos proyectos creados y actualizados',
+          style: TextStyle(fontSize: 14, color: Colors.grey),
+        ),
+        const SizedBox(height: 15),
 
-class _TimeRangeSelector extends StatelessWidget {
-  const _TimeRangeSelector();
+        ...model.recentProjects.map((project) {
+          return _ProjectTile(
+            project: project,
+            onPressed: () => controller.goToProjectDetails(context, project.id),
+          );
+        }),
+      ],
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    // Simula el dropdown para 'Últimos 30 días'
-    return DropdownButton<String>(
-      value: 'Últimos 30 días',
-      items: <String>['Últimos 7 días', 'Últimos 30 días', 'Este año']
-          .map<DropdownMenuItem<String>>((String value) {
-            return DropdownMenuItem<String>(value: value, child: Text(value));
-          })
-          .toList(),
-      onChanged: (String? newValue) {
-        if (newValue != null) {
-          Provider.of<DashboardController>(
-            context,
-            listen: false,
-          ).changeTimeRange(newValue);
-        }
-      },
+  Widget _buildKPIsRow(BuildContext context, HomePageModel model) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: <Widget>[
+        _KPIWidget(
+          title: 'Proyectos Activos',
+          value: model.activeProjects.toString(),
+          icon: Icons.folder_open,
+          secondaryText: '+${model.expiringThisMonth} este mes',
+          secondaryColor: Colors.green,
+        ),
+        _KPIWidget(
+          title: 'Tareas Pendientes',
+          value: model.pendingTasks.toString(),
+          icon: Icons.pending_actions,
+          secondaryText: '${model.dueSoon} vencen pronto',
+          secondaryColor: Colors.orange,
+        ),
+        _KPIWidget(
+          title: 'Recursos Asignados',
+          value: '${model.resourceUtilization}%',
+          icon: Icons.people_alt,
+          secondaryText: 'Utilización actual',
+          secondaryColor: Colors.blue,
+        ),
+        _KPIWidget(
+          title: 'Progreso General',
+          value: '${model.generalProgress}%',
+          icon: Icons.show_chart,
+          secondaryText: 'En tiempo',
+          secondaryColor: Colors.green,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildManagementCards(
+    BuildContext context,
+    HomePageController controller,
+    bool isUserOnly,
+  ) {
+    // Restricted view for USER role: hide resources management
+    if (isUserOnly) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          // Expanded(
+          //   child: _ManagementCard(
+          //     icon: Icons.list_alt,
+          //     title: 'Gestión de Proyectos',
+          //     subtitle: 'Ver proyectos en los que participas',
+          //     primaryButtonText: 'Ver Proyectos',
+          //     primaryOnPressed: () => controller.goToAllProjects(context),
+          //     secondaryButtonText: 'Ver Detalles de Proyecto',
+          //     secondaryOnPressed: () => controller.goToAllProjects(context),
+          //   ),
+          // ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: _ManagementCard(
+              icon: Icons.calendar_today,
+              title: 'Gestión de Tareas',
+              subtitle: 'Ver y actualizar tus tareas pendientes',
+              primaryButtonText: 'Ver Todas las Tareas',
+              primaryOnPressed: () => controller.goToAllTasks(context),
+              secondaryButtonText: 'Crear Nueva Tarea',
+              secondaryOnPressed: () => controller.goToCreateTask(context),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Full view for ADMIN / COORDINATOR
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Expanded(
+          child: _ManagementCard(
+            icon: Icons.list_alt,
+            title: 'Gestión de Proyectos',
+            subtitle: 'Crear, editar y monitorear proyectos de consultoría',
+            primaryButtonText: 'Ver Todos los Proyectos',
+            primaryOnPressed: () => controller.goToAllProjects(context),
+            secondaryButtonText: 'Crear Nuevo Proyecto',
+            secondaryOnPressed: () => controller.goToCreateProject(context),
+          ),
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: _ManagementCard(
+            icon: Icons.calendar_today,
+            title: 'Gestión de Tareas',
+            subtitle: 'Asignar y monitorear tareas de proyectos',
+            primaryButtonText: 'Ver Todas las Tareas',
+            primaryOnPressed: () => controller.goToAllTasks(context),
+            secondaryButtonText: 'Crear Nueva Tarea',
+            secondaryOnPressed: () => controller.goToCreateTask(context),
+          ),
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: _ManagementCard(
+            icon: Icons.people_alt,
+            title: 'Gestión de Recursos',
+            subtitle: 'Asignar personal y materiales a proyectos',
+            primaryButtonText: 'Ver Recursos Disponibles',
+            primaryOnPressed: () => context.go('/admin-resources'),
+            secondaryButtonText: 'Asignar Recursos',
+            secondaryOnPressed: () => context.go('/admin-resources/assign'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomCards(
+    BuildContext context,
+    HomePageController controller,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[const Spacer()],
     );
   }
 }
 
-class _ExportButton extends StatelessWidget {
-  const _ExportButton();
+class _AppBarButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+
+  const _AppBarButton({required this.label, required this.icon});
 
   @override
   Widget build(BuildContext context) {
     return TextButton.icon(
+      icon: Icon(icon, color: Colors.white, size: 18),
+      label: Text(label, style: const TextStyle(color: Colors.white)),
       onPressed: () {
-        Provider.of<DashboardController>(context, listen: false).exportData();
+        // ignore: avoid_print
+        print('Navegando a: $label');
       },
-      icon: const Icon(Icons.download),
-      label: const Text('Exportar'),
     );
   }
 }
 
-class _MetricsGrid extends StatelessWidget {
-  final List<MetricCard> metrics;
-  const _MetricsGrid({required this.metrics});
+class _KPIWidget extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final String secondaryText;
+  final Color secondaryColor;
+
+  const _KPIWidget({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.secondaryText,
+    required this.secondaryColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, // 2 columnas en móvil
-        crossAxisSpacing: 16.0,
-        mainAxisSpacing: 16.0,
-        childAspectRatio: 2.0, // Ajusta la altura de las tarjetas
-      ),
-      itemCount: metrics.length,
-      itemBuilder: (context, index) {
-        final metric = metrics[index];
-        return Card(
-          elevation: 1,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 10),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.green.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
               children: [
+                Icon(icon, size: 16, color: Colors.grey),
+                const SizedBox(width: 5),
                 Text(
-                  metric.title,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  title,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      metric.value,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Indicador de cambio
-                    Text(
-                      metric.change,
-                      style: TextStyle(
-                        color: metric.isPositiveChange
-                            ? Colors.green
-                            : Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                if (metric.subtitle != null)
-                  Text(
-                    metric.subtitle!,
-                    style: const TextStyle(fontSize: 12, color: Colors.red),
-                  ),
               ],
             ),
-          ),
-        );
-      },
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E3A8A),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              secondaryText,
+              style: TextStyle(fontSize: 12, color: secondaryColor),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _DashboardTabs extends StatelessWidget {
-  const _DashboardTabs();
+class _ManagementCard extends StatelessWidget {
+  final IconData? icon;
+  final String title;
+  final String subtitle;
+  final String primaryButtonText;
+  final VoidCallback? primaryOnPressed;
+  final String secondaryButtonText;
+  final VoidCallback? secondaryOnPressed;
+
+  const _ManagementCard({
+    required this.title,
+    required this.subtitle,
+    required this.primaryButtonText,
+    this.primaryOnPressed,
+    required this.secondaryButtonText,
+    this.secondaryOnPressed,
+    this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Simula la barra de pestañas (Resumen General, Progreso, Recursos, Problemas)
-    return const SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _TabButton(label: 'Resumen General', isSelected: true),
-          _TabButton(label: 'Progreso de Proyectos', isSelected: false),
-          _TabButton(label: 'Recursos', isSelected: false),
-          _TabButton(label: 'Problemas', isSelected: false),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.green.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: [
+              if (icon != null) Icon(icon, color: Colors.green.shade200),
+              if (icon != null) const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E3A8A),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: primaryOnPressed,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.black54,
+                backgroundColor: Colors.white,
+                side: BorderSide(color: Colors.green.shade200),
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              child: Text(primaryButtonText),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: secondaryOnPressed,
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFFFF9900),
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                elevation: 0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (title.contains('Crear') ||
+                      title.contains('Generar') ||
+                      title.contains('Asignar'))
+                    const Icon(Icons.add, size: 20),
+                  const SizedBox(width: 5),
+                  Text(secondaryButtonText),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _TabButton extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  const _TabButton({required this.label, required this.isSelected});
+class _ProjectTile extends StatelessWidget {
+  final Project project;
+  final VoidCallback onPressed;
+
+  const _ProjectTile({required this.project, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: TextButton(
-        onPressed: () {
-          // Lógica para cambiar de pestaña
-        },
-        style: TextButton.styleFrom(
-          backgroundColor: isSelected
-              ? Colors.blue.shade50
-              : Colors.transparent,
-          side: isSelected ? const BorderSide(color: Colors.blue) : null,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.blue : Colors.black,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
+    Color progressColor = Colors.grey;
+    if (project.progress == 100) {
+      progressColor = Colors.green.shade600;
+    } else if (project.progress >= 50) {
+      progressColor = Colors.blue.shade600;
+    } else {
+      progressColor = Colors.orange.shade600;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.green.shade200),
       ),
-    );
-  }
-}
-
-// --- PLACEHOLDERS para Gráficos ---
-
-class _ProjectProgressChart extends StatelessWidget {
-  final List<MonthlyProgress> progressData;
-  const _ProjectProgressChart({required this.progressData});
-
-  @override
-  Widget build(BuildContext context) {
-    // **NOTA**: Aquí se usaría un paquete de gráficos como fl_chart para crear el gráfico
-    // de área apilada. Este es un placeholder visual.
-    return AspectRatio(
-      aspectRatio: 1.5,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Center(
-          child: Text(
-            'GRÁFICO DE ÁREA APILADA (Progreso de Proyectos)\n\n(Se requiere un paquete como fl_chart)',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DistributionPieChart extends StatelessWidget {
-  final List<ProjectDistribution> distributionData;
-  const _DistributionPieChart({required this.distributionData});
-
-  @override
-  Widget build(BuildContext context) {
-    // **NOTA**: Aquí se usaría un paquete de gráficos para crear el gráfico
-    // de pastel. Este es un placeholder visual.
-    return Row(
-      children: [
-        // Placeholder del gráfico de pastel
-        Container(
-          width: 150,
-          height: 150,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: const Center(
-            child: Text(
-              'GRÁFICO DE PASTEL',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${project.title} - ${project.client}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E3A8A),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _Tag(label: project.category, color: Colors.teal),
+                    const SizedBox(width: 8),
+                    _Tag(
+                      label: project.status,
+                      color: project.status == 'Completado'
+                          ? Colors.green
+                          : Colors.orange,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        ),
-        const SizedBox(width: 20),
-        // Leyenda
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: distributionData
-              .map(
-                (e) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Text('${e.type} ${(e.percentage * 100).toInt()}%'),
+          const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+          const SizedBox(width: 5),
+          Text(project.dueDate, style: const TextStyle(color: Colors.grey)),
+          const SizedBox(width: 20),
+          SizedBox(
+            width: 150,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 40,
+                  child: Text(
+                    '${project.progress}%',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: progressColor,
+                    ),
+                  ),
                 ),
-              )
-              .toList(),
-        ),
-      ],
+                Expanded(
+                  child: LinearProgressIndicator(
+                    value: project.progress / 100,
+                    color: progressColor,
+                    backgroundColor: progressColor.withOpacity(0.2),
+                    minHeight: 8,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 20),
+          OutlinedButton.icon(
+            onPressed: onPressed,
+            icon: const Icon(Icons.remove_red_eye, size: 18),
+            label: const Text('Ver Detalles'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.black54,
+              side: BorderSide(color: Colors.green.shade200),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
-// lib/models/dashboard_model.dart
 
-// ... (Clases MetricCard, ProjectDistribution, MonthlyProgress permanecen iguales)
-
-/// Clase para representar un elemento de la Actividad Reciente.
-class RecentActivity {
-  final String status;
-  final String description;
-  final String details; // "Hace X horas - Nombre"
-  final IconData icon;
+class _Tag extends StatelessWidget {
+  final String label;
   final Color color;
 
-  RecentActivity({
-    required this.status,
-    required this.description,
-    required this.details,
-    required this.icon,
-    required this.color,
-  });
-}
+  const _Tag({required this.label, required this.color});
 
-/// Clase para representar un Próximo Vencimiento.
-class UpcomingDeadline {
-  final String title;
-  final String subtitle;
-  final String responsible;
-  final String priority; // "Alta", "Media", etc.
-  final String daysLeft; // "3 días", "5 días", etc.
-  final Color priorityColor;
-
-  UpcomingDeadline({
-    required this.title,
-    required this.subtitle,
-    required this.responsible,
-    required this.priority,
-    required this.daysLeft,
-    required this.priorityColor,
-  });
-}
-
-/// Clase principal que contiene todos los datos del dashboard. (Actualizada)
-class DashboardModel {
-  // ... (Propiedades existentes)
-  final List<MetricCard> metricCards;
-  final List<ProjectDistribution> distributionData;
-  final List<MonthlyProgress> progressData;
-
-  // NUEVOS DATOS
-  final List<RecentActivity> recentActivities;
-  final List<UpcomingDeadline> upcomingDeadlines;
-
-  DashboardModel({
-    required this.metricCards,
-    required this.distributionData,
-    required this.progressData,
-    required this.recentActivities, // Añadido
-    required this.upcomingDeadlines, // Añadido
-  });
-
-  /// Método estático para cargar datos de muestra (Simula la carga de una API). (Actualizado)
-  static DashboardModel loadSampleData() {
-    return DashboardModel(
-      // ... (metricCards, distributionData, progressData permanecen iguales)
-      metricCards: [
-        MetricCard(
-          title: 'Proyectos Activos',
-          value: '12',
-          change: '+6.7%',
-          isPositiveChange: true,
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          color: color,
+          fontWeight: FontWeight.bold,
         ),
-        MetricCard(
-          title: 'Tareas Completadas',
-          value: '47',
-          change: '+2.3%',
-          isPositiveChange: true,
-        ),
-        MetricCard(
-          title: 'Utilización de Recursos',
-          value: '85%',
-          change: '~5%',
-          isPositiveChange: false,
-        ),
-        MetricCard(
-          title: 'Problemas Críticos',
-          value: '3',
-          change: 'Atención',
-          isPositiveChange: false,
-          subtitle: 'Atención',
-        ),
-      ],
-      distributionData: [
-        ProjectDistribution(
-          type: 'Calidad Ambiental',
-          percentage: 0.35,
-          value: 35,
-        ),
-        ProjectDistribution(type: 'Combustibles', percentage: 0.20, value: 20),
-        ProjectDistribution(type: 'Lubricantes', percentage: 0.20, value: 20),
-        ProjectDistribution(type: 'Construcción', percentage: 0.25, value: 25),
-      ],
-      progressData: [
-        MonthlyProgress(month: 'Jul', completed: 2, inProgress: 4, planned: 8),
-        MonthlyProgress(month: 'Ago', completed: 3, inProgress: 5, planned: 6),
-        MonthlyProgress(month: 'Sep', completed: 5, inProgress: 6, planned: 5),
-        MonthlyProgress(month: 'Oct', completed: 7, inProgress: 7, planned: 4),
-        MonthlyProgress(month: 'Nov', completed: 8, inProgress: 6, planned: 3),
-        MonthlyProgress(month: 'Dic', completed: 9, inProgress: 5, planned: 2),
-      ],
-
-      // NUEVOS DATOS DE MUESTRA
-      recentActivities: [
-        RecentActivity(
-          status: 'Proyecto completado',
-          description: 'Análisis de lubricantes industriales finalizado',
-          details: 'Hace 2 horas - Dr. Luis Pérez',
-          icon: Icons.check_circle_outline,
-          color: Colors.green,
-        ),
-        RecentActivity(
-          status: 'Tarea asignada',
-          description: 'Recolección de muestras asignada a María González',
-          details: 'Hace 4 horas - Sistema',
-          icon: Icons.assignment_turned_in_outlined,
-          color: Colors.blue,
-        ),
-        RecentActivity(
-          status: 'Recurso asignado',
-          description: 'Espectrofotómetro UV-Vis reservado para proyecto ABC',
-          details: 'Hace 6 horas - Ing. Carlos Rodríguez',
-          icon: Icons.devices_other_outlined,
-          color: Colors.orange,
-        ),
-        RecentActivity(
-          status: 'Fecha límite próxima',
-          description: 'Proyecto XYZ vence en 3 días',
-          details: 'Hace 8 horas - Sistema',
-          icon: Icons.calendar_today_outlined,
-          color: Colors.red,
-        ),
-      ],
-      upcomingDeadlines: [
-        UpcomingDeadline(
-          title: 'Análisis fisicoquímico',
-          subtitle: 'Análisis de Calidad del Agua - Empresa ABC',
-          responsible: 'Ing. Carlos Rodríguez',
-          priority: 'Alta',
-          daysLeft: '3 días',
-          priorityColor: Colors.red,
-        ),
-        UpcomingDeadline(
-          title: 'Diseño del plan de manejo',
-          subtitle: 'Gestión de Residuos Industriales',
-          responsible: 'Dr. María González',
-          priority: 'Alta',
-          daysLeft: '5 días',
-          priorityColor: Colors.red,
-        ),
-        UpcomingDeadline(
-          title: 'Pruebas de viscosidad',
-          subtitle: 'Evaluación de Combustibles Alternativos',
-          responsible: 'Ing. Carlos Rodríguez',
-          priority: 'Media',
-          daysLeft: '8 días',
-          priorityColor: Colors.orange,
-        ),
-      ],
+      ),
     );
   }
 }
