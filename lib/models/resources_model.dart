@@ -23,6 +23,7 @@ class MaterialResource extends ResourcesModel {
   final DateTime nextMaintenance;
   final String specs;
   final String condition;
+  final List<String> projects;
 
   MaterialResource({
     required this.lastMaintenance,
@@ -32,6 +33,7 @@ class MaterialResource extends ResourcesModel {
     required super.id,
     required super.name,
     required super.state,
+    required this.projects,
     required super.lab,
     required super.kind,
     required super.hourlyTarif,

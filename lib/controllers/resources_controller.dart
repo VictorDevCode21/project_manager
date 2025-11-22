@@ -136,6 +136,9 @@ class ResourcesController {
                     ? DateTime.tryParse(data['nextDate']) ?? DateTime(2000)
                     : DateTime(2000),
                 specs: data['specs'] ?? '',
+                projects: (data['projects'] as List<dynamic>? ?? const [])
+                    .map((e) => e.toString())
+                    .toList(),
                 condition: data['condition'] ?? 'N/A',
                 name: data['name'] ?? 'N/A',
                 state: data['state'] ?? 'N/A',
@@ -414,23 +417,44 @@ class ResourcesController {
   }
 
   Future<void> createHResource(BuildContext context) async {
-    if (validateHRFields() == true) {
-      try {
-        await FirebaseFirestore.instance
-            .collection("human-resources")
-            .doc()
-            .set({
-              'name': nameController.text,
-              'state': stateC,
-              'lab': labC,
-              'projects': [],
-              'mail': email.text.trim(),
-              'tarif': double.tryParse(tarifController.text) ?? 0.0,
-              'use': 0,
-              'totalUsage': int.tryParse(totalUsage.text) ?? 0,
-              'habilities': habilities.text,
-              'department': departmentC,
-            });
+    if (validateHRFields() != true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Corrige los errores antes de continuar')),
+      );
+    }
+
+    final String correo = email.text.trim();
+    final double tarifa = double.tryParse(tarifController.text) ?? 0.0;
+    final int usototal = int.tryParse(totalUsage.text) ?? 0;
+    final String laboratorio = labC!;
+    final String estado = stateC!;
+    final String departamento = departmentC!;
+    final String habilidades = habilities.text;
+
+    try {
+      final QuerySnapshot snap = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: correo)
+          .limit(1)
+          .get();
+
+      if (snap.docs.isNotEmpty) {
+        final data = snap.docs.first.data() as Map<String, dynamic>;
+        final String? nombre = data['name'] as String?;
+
+        await FirebaseFirestore.instance.collection("human-resources").add({
+          'name': nombre,
+          'state': estado,
+          'lab': laboratorio,
+          'projects': [],
+          'mail': correo,
+          'tarif': tarifa,
+          'use': 0,
+          'totalUsage': usototal,
+          'habilities': habilidades,
+          'department': departamento,
+        });
+
         await fetchAndCalculateStats();
 
         if (context.mounted) {
@@ -441,20 +465,27 @@ class ResourcesController {
             ),
           );
         }
-      } catch (e) {
+      } else {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('❌ Error al crear recurso humano: $e'),
-              backgroundColor: Colors.red,
+              content: Text(
+                'El email "$correo" no está registrado como usuario válido.',
+              ),
+              backgroundColor: Colors.orange,
             ),
           );
         }
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Corrige los errores antes de continuar')),
-      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error al crear recurso humano: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

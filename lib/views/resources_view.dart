@@ -1033,6 +1033,9 @@ class ResourceList extends StatelessWidget {
     MaterialResource resource,
     VoidCallback onDelete,
   ) {
+    final List<String> projects = (resource.projects.isNotEmpty)
+        ? resource.projects
+        : <String>['Sin proyectos asignados'];
     return Card(
       shadowColor: Colors.black,
       child: Container(
@@ -1090,6 +1093,30 @@ class ResourceList extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
+            const Text(
+              'Proyectos actuales:',
+              style: TextStyle(
+                color: Colors.black54,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: projects
+                  .map(
+                    (t) => Chip(
+                      label: Text(t, style: const TextStyle(fontSize: 12)),
+                      padding: const EdgeInsets.all(0),
+                      visualDensity: VisualDensity.compact,
+                      backgroundColor: Colors.blue.shade50,
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 12),
 
             _buildInfoRow(
               'Tarifa por hora:',
@@ -1343,11 +1370,11 @@ class _Screen2State extends State<Screen2> {
                     ),
                     child: Column(
                       children: [
-                        const Text('Nombre'),
+                        const Text('Correo'),
                         CustomTextField(
-                          hintText: 'John Doe',
-                          controller: controller.nameController,
-                          validator: controller.validateName,
+                          hintText: 'jonhdoe@unimet.edu.ve',
+                          controller: controller.email,
+                          validator: controller.validateEmail,
                         ),
                         const Text('Estado del recurso'),
                         DropdownButtonFormField<String>(
@@ -1438,12 +1465,6 @@ class _Screen2State extends State<Screen2> {
                           hintText: '10',
                           controller: controller.totalUsage,
                           validator: controller.validateTarif,
-                        ),
-                        const Text('Correo'),
-                        CustomTextField(
-                          hintText: 'jonhdoe@unimet.edu.ve',
-                          controller: controller.email,
-                          validator: controller.validateEmail,
                         ),
                         const Text('Habilidades'),
                         CustomTextField(
