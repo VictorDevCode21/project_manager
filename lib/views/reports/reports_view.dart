@@ -128,11 +128,6 @@ class ReportsView extends StatelessWidget {
 
   Widget _buildTaskStatusBarChart(BuildContext context) {
     final taskController = Provider.of<TaskController>(context, listen: false);
-
-    // =================================================================
-    // 🚨 LÓGICA DE RESPONSIVIDAD (LA MEJOR OPCIÓN) 🚨
-    // Ancho: 90% de la pantalla, limitado a un máximo de 600px.
-    // =================================================================
     final screenWidth = MediaQuery.of(context).size.width;
     const double maxWidth = 600.0;
     final double chartWidth = screenWidth * 0.95 > maxWidth
@@ -167,7 +162,7 @@ class ReportsView extends StatelessWidget {
 
         return Center(
           child: SizedBox(
-            width: chartWidth, // Aplica el ancho responsivo aquí
+            width: chartWidth,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -181,8 +176,7 @@ class ReportsView extends StatelessWidget {
                 ),
                 const SizedBox(height: 15),
                 Container(
-                  height:
-                      250, // Altura fija, ajustada para que no sea muy grande
+                  height: 250,
                   padding: const EdgeInsets.only(
                     top: 10,
                     right: 10,
