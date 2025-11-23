@@ -20,7 +20,7 @@ class LoginView extends StatelessWidget {
       child: Consumer<LoginController>(
         builder: (context, controller, child) {
           return Scaffold(
-            backgroundColor: const Color(0xFFF0F3F7),
+            //backgroundColor: const Color(0xFFF0F3F7),
             body: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(30.0),

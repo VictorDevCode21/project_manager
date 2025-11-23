@@ -51,12 +51,12 @@ class _AssignProjectState extends State<AssignProject> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Información de Asignación',
                     style: TextStyle(
                       fontSize: 17.5,
                       fontWeight: FontWeight.w900,
-                      color: Colors.indigo,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -460,14 +460,18 @@ class ResourcesBar extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Row(
+        Row(
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Gestión de Recursos',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
                 Text('Administrar recursos humanos y materiales'),
               ],
@@ -480,16 +484,24 @@ class ResourcesBar extends StatelessWidget {
               onPressed: () {
                 context.go('/admin-resources/assign');
               },
-              icon: const Icon(Icons.person_add_alt_1, color: Colors.indigo),
-              label: const Text(
+              icon: Icon(
+                Icons.person_add_alt_1,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              label: Text(
                 'Asignar Recursos',
-                style: TextStyle(color: Colors.indigo, fontSize: 16),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 16,
+                ),
               ),
               style: TextButton.styleFrom(
                 backgroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
-                  side: const BorderSide(color: Colors.indigo),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -510,7 +522,7 @@ class ResourcesBar extends StatelessWidget {
                   icon: const Icon(Icons.add_circle_outline),
                   label: const Text('Agregar recurso'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4C5B96),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -538,9 +550,9 @@ class AddResourceModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.inventory_2, color: Colors.indigo),
+          Icon(Icons.inventory_2, color: Theme.of(context).colorScheme.primary),
           SizedBox(width: 10),
           Text('Agregar Nuevo Recurso'),
         ],
@@ -624,12 +636,12 @@ class SearchBar1 extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Filtros y Búsqueda',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
-                color: Colors.indigo,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(height: 20),
@@ -761,23 +773,29 @@ class Selector1 extends StatelessWidget {
       onPressed: onPressed,
       icon: Icon(
         icon,
-        color: isSelected ? Colors.indigo : Colors.grey.shade600,
+        color: isSelected
+            ? Theme.of(context).colorScheme.primary
+            : Colors.grey.shade600,
       ),
       label: Text(
         label,
         style: TextStyle(
-          color: isSelected ? Colors.indigo : Colors.grey.shade600,
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Colors.grey.shade600,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
       style: TextButton.styleFrom(
         backgroundColor: isSelected
-            ? Colors.indigo.withOpacity(0.05)
+            ? Theme.of(context).colorScheme.primary.withOpacity(0.05)
             : Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
           side: BorderSide(
-            color: isSelected ? Colors.indigo : Colors.grey.shade300,
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Colors.grey.shade300,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -1012,7 +1030,7 @@ class ResourceList extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: onDelete,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xff253f8d),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                     ),
                     child: const Text(
                       'Eliminar',
@@ -1033,6 +1051,9 @@ class ResourceList extends StatelessWidget {
     MaterialResource resource,
     VoidCallback onDelete,
   ) {
+    final List<String> projects = (resource.projects.isNotEmpty)
+        ? resource.projects
+        : <String>['Sin proyectos asignados'];
     return Card(
       shadowColor: Colors.black,
       child: Container(
@@ -1090,6 +1111,30 @@ class ResourceList extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
+            const Text(
+              'Proyectos actuales:',
+              style: TextStyle(
+                color: Colors.black54,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: projects
+                  .map(
+                    (t) => Chip(
+                      label: Text(t, style: const TextStyle(fontSize: 12)),
+                      padding: const EdgeInsets.all(0),
+                      visualDensity: VisualDensity.compact,
+                      backgroundColor: Colors.blue.shade50,
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 12),
 
             _buildInfoRow(
               'Tarifa por hora:',
@@ -1239,7 +1284,7 @@ class ResourceList extends StatelessWidget {
             resource is HumanResources
                 ? Icons.person_outline
                 : Icons.build_outlined,
-            color: Colors.indigo,
+            color: Theme.of(context).colorScheme.primary,
           ),
           title: Text(resource.name),
           subtitle: Text(resource.lab),
@@ -1315,7 +1360,7 @@ class _Screen2State extends State<Screen2> {
                         ),
                       ),
                       const SizedBox(width: 15),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
@@ -1323,7 +1368,7 @@ class _Screen2State extends State<Screen2> {
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w900,
-                              color: Colors.indigo,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                           Text(
@@ -1343,11 +1388,11 @@ class _Screen2State extends State<Screen2> {
                     ),
                     child: Column(
                       children: [
-                        const Text('Nombre'),
+                        const Text('Correo'),
                         CustomTextField(
-                          hintText: 'John Doe',
-                          controller: controller.nameController,
-                          validator: controller.validateName,
+                          hintText: 'jonhdoe@unimet.edu.ve',
+                          controller: controller.email,
+                          validator: controller.validateEmail,
                         ),
                         const Text('Estado del recurso'),
                         DropdownButtonFormField<String>(
@@ -1438,12 +1483,6 @@ class _Screen2State extends State<Screen2> {
                           hintText: '10',
                           controller: controller.totalUsage,
                           validator: controller.validateTarif,
-                        ),
-                        const Text('Correo'),
-                        CustomTextField(
-                          hintText: 'jonhdoe@unimet.edu.ve',
-                          controller: controller.email,
-                          validator: controller.validateEmail,
                         ),
                         const Text('Habilidades'),
                         CustomTextField(

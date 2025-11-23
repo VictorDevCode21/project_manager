@@ -103,7 +103,6 @@ class _ProjectsViewState extends State<ProjectsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xfff4f6f7),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: SingleChildScrollView(
@@ -114,7 +113,7 @@ class _ProjectsViewState extends State<ProjectsView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -122,7 +121,7 @@ class _ProjectsViewState extends State<ProjectsView> {
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xff1a1a1a),
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       SizedBox(height: 4),
@@ -192,7 +191,7 @@ class _ProjectsViewState extends State<ProjectsView> {
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xff253f8d),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 14,
@@ -223,11 +222,11 @@ class _ProjectsViewState extends State<ProjectsView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Filtros y Búsqueda',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        color: Color(0xff253f8d),
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -484,10 +483,10 @@ class _ProjectsViewState extends State<ProjectsView> {
           // Title & description
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 16,
-              color: Color(0xff253f8d),
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           const SizedBox(height: 4),
@@ -550,7 +549,7 @@ class _ProjectsViewState extends State<ProjectsView> {
                 child: ElevatedButton(
                   onPressed: onManage,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff253f8d),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                   ),
                   child: const Text(
                     'Gestionar',

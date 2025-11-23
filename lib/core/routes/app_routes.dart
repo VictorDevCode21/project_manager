@@ -13,6 +13,8 @@ import 'package:prolab_unimet/views/resources_view.dart';
 import 'package:prolab_unimet/views/task_view.dart';
 import 'package:provider/provider.dart';
 import 'package:prolab_unimet/views/dashboard_view.dart';
+import 'package:prolab_unimet/views/help_module_view.dart';
+import 'package:prolab_unimet/controllers/settings_controller.dart';
 
 // Define user roles for authorization
 const userRoles = ['USER', 'ADMIN', 'COORDINATOR'];
@@ -70,7 +72,7 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/admin-help',
-          //builder: (context, state) => const HelpModuleView(),
+          builder: (context, state) => const HelpModuleView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
 
