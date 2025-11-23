@@ -29,7 +29,6 @@ class MaterialResource extends ResourcesModel {
     required this.nextMaintenance,
     required this.specs,
     required this.condition,
-
     required super.id,
     required super.name,
     required super.state,
@@ -46,6 +45,7 @@ class HumanResources extends ResourcesModel {
   final String email;
   final String habilities;
   final String department;
+  final List<String> projects;
 
   HumanResources({
     required this.review,
@@ -54,7 +54,7 @@ class HumanResources extends ResourcesModel {
     required this.email,
     required this.habilities,
     required this.department,
-
+    required this.projects,
     required super.id,
     required super.name,
     required super.state,

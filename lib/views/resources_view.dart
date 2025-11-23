@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:prolab_unimet/controllers/resources_controller.dart';
 import 'package:prolab_unimet/models/resources_model.dart';
+import 'package:prolab_unimet/views/components/resources/assign_resource.dialog.dart';
 
 final ResourcesController _controller = ResourcesController();
 
@@ -16,21 +17,22 @@ class AssignProject extends StatefulWidget {
 class _AssignProjectState extends State<AssignProject> {
   ResourcesController controller = ResourcesController();
   final _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Asignar Recursos',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
           ),
-          Text(
+          const Text(
             'Asignar personal y equipos a proyectos',
             style: TextStyle(fontSize: 12),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
         ],
       ),
     ),
@@ -41,15 +43,15 @@ class _AssignProjectState extends State<AssignProject> {
           Container(
             decoration: BoxDecoration(
               border: Border.all(color: Colors.green),
-              borderRadius: BorderRadius.all(Radius.circular(8)),
+              borderRadius: const BorderRadius.all(Radius.circular(8)),
             ),
-            padding: EdgeInsets.all(15),
+            padding: const EdgeInsets.all(15),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Información de Asignación',
                     style: TextStyle(
                       fontSize: 17.5,
@@ -57,10 +59,12 @@ class _AssignProjectState extends State<AssignProject> {
                       color: Colors.indigo,
                     ),
                   ),
-                  SizedBox(height: 2),
-                  Text('Seleccionar proyecto y configurar la asignación'),
-                  SizedBox(height: 7),
-                  Text('Proyecto *'),
+                  const SizedBox(height: 2),
+                  const Text('Seleccionar proyecto y configurar la asignación'),
+                  const SizedBox(height: 7),
+
+                  // Proyecto
+                  const Text('Proyecto *'),
                   FutureBuilder<List<String>>(
                     future: controller.nombreProyectos(),
                     builder: (context, snap) {
@@ -73,7 +77,7 @@ class _AssignProjectState extends State<AssignProject> {
                             ),
                           ),
                           onChanged: null,
-                          items: [],
+                          items: const [],
                         );
                       }
                       List<String> nombres = snap.data!;
@@ -85,6 +89,7 @@ class _AssignProjectState extends State<AssignProject> {
                             );
                           })
                           .toList();
+
                       return DropdownButtonFormField<String>(
                         decoration: InputDecoration(
                           hintText: 'Seleccionar Proyecto',
@@ -102,7 +107,9 @@ class _AssignProjectState extends State<AssignProject> {
                       );
                     },
                   ),
-                  Text('Prioridad *'),
+
+                  // Prioridad
+                  const Text('Prioridad *'),
                   DropdownButtonFormField<String>(
                     decoration: InputDecoration(
                       hintText: 'Condición del recurso',
@@ -120,7 +127,9 @@ class _AssignProjectState extends State<AssignProject> {
                         setState(() => controller.priority = value),
                     validator: (_) => controller.validatePriority(),
                   ),
-                  Text('Recurso *'),
+
+                  // Recurso
+                  const Text('Recurso *'),
                   FutureBuilder<List<String>>(
                     future: controller.nombreRecursos(),
                     builder: (context, snap) {
@@ -133,12 +142,11 @@ class _AssignProjectState extends State<AssignProject> {
                             ),
                           ),
                           onChanged: null,
-                          items: [],
+                          items: const [],
                         );
                       }
 
                       List<String> nombres = snap.data!;
-
                       List<DropdownMenuItem<String>> items = nombres
                           .map<DropdownMenuItem<String>>((String nombre) {
                             return DropdownMenuItem<String>(
@@ -157,7 +165,6 @@ class _AssignProjectState extends State<AssignProject> {
                         ),
                         initialValue: controller.resource,
                         items: items,
-
                         onChanged: (String? nuevovalor) {
                           setState(() {
                             controller.resource = nuevovalor;
@@ -166,13 +173,17 @@ class _AssignProjectState extends State<AssignProject> {
                       );
                     },
                   ),
-                  Text('Descripción de la asignación'),
+
+                  // Descripción
+                  const Text('Descripción de la asignación'),
                   CustomTextField(
                     hintText:
                         'Describe el proposito y alcance de esta asignación...',
                     controller: controller.descripcionassign,
                   ),
-                  Text('Horas asignadas'),
+
+                  // Horas
+                  const Text('Horas asignadas'),
                   CustomTextField(
                     hintText: 'Ejemplo: 8',
                     controller: controller.usage,
@@ -182,26 +193,69 @@ class _AssignProjectState extends State<AssignProject> {
               ),
             ),
           ),
+
+          // Botón enviar
           Column(
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20.0),
                 child: ElevatedButton(
                   onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Asignando recurso...')),
+                    if (!_formKey.currentState!.validate()) return;
+
+                    final messenger = ScaffoldMessenger.of(context);
+                    messenger.hideCurrentSnackBar();
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Asignando recurso...')),
+                    );
+
+                    if (controller.resource == null ||
+                        controller.proyecto == null) {
+                      messenger.hideCurrentSnackBar();
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Selecciona un proyecto y un recurso antes de asignar.',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    try {
+                      await controller.assignProject(
+                        controller.proyecto,
+                        controller.resource,
+                        controller.usage.text,
+                        context,
                       );
 
-                      if (controller.resource != null &&
-                          controller.proyecto != null) {
-                        controller.assignProject(
-                          controller.proyecto,
-                          controller.resource,
-                          controller.usage.text,
-                          context,
-                        );
-                      }
+                      messenger.hideCurrentSnackBar();
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('✅ Recurso asignado!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+
+                      // Reset de formulario a valores por defecto
+                      setState(() {
+                        _formKey.currentState!.reset();
+                        controller.descripcionassign.clear();
+                        controller.usage.clear();
+                        controller.priority = null;
+                        controller.proyecto = null;
+                        controller.resource = null;
+                      });
+                    } catch (e) {
+                      messenger.hideCurrentSnackBar();
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('❌ Error al asignar recurso: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -273,7 +327,6 @@ class _ResourcesViewState extends State<ResourcesView> {
   @override
   void initState() {
     super.initState();
-
     _controller.fetchAndCalculateStats();
   }
 
@@ -287,15 +340,12 @@ class _ResourcesViewState extends State<ResourcesView> {
           children: [
             const ResourcesBar(),
             const SizedBox(height: 30),
-
             ValueListenableBuilder<ResourceStats>(
               valueListenable: _controller.statsNotifier,
-
               builder: (context, stats, child) {
                 return _buildStatsRow(stats);
               },
             ),
-
             const SizedBox(height: 30),
             SearchBar1(controller: _controller),
             const SizedBox(height: 15),
@@ -410,9 +460,9 @@ class ResourcesBar extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
+        const Row(
           children: [
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -431,7 +481,6 @@ class ResourcesBar extends StatelessWidget {
             ),
           ],
         ),
-
         Row(
           children: [
             TextButton.icon(
@@ -463,7 +512,6 @@ class ResourcesBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-
             FutureBuilder<String>(
               future: _controller.getCurrentUserRole(),
               builder: (context, snapshot) {
@@ -527,7 +575,6 @@ class AddResourceModal extends StatelessWidget {
             label: const Text('Recurso Humano'),
             onPressed: () {
               Navigator.of(context).pop();
-
               Navigator.of(
                 context,
               ).push(MaterialPageRoute(builder: (context) => const Screen2()));
@@ -539,7 +586,6 @@ class AddResourceModal extends StatelessWidget {
             ),
           ),
         ),
-
         SizedBox(
           width: 200,
           child: ElevatedButton.icon(
@@ -547,7 +593,6 @@ class AddResourceModal extends StatelessWidget {
             label: const Text('Recurso Material'),
             onPressed: () {
               Navigator.of(context).pop();
-
               Navigator.of(
                 context,
               ).push(MaterialPageRoute(builder: (context) => const Screen3()));
@@ -764,6 +809,18 @@ class ResourceList extends StatelessWidget {
   final ResourcesController controller;
   const ResourceList({super.key, required this.controller});
 
+  void _openAssignDialog(BuildContext context, String resourceName) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AssignResourceDialog(
+          controller: controller,
+          resourceName: resourceName,
+        );
+      },
+    );
+  }
+
   Widget _buildTag(String state) {
     Color tagColor;
     Color textColor;
@@ -834,18 +891,18 @@ class ResourceList extends StatelessWidget {
     );
   }
 
-  Widget _buildHResourceCard(HumanResources resource, VoidCallback onDelete) {
+  Widget _buildHResourceCard(
+    BuildContext context,
+    HumanResources resource,
+    VoidCallback onDelete,
+  ) {
     double progress = (resource.totalUsage > 0)
         ? (resource.usage / resource.totalUsage).clamp(0.0, 1.0)
         : 0.0;
 
-    // Simula los proyectos actuales (asumiendo que 'projects' no es una lista en tu modelo HumanResources)
-    // Usaremos valores fijos o ajustamos según tu modelo real
-    List<String> projects = [
-      'Análisis de Agua',
-      'Gestión de Proyectos',
-      'Investigación',
-    ];
+    final List<String> projects = (resource.projects.isNotEmpty)
+        ? resource.projects
+        : <String>['Sin proyectos asignados'];
 
     return Card(
       shadowColor: Colors.black,
@@ -865,6 +922,7 @@ class ResourceList extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header
             Row(
               children: [
                 const Icon(Icons.person, color: Color(0xff253f8d), size: 30),
@@ -891,24 +949,22 @@ class ResourceList extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 const Icon(Icons.more_vert, color: Colors.grey),
               ],
             ),
-
             const SizedBox(height: 10),
 
+            // State + usage
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildTag(resource.state),
                 Text(
-                  '${resource.usage.toInt()}/${resource.totalUsage.toInt()}h', // Uso vs Total
+                  '${resource.usage.toInt()}/${resource.totalUsage.toInt()}h',
                   style: const TextStyle(color: Colors.black54, fontSize: 13),
                 ),
               ],
             ),
-
             const SizedBox(height: 10),
 
             const Text(
@@ -922,6 +978,7 @@ class ResourceList extends StatelessWidget {
 
             Wrap(
               spacing: 6,
+              runSpacing: 4,
               children: projects
                   .map(
                     (t) => Chip(
@@ -933,7 +990,6 @@ class ResourceList extends StatelessWidget {
                   )
                   .toList(),
             ),
-
             const SizedBox(height: 12),
 
             const Text(
@@ -949,25 +1005,23 @@ class ResourceList extends StatelessWidget {
                 Color(0xff253f8d),
               ),
             ),
-
             const SizedBox(height: 16),
 
-            // Info section
             _buildInfoRow(
               'Tarifa por hora:',
               '\$${resource.hourlyTarif.toStringAsFixed(2)}',
             ),
             _buildInfoRow('Contacto:', resource.email),
             _buildInfoRow('Habilidades:', resource.habilities),
-
             const SizedBox(height: 16),
 
-            // Buttons
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      _openAssignDialog(context, resource.name);
+                    },
                     child: const Text('Asignar recurso'),
                   ),
                 ),
@@ -992,7 +1046,11 @@ class ResourceList extends StatelessWidget {
     );
   }
 
-  Widget _buildMResourceCard(MaterialResource resource, VoidCallback onDelete) {
+  Widget _buildMResourceCard(
+    BuildContext context,
+    MaterialResource resource,
+    VoidCallback onDelete,
+  ) {
     return Card(
       shadowColor: Colors.black,
       child: Container(
@@ -1011,13 +1069,10 @@ class ResourceList extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header name / lab
             Row(
               children: [
-                const Icon(
-                  Icons.build_circle,
-                  color: Colors.blueGrey,
-                  size: 30,
-                ),
+                const Icon(Icons.build, color: Color(0xff253f8d), size: 30),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -1041,10 +1096,8 @@ class ResourceList extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.more_vert, color: Colors.grey),
               ],
             ),
-
             const SizedBox(height: 10),
 
             Row(
@@ -1054,7 +1107,6 @@ class ResourceList extends StatelessWidget {
                 _buildTag('Condición: ${resource.condition}'),
               ],
             ),
-
             const SizedBox(height: 16),
 
             _buildInfoRow(
@@ -1070,14 +1122,15 @@ class ResourceList extends StatelessWidget {
               '${resource.nextMaintenance.day}/${resource.nextMaintenance.month}/${resource.nextMaintenance.year}',
             ),
             _buildInfoRow('Especificaciones:', resource.specs),
-
             const SizedBox(height: 16),
 
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      _openAssignDialog(context, resource.name);
+                    },
                     child: const Text('Asignar recurso'),
                   ),
                 ),
@@ -1102,15 +1155,17 @@ class ResourceList extends StatelessWidget {
     );
   }
 
-  Widget _buildResourceCard(ResourcesModel resource) {
+  Widget _buildResourceCard(BuildContext context, ResourcesModel resource) {
     final String resourceId = resource.id;
     if (resource is HumanResources) {
       return _buildHResourceCard(
+        context,
         resource,
         () => controller.deleteResource(resourceId),
       );
     } else if (resource is MaterialResource) {
       return _buildMResourceCard(
+        context,
         resource,
         () => controller.deleteResource(resourceId),
       );
@@ -1166,7 +1221,7 @@ class ResourceList extends StatelessWidget {
               ),
               itemBuilder: (context, index) {
                 final resource = resources[index];
-                return _buildResourceCard(resource);
+                return _buildResourceCard(context, resource);
               },
             );
           },
@@ -1278,10 +1333,10 @@ class _Screen2State extends State<Screen2> {
                         ),
                       ),
                       const SizedBox(width: 15),
-                      Column(
+                      const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Creación de recursos humanos',
                             style: TextStyle(
                               fontSize: 20,
@@ -1289,7 +1344,7 @@ class _Screen2State extends State<Screen2> {
                               color: Colors.indigo,
                             ),
                           ),
-                          const Text(
+                          Text(
                             'Creación de recursos humanos',
                             style: TextStyle(fontSize: 12),
                           ),
@@ -1299,10 +1354,10 @@ class _Screen2State extends State<Screen2> {
                   ),
                   const SizedBox(height: 15),
                   Container(
-                    padding: EdgeInsets.all(15),
+                    padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.green),
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                      borderRadius: const BorderRadius.all(Radius.circular(8)),
                     ),
                     child: Column(
                       children: [
@@ -1451,7 +1506,6 @@ class _Screen2State extends State<Screen2> {
                       ],
                     ),
                   ),
-
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 20.0),
                     child: ElevatedButton(
@@ -1462,7 +1516,6 @@ class _Screen2State extends State<Screen2> {
                           );
 
                           controller.createHResource(context);
-
                           controller.clearResourceForm();
 
                           if (mounted) {
@@ -1526,7 +1579,6 @@ class StateFilterDropdown extends StatelessWidget {
       builder: (context, currentValue, child) {
         return DropdownButton<String>(
           value: currentValue,
-
           underline: Container(),
           items: availableStates.map((String value) {
             return DropdownMenuItem<String>(value: value, child: Text(value));
@@ -1617,7 +1669,6 @@ class _Screen3State extends State<Screen3> {
                         value: 'Parcialmente Disponible',
                         child: Text('Parcialmente Disponible'),
                       ),
-
                       DropdownMenuItem(
                         value: 'Mantenimiento',
                         child: Text('Mantenimiento'),
@@ -1761,7 +1812,6 @@ class _Screen3State extends State<Screen3> {
                     controller: controller.specs,
                     validator: controller.validateSpecs,
                   ),
-
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 20.0),
                     child: ElevatedButton(
