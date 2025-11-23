@@ -467,16 +467,9 @@ class ResourcesBar extends StatelessWidget {
               children: [
                 Text(
                   'Gestión de Recursos',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xff1a1a1a),
-                  ),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
                 ),
-                Text(
-                  'Administrar recursos humanos y materiales',
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
-                ),
+                Text('Administrar recursos humanos y materiales'),
               ],
             ),
           ],
@@ -487,23 +480,16 @@ class ResourcesBar extends StatelessWidget {
               onPressed: () {
                 context.go('/admin-resources/assign');
               },
-              icon: const Icon(
-                Icons.person_add_alt_1,
-                color: Color(0xff38465a),
-              ),
+              icon: const Icon(Icons.person_add_alt_1, color: Colors.indigo),
               label: const Text(
                 'Asignar Recursos',
-                style: TextStyle(
-                  color: Color(0xff38465a),
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: Colors.indigo, fontSize: 16),
               ),
               style: TextButton.styleFrom(
                 backgroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
-                  side: const BorderSide(color: Color(0xff38465a)),
+                  side: const BorderSide(color: Colors.indigo),
                 ),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -521,15 +507,11 @@ class ResourcesBar extends StatelessWidget {
 
                 return ElevatedButton.icon(
                   onPressed: () => _showAddResourceModal(context),
-                  icon: const Icon(Icons.add),
-                  label: const Text(
-                    'Agregar recurso',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Agregar recurso'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff253f8d),
+                    backgroundColor: const Color(0xFF4C5B96),
                     foregroundColor: Colors.white,
-
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 10,
