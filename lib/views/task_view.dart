@@ -129,7 +129,6 @@ class _TaskView extends State<TaskView> {
     final TaskController taskController = Provider.of<TaskController>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xfff4f6f7),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -151,13 +150,13 @@ class _TaskView extends State<TaskView> {
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text(
                                 'Gestión de Tareas',
                                 style: TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xff1a1a1a),
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
                               SizedBox(height: 4),
@@ -165,6 +164,7 @@ class _TaskView extends State<TaskView> {
                                 'Tablero para gestionar tareas de proyectos',
                                 style: TextStyle(
                                   fontSize: 14,
+                                  fontWeight: FontWeight.w600,
                                   color: Colors.grey,
                                 ),
                               ),

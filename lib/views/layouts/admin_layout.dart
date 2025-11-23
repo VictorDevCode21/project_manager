@@ -6,6 +6,7 @@ import 'package:prolab_unimet/models/notification_model.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
 import 'package:prolab_unimet/providers/notification_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:prolab_unimet/controllers/settings_controller.dart';
 
 // This function remains the same.
 String _formatTimeAgo(Timestamp timestamp) {
@@ -28,7 +29,10 @@ class AdminLayout extends StatelessWidget {
   Widget build(BuildContext buildContext) {
     // We still get authProvider for the profile menu/logout callbacks
     final authProvider = Provider.of<AuthProvider>(buildContext, listen: false);
-    const Color navBarColor = Color(0xff253f8d);
+    final settingsController = Provider.of<SettingsController>(buildContext);
+    final primaryColor =
+        settingsController.colorMap[settingsController.colorScheme] ??
+        const Color(0xff253f8d);
     const Color iconColor = Colors.white70;
     const Color textColor = Colors.white;
 
@@ -57,7 +61,6 @@ class AdminLayout extends StatelessWidget {
                     ),
                   ],
                 ),
-                backgroundColor: navBarColor,
                 behavior: SnackBarBehavior.floating,
                 margin: const EdgeInsets.all(10),
                 shape: RoundedRectangleBorder(
@@ -73,7 +76,10 @@ class AdminLayout extends StatelessWidget {
           final name = auth.newLoginUserName;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('¡Bienvenido de nuevo, $name!')),
+              SnackBar(
+                content: Text('¡Bienvenido de nuevo, $name!'),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+              ),
             );
             auth.clearNewLoginUser();
           });
@@ -91,6 +97,7 @@ class AdminLayout extends StatelessWidget {
               // ===== NAVBAR =====
               Container(
                 height: 70,
+                color: primaryColor,
                 color: navBarColor,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -254,6 +261,7 @@ class AdminLayout extends StatelessWidget {
                           ScaffoldMessenger.of(buildContext).showSnackBar(
                             const SnackBar(
                               content: Text('Sesión cerrada correctamente'),
+                              backgroundColor: Colors.green,
                             ),
                           );
                         }

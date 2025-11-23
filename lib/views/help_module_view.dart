@@ -5,8 +5,6 @@ import 'package:provider/provider.dart';
 import '../controllers/help_module_controller.dart';
 import '../models/help_module_model.dart';
 
-const Color primaryDarkBlue = Color(0xFF0D47A1);
-const Color lightBackground = Color(0xFFF0F3F7);
 const Color softGrey = Color(0xFF424242);
 const Color cardBorderColor = Color(0xFFE9ECEF);
 const Color validationGreen = Color(0xFF4CAF50);
@@ -27,7 +25,6 @@ class HelpModuleView extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => HelpModuleController(),
       child: Scaffold(
-        backgroundColor: lightBackground,
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(32.0),
@@ -73,6 +70,7 @@ class HelpModuleView extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final themePrimaryColor = Theme.of(context).colorScheme.primary;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -82,19 +80,19 @@ class HelpModuleView extends StatelessWidget {
               const SnackBar(content: Text('Volver al Dashboard')),
             );
           },
-          icon: const Icon(Icons.arrow_back, size: 18, color: primaryDarkBlue),
-          label: const Text(
+          icon: Icon(Icons.arrow_back, size: 18, color: themePrimaryColor),
+          label: Text(
             'Volver al Dashboard',
-            style: TextStyle(color: primaryDarkBlue),
+            style: TextStyle(color: themePrimaryColor),
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
+        Text(
           'Centro de Ayuda',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: primaryDarkBlue,
+            color: themePrimaryColor,
           ),
         ),
         const SizedBox(height: 5),
@@ -165,7 +163,7 @@ class _MainFeaturesSection extends StatelessWidget {
         border: Border.all(color: validationGreen.withOpacity(0.5), width: 1.0),
         boxShadow: [
           BoxShadow(
-            color: primaryDarkBlue.withOpacity(0.05),
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, 2),
@@ -175,12 +173,12 @@ class _MainFeaturesSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Funcionalidades Principales',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: primaryDarkBlue,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           const SizedBox(height: 5),
@@ -228,7 +226,7 @@ class _FeatureCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: primaryDarkBlue.withOpacity(0.05),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
               spreadRadius: 1,
               blurRadius: 3,
               offset: const Offset(0, 2),
@@ -244,16 +242,16 @@ class _FeatureCard extends StatelessWidget {
                 Icon(
                   feature.iconData,
                   size: 24,
-                  color: primaryDarkBlue.withOpacity(0.8),
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     feature.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: primaryDarkBlue,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
@@ -296,7 +294,7 @@ class _FaqSection extends StatelessWidget {
         border: Border.all(color: validationGreen.withOpacity(0.5), width: 1.0),
         boxShadow: [
           BoxShadow(
-            color: primaryDarkBlue.withOpacity(0.05),
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, 2),
@@ -306,16 +304,20 @@ class _FaqSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.help_outline, color: primaryDarkBlue, size: 20),
+              Icon(
+                Icons.help_outline,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
+              ),
               SizedBox(width: 8),
               Text(
                 'Preguntas Frecuentes',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: primaryDarkBlue,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ],
@@ -398,10 +400,10 @@ class _FaqItem extends StatelessWidget {
 
           title: Text(
             faq.question,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
-              color: primaryDarkBlue,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
 
@@ -425,7 +427,7 @@ class _FaqItem extends StatelessWidget {
 
           trailing: Icon(
             isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-            color: primaryDarkBlue,
+            color: Theme.of(context).colorScheme.primary,
           ),
           tilePadding: const EdgeInsets.symmetric(
             horizontal: 16.0,
@@ -457,12 +459,12 @@ class _NeedHelpSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '¿Necesitas más ayuda?',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: primaryDarkBlue,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           const SizedBox(height: 15),
@@ -470,7 +472,7 @@ class _NeedHelpSection extends StatelessWidget {
             icon: Icons.chat_bubble_outline,
             title: 'Chat en vivo',
             subtitle: 'Lun-Vie 9:00-18:00',
-            color: primaryDarkBlue,
+            color: Theme.of(context).colorScheme.primary,
             onTap: () => _showContactSnackBar(context, 'Proximamente'),
           ),
           const Divider(height: 20, color: cardBorderColor),
@@ -478,7 +480,7 @@ class _NeedHelpSection extends StatelessWidget {
             icon: Icons.email_outlined,
             title: 'Email',
             subtitle: 'soporte@empresa.com',
-            color: primaryDarkBlue,
+            color: Theme.of(context).colorScheme.primary,
             onTap: () => _showContactSnackBar(context, 'Proximamente'),
           ),
           const Divider(height: 20, color: cardBorderColor),
@@ -486,7 +488,7 @@ class _NeedHelpSection extends StatelessWidget {
             icon: Icons.phone_outlined,
             title: 'Teléfono',
             subtitle: '+58 212 123-4567',
-            color: primaryDarkBlue,
+            color: Theme.of(context).colorScheme.primary,
             onTap: () => _showContactSnackBar(context, 'Proximamente'),
           ),
         ],
@@ -522,17 +524,17 @@ class _ContactOption extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Icon(icon, color: primaryDarkBlue, size: 24),
+          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24),
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: primaryDarkBlue,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               Text(
@@ -569,12 +571,12 @@ class _QuickLinksSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Enlaces Rápidos',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: primaryDarkBlue,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           const SizedBox(height: 10),
@@ -585,7 +587,10 @@ class _QuickLinksSection extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Text(
                   link.title,
-                  style: const TextStyle(fontSize: 14, color: primaryDarkBlue),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ),
             );

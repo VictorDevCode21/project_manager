@@ -8,13 +8,12 @@ import '../models/settings_model.dart';
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
 
-  // --- WIDGETS AUXILIARES AHORA RECIBEN CONTEXT ---
-
   // Método auxiliar 1: Encabezado de Sección
   Widget _buildSectionHeader(
     BuildContext context, {
     required IconData icon,
     required String title,
+    required Color? color,
   }) {
     return Row(
       children: [
@@ -135,9 +134,12 @@ class SettingsView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Volver al Dashboard',
-          style: TextStyle(fontSize: 14),
+          style: TextStyle(
+            fontSize: 14,
+            color: Theme.of(context).colorScheme.primary,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -151,10 +153,13 @@ class SettingsView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ... (Contenido de encabezado) ...
-            const Text(
+            Text(
               'Configuración',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -168,6 +173,7 @@ class SettingsView extends StatelessWidget {
               context,
               icon: Icons.settings,
               title: 'Tema de la Aplicación',
+              color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
             Wrap(
@@ -207,6 +213,7 @@ class SettingsView extends StatelessWidget {
               context,
               icon: Icons.palette_outlined,
               title: 'Esquema de Colores',
+              color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 16),
             Text(
@@ -270,6 +277,7 @@ class SettingsView extends StatelessWidget {
               context,
               icon: Icons.settings_applications_outlined,
               title: 'Configuraciones Adicionales',
+              color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 8),
             Text(
