@@ -281,9 +281,6 @@ class HomePageController extends ChangeNotifier {
       );
     } catch (e) {
       debugPrint('[HomePageController] _loadDashboardData error: $e');
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
   }
 
