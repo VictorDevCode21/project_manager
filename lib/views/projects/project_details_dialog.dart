@@ -138,11 +138,8 @@ class ProjectDetailsDialog extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Scrollable content area
-              // SizedBox(
-              //   height: contentH,
               Flexible(
                 child: Container(
-                  // Establecer la altura MÁXIMA
                   constraints: BoxConstraints(maxHeight: contentH),
                   child: SingleChildScrollView(
                     child: Column(
