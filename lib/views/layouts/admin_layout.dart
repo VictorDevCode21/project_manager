@@ -91,12 +91,14 @@ class AdminLayout extends StatelessWidget {
         final bool isUserOnly = role == 'USER';
 
         return Scaffold(
+          backgroundColor: const Color(0xfff4f6f7),
           body: Column(
             children: [
               // ===== NAVBAR =====
               Container(
                 height: 70,
                 color: primaryColor,
+                color: navBarColor,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   children: [
@@ -184,62 +186,64 @@ class AdminLayout extends StatelessWidget {
 
                     // Profile Menu
                     PopupMenuButton<String>(
-                      itemBuilder: (BuildContext context) =>
-                          <PopupMenuEntry<String>>[
-                            const PopupMenuItem<String>(
-                              value: 'perfil',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.person_outline),
-                                  SizedBox(width: 8),
-                                  Text('Mi Perfil'),
-                                ],
-                              ),
-                            ),
+                      tooltip: 'Opciones de perfil',
+                      color: navBarColor,
+                      offset: const Offset(0, 55),
+                      onSelected: (value) async {
+                        final messenger = ScaffoldMessenger.of(buildContext);
+                        final router = GoRouter.of(buildContext);
 
-                            const PopupMenuItem<String>(
-                              value: 'configuracion',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.settings_outlined),
-                                  SizedBox(width: 8),
-                                  Text('Configuración'),
-                                ],
-                              ),
-                            ),
-
-                            const PopupMenuDivider(),
-
-                            const PopupMenuItem<String>(
-                              value: 'ayuda',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.description_outlined),
-                                  SizedBox(width: 8),
-                                  Text('Ayuda'),
-                                ],
-                              ),
-                            ),
-                          ],
-
-                      icon: const Icon(
-                        Icons.settings_outlined,
-                        color: Colors.white,
-                      ),
-
-                      onSelected: (String result) {
-                        switch (result) {
-                          case 'perfil':
-                            context.go('/admin-profile');
+                        switch (value) {
+                          case 'profile':
+                            router.go('/admin-profile');
                             break;
-                          case 'configuracion':
-                            context.go('/admin-settings');
-                            break;
-                          case 'ayuda':
-                            context.go('/admin-help');
+                          case 'logout':
+                            await authProvider.logout();
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Has cerrado sesión.'),
+                              ),
+                            );
+                            router.go('/login');
                             break;
                         }
                       },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'profile',
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: ListTile(
+                              leading: Icon(
+                                Icons.account_circle,
+                                color: iconColor,
+                              ),
+                              title: Text(
+                                'Perfil',
+                                style: TextStyle(color: textColor),
+                              ),
+                            ),
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'logout',
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: ListTile(
+                              leading: Icon(Icons.logout, color: iconColor),
+                              title: Text(
+                                'Cerrar Sesión',
+                                style: TextStyle(color: textColor),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                      child: const CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.white24,
+                        child: Icon(Icons.person_outline, color: iconColor),
+                      ),
                     ),
 
                     // Logout Icon Button

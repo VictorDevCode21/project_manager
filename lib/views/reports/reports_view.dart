@@ -23,6 +23,7 @@ class ReportsView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
+                  const Text(
                     'Reportes y Analytics',
                     style: TextStyle(
                       fontSize: 24,

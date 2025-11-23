@@ -26,6 +26,7 @@ class DashboardView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
+                  const Text(
                     'Bienvenido a ProLab UNIMET',
                     style: TextStyle(
                       fontSize: 24,
