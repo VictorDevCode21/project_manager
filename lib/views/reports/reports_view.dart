@@ -1,8 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:prolab_unimet/controllers/task_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:prolab_unimet/controllers/reports_controller.dart';
 import 'package:prolab_unimet/models/projects_model.dart';
 import 'package:prolab_unimet/models/reports_model.dart';
+import 'package:fl_chart/fl_chart.dart';
+
+const Map<String, ({String name, Color color, int index})> taskStatusMapping = {
+  'pendiente': (name: 'Pendiente', color: Color(0xFF9E9E9E), index: 0),
+  'enProgreso': (name: 'En Progreso', color: Color(0xFF2196F3), index: 1),
+  'enRevision': (name: 'En Revisión', color: Color(0xFFFF9800), index: 2),
+  'completado': (name: 'Completado', color: Color(0xFF4CAF50), index: 3),
+};
+
+List<BarChartGroupData> getTaskBarGroups(Map<String, int> taskCounts) {
+  return taskStatusMapping.entries.map((entry) {
+    final statusKey = entry.key;
+    final info = entry.value;
+    final count = taskCounts[statusKey] ?? 0;
+
+    return BarChartGroupData(
+      x: info.index,
+      barRods: [
+        BarChartRodData(
+          toY: count.toDouble(),
+          color: info.color,
+          width: 25,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(6),
+            topRight: Radius.circular(6),
+          ),
+        ),
+      ],
+      showingTooltipIndicators: count > 0 ? [0] : [],
+    );
+  }).toList();
+}
 
 /// Main view for reports and analytics.
 class ReportsView extends StatelessWidget {
@@ -48,6 +81,8 @@ class ReportsView extends StatelessWidget {
                     _buildStatsRow(context, model),
                     const SizedBox(height: 25),
                     _buildGenerateReportCard(context, controller, model),
+                    const SizedBox(height: 25),
+                    _buildTaskStatusBarChart(context),
                   ],
                 ],
               ),
@@ -88,6 +123,137 @@ class ReportsView extends StatelessWidget {
           color: Colors.orange.shade700,
         ),
       ],
+    );
+  }
+
+  Widget _buildTaskStatusBarChart(BuildContext context) {
+    final taskController = Provider.of<TaskController>(context, listen: false);
+
+    // =================================================================
+    // 🚨 LÓGICA DE RESPONSIVIDAD (LA MEJOR OPCIÓN) 🚨
+    // Ancho: 90% de la pantalla, limitado a un máximo de 600px.
+    // =================================================================
+    final screenWidth = MediaQuery.of(context).size.width;
+    const double maxWidth = 600.0;
+    final double chartWidth = screenWidth * 0.95 > maxWidth
+        ? maxWidth
+        : screenWidth * 0.95;
+
+    if (taskController.currentProjectId == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: Text(
+            'Selecciona un proyecto para ver la distribución de tareas.',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
+    return StreamBuilder<Map<String, int>>(
+      stream: taskController.streamTaskStatusCounts(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: LinearProgressIndicator());
+        }
+
+        final counts = snapshot.data ?? {};
+        final barGroups = getTaskBarGroups(counts);
+
+        final maxY = counts.values.isEmpty
+            ? 10.0
+            : counts.values.reduce((a, b) => a > b ? a : b) + 2.0;
+
+        return Center(
+          child: SizedBox(
+            width: chartWidth, // Aplica el ancho responsivo aquí
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Distribución de Tareas por Estado',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E3A8A),
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Container(
+                  height:
+                      250, // Altura fija, ajustada para que no sea muy grande
+                  padding: const EdgeInsets.only(
+                    top: 10,
+                    right: 10,
+                    left: 10,
+                    bottom: 0,
+                  ),
+                  child: BarChart(
+                    BarChartData(
+                      maxY: maxY,
+                      alignment: BarChartAlignment.spaceAround,
+                      groupsSpace: 12,
+                      barTouchData: BarTouchData(enabled: false),
+                      titlesData: FlTitlesData(
+                        show: true,
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 30,
+                            getTitlesWidget: (value, meta) {
+                              final statusInfo = taskStatusMapping.values
+                                  .firstWhere(
+                                    (e) => e.index == value.toInt(),
+                                    orElse: () => (
+                                      name: '',
+                                      color: Colors.transparent,
+                                      index: -1,
+                                    ),
+                                  );
+                              return SideTitleWidget(
+                                axisSide: meta.axisSide,
+                                space: 4.0,
+                                child: Text(
+                                  statusInfo.name,
+                                  style: const TextStyle(fontSize: 10),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        leftTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                      ),
+                      gridData: const FlGridData(show: false),
+                      borderData: FlBorderData(
+                        show: true,
+                        border: const Border(
+                          bottom: BorderSide(
+                            color: Color(0xff37434d),
+                            width: 1,
+                          ),
+                          left: BorderSide.none,
+                          right: BorderSide.none,
+                          top: BorderSide.none,
+                        ),
+                      ),
+                      barGroups: barGroups,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

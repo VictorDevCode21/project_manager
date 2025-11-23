@@ -575,6 +575,55 @@ class TaskController extends ChangeNotifier {
     ];
   }
 
+  // ===================== REPORTING LOGIC (Task Count by Status) =====================
+
+  Map<String, int> _countTasksByStatus(List<Task> tasks) {
+    final Map<String, int> counts = {};
+    for (var task in tasks) {
+      final statusKey = _statusToString(task.status);
+      counts[statusKey] = (counts[statusKey] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  Stream<Map<String, int>> streamTaskStatusCounts() {
+    if (_currentProjectId == null) {
+      return const Stream<Map<String, int>>.empty();
+    }
+
+    return _firestore
+        .collection('projects')
+        .doc(_currentProjectId!)
+        .collection('tasks')
+        .snapshots()
+        .map((snapshot) {
+          final List<Task> tasks = snapshot.docs.map((doc) {
+            final Map<String, dynamic> data = doc.data();
+            return Task(
+              id: doc.id,
+              title: data['title'] ?? '',
+              description: data['description'] ?? '',
+              projectType: data['projectType'] ?? '',
+              assignee: data['assignee'] ?? '',
+              priority: _stringToPriority(
+                (data['priority'] ?? 'MEDIUM').toString(),
+              ),
+              status: _stringToStatus(
+                (data['status'] ?? 'pendiente').toString(),
+              ),
+              estimatedHours: (data['estimatedHours'] ?? 0).toDouble(),
+              dueTime: data['dueDate'] != null
+                  ? DateTime.parse(data['dueDate'] as String)
+                  : null,
+              tags: List<String>.from(data['tags'] ?? <String>[]),
+              projectId: _currentProjectId!,
+            );
+          }).toList();
+
+          return _countTasksByStatus(tasks);
+        });
+  }
+
   // ===== MAPPERS: PRIORITY & STATUS =====
 
   Priority _stringToPriority(String priority) {

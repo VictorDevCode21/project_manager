@@ -94,7 +94,7 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/admin-reports',
-          builder: (context, state) => const ReportsView(),
+          builder: (context, state) => ReportsView(),
           redirect: (context, state) => _requireAuth(context, userRoles),
         ),
       ],
