@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:prolab_unimet/controllers/task_controller.dart';
 import 'package:prolab_unimet/core/routes/app_routes.dart';
 import 'package:prolab_unimet/providers/auth_provider.dart';
 import 'package:prolab_unimet/providers/notification_provider.dart';
@@ -8,7 +9,7 @@ import 'package:prolab_unimet/views/splash_view.dart';
 import 'package:provider/provider.dart';
 import 'services/firebase_options.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:prolab_unimet/controllers/settings_controller.dart';
 import 'package:prolab_unimet/models/settings_model.dart';
 
@@ -27,18 +28,30 @@ void main() async {
     debugPrintStack(stackTrace: st);
   }
 
+  try {
+    await dotenv.load(fileName: "assets/.env"); // Await to load .env variables
+    debugPrint('✅ .env loaded for web: ${dotenv.env.length} vars');
+  } catch (e) {
+    debugPrint('⚠️ Could not load assets/.env: $e');
+  }
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-
         ChangeNotifierProvider(create: (_) => SettingsController()),
+        ChangeNotifierProvider(create: (_) => TaskController()),
 
+        // === 🚀 THIS IS THE FIX ===
+        // The method name in 'update' must match the method in your NotificationProvider.
+        // We named it 'updateUser'.
         ChangeNotifierProxyProvider<AuthProvider, NotificationProvider>(
           create: (_) => NotificationProvider(),
           update: (_, auth, previousNotifier) =>
-              previousNotifier!..listenToAuthChanges(auth),
+              previousNotifier!
+                ..updateUser(auth), // ⬅️ This was the line to fix
         ),
+        // === END OF FIX ===
       ],
       child: const MyApp(),
     ),
