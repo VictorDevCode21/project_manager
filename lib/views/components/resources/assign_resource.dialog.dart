@@ -138,7 +138,7 @@ class _AssignResourceDialogState extends State<AssignResourceDialog> {
 
                     final List<String> nombres = snap.data!;
                     return DropdownButtonFormField<String>(
-                      value: _selectedProject,
+                      initialValue: _selectedProject,
                       items: nombres
                           .map(
                             (nombre) => DropdownMenuItem<String>(
@@ -166,7 +166,7 @@ class _AssignResourceDialogState extends State<AssignResourceDialog> {
                 const Text('Prioridad *'),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: _selectedPriority,
+                  initialValue: _selectedPriority,
                   items: const [
                     DropdownMenuItem(value: 'Alta', child: Text('Alta')),
                     DropdownMenuItem(value: 'Media', child: Text('Media')),

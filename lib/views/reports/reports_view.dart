@@ -481,7 +481,7 @@ class _GenerateProjectReportDialogState
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    value: _selectedProject,
+                    initialValue: _selectedProject,
                     items: projects.map((project) {
                       final title = project.name.isEmpty
                           ? 'Sin título'

@@ -48,7 +48,7 @@ class AuthService {
         'role': role,
         'token': token,
       };
-    } on fb_auth.FirebaseAuthException catch (e) {
+    } on fb_auth.FirebaseAuthException {
       rethrow;
     } catch (e) {
       // Non-Firebase auth error (network, Firestore, etc.)
@@ -137,7 +137,7 @@ class AuthService {
   /// Returns a fresh ID token for the current user, if any.
   Future<String?> getToken() async {
     final fb_auth.User? user = _auth.currentUser;
-    return user != null ? user.getIdToken() : null;
+    return user?.getIdToken();
   }
 
   /// Signs out the current user.

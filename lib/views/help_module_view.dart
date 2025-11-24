@@ -407,6 +407,15 @@ class _FaqItem extends StatelessWidget {
             ),
           ),
 
+          trailing: Icon(
+            isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          tilePadding: const EdgeInsets.symmetric(
+            horizontal: 16.0,
+            vertical: 4.0,
+          ),
+
           children: <Widget>[
             Padding(
               padding: const EdgeInsets.only(
@@ -424,15 +433,6 @@ class _FaqItem extends StatelessWidget {
               ),
             ),
           ],
-
-          trailing: Icon(
-            isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          tilePadding: const EdgeInsets.symmetric(
-            horizontal: 16.0,
-            vertical: 4.0,
-          ),
         ),
       ),
     );
@@ -594,7 +594,7 @@ class _QuickLinksSection extends StatelessWidget {
                 ),
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

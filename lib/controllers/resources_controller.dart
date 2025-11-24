@@ -644,7 +644,7 @@ class ResourcesController {
 
         for (final doc in humanSnap.docs) {
           if (doc.exists) {
-            final data = doc.data() as Map<String, dynamic>;
+            final data = doc.data();
             if (data.containsKey('name')) {
               final int currentUse = (data['use'] as num? ?? 0).toInt();
               final int total = (data['totalUsage'] as num? ?? 0).toInt();
