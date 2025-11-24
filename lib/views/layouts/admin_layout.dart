@@ -96,187 +96,283 @@ class AdminLayout extends StatelessWidget {
                 height: 70,
                 color: primaryColor,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    // Logo
-                    Row(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isSmallScreen = constraints.maxWidth < 900;
+                    return Row(
                       children: [
-                        Image.asset('assets/Logo.png', height: 40, width: 40),
-                        const SizedBox(width: 10),
-                        const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'ProLab UNIMET',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                        // Logo
+                        Flexible(
+                          flex: isSmallScreen ? 2 : 1,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.asset('assets/Logo.png', height: 40, width: 40),
+                              const SizedBox(width: 10),
+                              Flexible(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'ProLab UNIMET',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: isSmallScreen ? 14 : 16,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    if (!isSmallScreen)
+                                      Text(
+                                        'Panel de Administrador',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (!isSmallScreen) const SizedBox(width: 40),
+
+                        // ===== Navbar Buttons (role-based) =====
+                        if (!isSmallScreen) ...[
+                          Flexible(
+                            child: const _NavButton(
+                              icon: Icons.dashboard_outlined,
+                              label: 'Dashboard',
+                              route: '/admin-dashboard',
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+
+                          if (!isUserOnly) ...[
+                            Flexible(
+                              child: const _NavButton(
+                                icon: Icons.folder_copy_outlined,
+                                label: 'Proyectos',
+                                route: '/admin-projects',
                               ),
                             ),
-                            Text(
-                              'Panel de Administrador',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
+                            const SizedBox(width: 10),
+                          ],
+
+                          Flexible(
+                            child: const _NavButton(
+                              icon: Icons.folder_copy_outlined,
+                              label: 'Tareas',
+                              route: '/admin-tasks',
+                            ),
+                          ),
+
+                          if (!isUserOnly) ...[
+                            const SizedBox(width: 10),
+                            Flexible(
+                              child: const _NavButton(
+                                icon: Icons.folder_copy_outlined,
+                                label: 'Recursos',
+                                route: '/admin-resources',
                               ),
                             ),
                           ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 40),
 
-                    // ===== Navbar Buttons (role-based) =====
-                    const _NavButton(
-                      icon: Icons.dashboard_outlined,
-                      label: 'Dashboard',
-                      route: '/admin-dashboard',
-                    ),
-                    const SizedBox(width: 15),
-
-                    if (!isUserOnly) ...[
-                      const _NavButton(
-                        icon: Icons.folder_copy_outlined,
-                        label: 'Proyectos',
-                        route: '/admin-projects',
-                      ),
-                      const SizedBox(width: 15),
-                    ],
-
-                    const _NavButton(
-                      icon: Icons.folder_copy_outlined,
-                      label: 'Tareas',
-                      route: '/admin-tasks',
-                    ),
-
-                    if (!isUserOnly) ...[
-                      const SizedBox(width: 15),
-                      const _NavButton(
-                        icon: Icons.folder_copy_outlined,
-                        label: 'Recursos',
-                        route: '/admin-resources',
-                      ),
-                    ],
-
-                    if (!isUserOnly) ...[
-                      const SizedBox(width: 15),
-                      const _NavButton(
-                        icon: Icons.folder_copy_outlined,
-                        label: 'Reportes',
-                        route: '/admin-reports',
-                      ),
-                    ],
-
-                    const Spacer(),
-
-                    // Notifications
-                    const _NotificationBell(),
-                    const SizedBox(width: 10),
-
-                    // Profile menu
-                    PopupMenuButton<String>(
-                      tooltip: 'Opciones de perfil',
-                      color: primaryColor,
-                      offset: const Offset(0, 55),
-                      onSelected: (value) async {
-                        final messenger = ScaffoldMessenger.of(buildContext);
-                        final router = GoRouter.of(buildContext);
-
-                        switch (value) {
-                          case 'profile':
-                            router.go('/admin-profile');
-                            break;
-                          case 'settings':
-                            router.go('/admin-settings');
-                            break;
-                          case 'logout':
-                            await authProvider.logout();
-                            messenger.showSnackBar(
-                              const SnackBar(
-                                content: Text('Has cerrado sesión.'),
+                          if (!isUserOnly) ...[
+                            const SizedBox(width: 10),
+                            Flexible(
+                              child: const _NavButton(
+                                icon: Icons.folder_copy_outlined,
+                                label: 'Reportes',
+                                route: '/admin-reports',
                               ),
+                            ),
+                          ],
+                        ],
+
+                        const Spacer(),
+
+                        // Notifications
+                        const _NotificationBell(),
+                        const SizedBox(width: 10),
+
+                        // Profile menu
+                        PopupMenuButton<String>(
+                          tooltip: 'Opciones de perfil',
+                          color: primaryColor,
+                          offset: const Offset(0, 55),
+                          onSelected: (value) async {
+                            final messenger = ScaffoldMessenger.of(buildContext);
+                            final router = GoRouter.of(buildContext);
+
+                            switch (value) {
+                              case 'profile':
+                                router.go('/admin-profile');
+                                break;
+                              case 'settings':
+                                router.go('/admin-settings');
+                                break;
+                              case 'logout':
+                                await authProvider.logout();
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Has cerrado sesión.'),
+                                  ),
+                                );
+                                router.go('/login');
+                                break;
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: 'profile',
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: ListTile(
+                                  leading: Icon(
+                                    Icons.account_circle,
+                                    color: iconColor,
+                                  ),
+                                  title: Text(
+                                    'Perfil',
+                                    style: TextStyle(color: textColor),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // <<< CONFIGURACIÓN ENTRE PERFIL Y LOGOUT >>>
+                            PopupMenuItem(
+                              value: 'settings',
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: ListTile(
+                                  leading: Icon(Icons.settings, color: iconColor),
+                                  title: Text(
+                                    'Configuración',
+                                    style: TextStyle(color: textColor),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'logout',
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: ListTile(
+                                  leading: Icon(Icons.logout, color: iconColor),
+                                  title: Text(
+                                    'Cerrar Sesión',
+                                    style: TextStyle(color: textColor),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                          child: const CircleAvatar(
+                            radius: 18,
+                            backgroundColor: Colors.white24,
+                            child: Icon(Icons.person_outline, color: iconColor),
+                          ),
+                        ),
+
+                        // Extra logout icon (direct)
+                        IconButton(
+                          onPressed: () async {
+                            final authProviderLocal = Provider.of<AuthProvider>(
+                              buildContext,
+                              listen: false,
                             );
-                            router.go('/login');
-                            break;
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'profile',
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: ListTile(
-                              leading: Icon(
-                                Icons.account_circle,
-                                color: iconColor,
-                              ),
-                              title: Text(
-                                'Perfil',
-                                style: TextStyle(color: textColor),
-                              ),
-                            ),
-                          ),
+
+                            await authProviderLocal.logout();
+
+                            if (buildContext.mounted) {
+                              GoRouter.of(buildContext).go('/login');
+                              ScaffoldMessenger.of(buildContext).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Sesión cerrada correctamente'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.logout, color: Colors.white),
                         ),
-                        // <<< CONFIGURACIÓN ENTRE PERFIL Y LOGOUT >>>
-                        PopupMenuItem(
-                          value: 'settings',
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: ListTile(
-                              leading: Icon(Icons.settings, color: iconColor),
-                              title: Text(
-                                'Configuración',
-                                style: TextStyle(color: textColor),
+
+                        // Hamburger menu for small screens
+                        if (isSmallScreen)
+                          PopupMenuButton<String>(
+                            tooltip: 'Menú',
+                            color: primaryColor,
+                            offset: const Offset(0, 55),
+                            onSelected: (value) {
+                              if (value.startsWith('/')) {
+                                GoRouter.of(context).go(value);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: '/admin-dashboard',
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: ListTile(
+                                    leading: Icon(Icons.dashboard_outlined, color: iconColor),
+                                    title: Text('Dashboard', style: TextStyle(color: textColor)),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: 'logout',
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: ListTile(
-                              leading: Icon(Icons.logout, color: iconColor),
-                              title: Text(
-                                'Cerrar Sesión',
-                                style: TextStyle(color: textColor),
+                              if (!isUserOnly)
+                                PopupMenuItem(
+                                  value: '/admin-projects',
+                                  child: MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: ListTile(
+                                      leading: Icon(Icons.folder_copy_outlined, color: iconColor),
+                                      title: Text('Proyectos', style: TextStyle(color: textColor)),
+                                    ),
+                                  ),
+                                ),
+                              PopupMenuItem(
+                                value: '/admin-tasks',
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: ListTile(
+                                    leading: Icon(Icons.folder_copy_outlined, color: iconColor),
+                                    title: Text('Tareas', style: TextStyle(color: textColor)),
+                                  ),
+                                ),
                               ),
-                            ),
+                              if (!isUserOnly) ...[
+                                PopupMenuItem(
+                                  value: '/admin-resources',
+                                  child: MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: ListTile(
+                                      leading: Icon(Icons.folder_copy_outlined, color: iconColor),
+                                      title: Text('Recursos', style: TextStyle(color: textColor)),
+                                    ),
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: '/admin-reports',
+                                  child: MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: ListTile(
+                                      leading: Icon(Icons.folder_copy_outlined, color: iconColor),
+                                      title: Text('Reportes', style: TextStyle(color: textColor)),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                            child: const Icon(Icons.menu, color: Colors.white),
                           ),
-                        ),
                       ],
-                      child: const CircleAvatar(
-                        radius: 18,
-                        backgroundColor: Colors.white24,
-                        child: Icon(Icons.person_outline, color: iconColor),
-                      ),
-                    ),
-
-                    // Extra logout icon (direct)
-                    IconButton(
-                      onPressed: () async {
-                        final authProviderLocal = Provider.of<AuthProvider>(
-                          buildContext,
-                          listen: false,
-                        );
-
-                        await authProviderLocal.logout();
-
-                        if (buildContext.mounted) {
-                          GoRouter.of(buildContext).go('/login');
-                          ScaffoldMessenger.of(buildContext).showSnackBar(
-                            const SnackBar(
-                              content: Text('Sesión cerrada correctamente'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.logout, color: Colors.white),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
 
@@ -315,20 +411,28 @@ class _NavButton extends StatelessWidget {
     final currentRoute = GoRouterState.of(context).uri.toString();
     final isActive = currentRoute == route;
 
-    return TextButton.icon(
-      onPressed: () => context.go(route),
-      icon: Icon(icon, color: isActive ? Colors.white : Colors.white70),
-      label: Text(
-        label,
-        style: TextStyle(
-          color: isActive ? Colors.white : Colors.white70,
-          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+    return Flexible(
+      child: TextButton.icon(
+        onPressed: () => context.go(route),
+        icon: Icon(icon, color: isActive ? Colors.white : Colors.white70, size: 18),
+        label: Flexible(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isActive ? Colors.white : Colors.white70,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              fontSize: 13,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
-      ),
-      style: TextButton.styleFrom(
-        backgroundColor: isActive ? Colors.white24 : Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        style: TextButton.styleFrom(
+          backgroundColor: isActive ? Colors.white24 : Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
       ),
     );
   }
