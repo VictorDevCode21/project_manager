@@ -130,7 +130,7 @@ class HomePageController extends ChangeNotifier {
             ? p.consultingType
             : 'Sin categoría';
 
-        final DateTime? endDate = p.endDate;
+        final DateTime endDate = p.endDate;
         final String dueLabel = endDate != null
             ? '${endDate.day.toString().padLeft(2, '0')}/'
                   '${endDate.month.toString().padLeft(2, '0')}/'
