@@ -16,13 +16,14 @@ class ProfileView extends StatelessWidget {
             icon: Icons.arrow_back,
             label: 'Volver al dashboard',
             route: '/admin-dashboard',
+            color: Theme.of(context).colorScheme.primary,
           ),
           Text(
             'Modificar Perfil',
             textAlign: TextAlign.left,
             style: TextStyle(
               fontSize: 28,
-              color: Colors.indigo,
+              color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -371,12 +372,14 @@ class NavButton1 extends StatelessWidget {
   final IconData icon;
   final String label;
   final String route;
+  final Color? color;
 
   const NavButton1({
     super.key,
     required this.icon,
     required this.label,
     required this.route,
+    required this.color,
   });
 
   @override
