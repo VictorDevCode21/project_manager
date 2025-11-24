@@ -279,6 +279,9 @@ class HomePageController extends ChangeNotifier {
         generalProgress: generalProgress,
         recentProjects: limitedRecent,
       );
+
+      _isLoading = false;
+      notifyListeners();
     } catch (e) {
       debugPrint('[HomePageController] _loadDashboardData error: $e');
     }
