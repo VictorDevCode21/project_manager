@@ -138,133 +138,125 @@ class ProjectDetailsDialog extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Scrollable content area
-              Flexible(
-                child: Container(
-                  constraints: BoxConstraints(maxHeight: contentH),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Description block
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Descripción',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade800,
-                            ),
+              SizedBox(
+                height: contentH,
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      // Description block
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Descripción',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade800,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.shade200),
-                          ),
-                          child: Text(
-                            project.description.isNotEmpty
-                                ? project.description
-                                : 'Sin descripción.',
-                            style: const TextStyle(fontSize: 13.5),
-                          ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade200),
                         ),
-                        const SizedBox(height: 16),
-                        const Divider(height: 1),
-                        const SizedBox(height: 16),
-
-                        // Key details grid
-                        LayoutBuilder(
-                          builder: (context, c) {
-                            final isWide = c.maxWidth > 520;
-                            final left = Column(
-                              children: [
-                                _kv('Cliente', project.client),
-                                _kv(
-                                  'Presupuesto',
-                                  '\$${project.budgetUsd.toStringAsFixed(2)}',
-                                ),
-                                _kv('Inicio', _formatDate(project.startDate)),
-                                _kv('Entrega', _formatDate(project.endDate)),
-                              ],
-                            );
-                            final right = Column(
-                              children: [
-                                _kv('Propietario (UID)', project.ownerId),
-                                _kv('ID del proyecto', project.id),
-                                _kv('Creado', _formatDate(project.createdAt)),
-                              ],
-                            );
-
-                            if (isWide) {
-                              return Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(child: left),
-                                  const SizedBox(width: 16),
-                                  Expanded(child: right),
-                                ],
-                              );
-                            }
-                            return Column(
-                              children: [
-                                left,
-                                const SizedBox(height: 12),
-                                right,
-                              ],
-                            );
-                          },
+                        child: Text(
+                          project.description.isNotEmpty
+                              ? project.description
+                              : 'Sin descripción.',
+                          style: const TextStyle(fontSize: 13.5),
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Divider(height: 1),
+                      const SizedBox(height: 16),
 
-                        const SizedBox(height: 16),
-                        const Divider(height: 1),
-                        const SizedBox(height: 16),
+                      // Key details grid
+                      LayoutBuilder(
+                        builder: (context, c) {
+                          final isWide = c.maxWidth > 520;
+                          final left = Column(
+                            children: [
+                              _kv('Cliente', project.client),
+                              _kv(
+                                'Presupuesto',
+                                '\$${project.budgetUsd.toStringAsFixed(2)}',
+                              ),
+                              _kv('Inicio', _formatDate(project.startDate)),
+                              _kv('Entrega', _formatDate(project.endDate)),
+                            ],
+                          );
+                          final right = Column(
+                            children: [
+                              _kv('Propietario (UID)', project.ownerId),
+                              _kv('ID del proyecto', project.id),
+                              _kv('Creado', _formatDate(project.createdAt)),
+                            ],
+                          );
 
-                        // Members count (live)
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.group_outlined,
-                              size: 18,
-                              color: Colors.black54,
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Miembros',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            const Spacer(),
-                            StreamBuilder<List<ProjectMember>>(
-                              stream: _controller.streamMembers(project.id),
-                              builder: (context, snap) {
-                                if (snap.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  );
-                                }
-                                final n = (snap.data ?? const <ProjectMember>[])
-                                    .length;
-                                return Text(
-                                  '$n miembro${n == 1 ? '' : 's'}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
+                          if (isWide) {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: left),
+                                const SizedBox(width: 16),
+                                Expanded(child: right),
+                              ],
+                            );
+                          }
+                          return Column(
+                            children: [left, const SizedBox(height: 12), right],
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+                      const Divider(height: 1),
+                      const SizedBox(height: 16),
+
+                      // Members count (live)
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.group_outlined,
+                            size: 18,
+                            color: Colors.black54,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Miembros',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const Spacer(),
+                          StreamBuilder<List<ProjectMember>>(
+                            stream: _controller.streamMembers(project.id),
+                            builder: (context, snap) {
+                              if (snap.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
                                   ),
                                 );
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                              }
+                              final n =
+                                  (snap.data ?? const <ProjectMember>[]).length;
+                              return Text(
+                                '$n miembro${n == 1 ? '' : 's'}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),

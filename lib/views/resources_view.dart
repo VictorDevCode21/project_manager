@@ -799,7 +799,7 @@ class Selector1 extends StatelessWidget {
             width: isSelected ? 2 : 1,
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       ),
     );
   }
@@ -907,7 +907,7 @@ class ResourceList extends StatelessWidget {
     return Card(
       shadowColor: Colors.black,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -1005,7 +1005,7 @@ class ResourceList extends StatelessWidget {
                 Color(0xff253f8d),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
 
             _buildInfoRow(
               'Tarifa por hora:',
@@ -1013,7 +1013,7 @@ class ResourceList extends StatelessWidget {
             ),
             _buildInfoRow('Contacto:', resource.email),
             _buildInfoRow('Habilidades:', resource.habilities),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
 
             Row(
               children: [
@@ -1057,7 +1057,7 @@ class ResourceList extends StatelessWidget {
     return Card(
       shadowColor: Colors.black,
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -1075,7 +1075,7 @@ class ResourceList extends StatelessWidget {
             // Header name / lab
             Row(
               children: [
-                const Icon(Icons.build, color: Color(0xff253f8d), size: 15),
+                const Icon(Icons.build, color: Color(0xff253f8d), size: 30),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -1149,7 +1149,7 @@ class ResourceList extends StatelessWidget {
               '${resource.nextMaintenance.day}/${resource.nextMaintenance.month}/${resource.nextMaintenance.year}',
             ),
             _buildInfoRow('Especificaciones:', resource.specs),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
 
             Row(
               children: [
@@ -1244,7 +1244,7 @@ class ResourceList extends StatelessWidget {
                 crossAxisCount: 2,
                 crossAxisSpacing: 15.0,
                 mainAxisSpacing: 15.0,
-                childAspectRatio: 1.5,
+                childAspectRatio: 0.75,
               ),
               itemBuilder: (context, index) {
                 final resource = resources[index];
