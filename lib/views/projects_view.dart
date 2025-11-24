@@ -110,28 +110,127 @@ class _ProjectsViewState extends State<ProjectsView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ===== PAGE HEADER =====
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Gestión de Proyectos',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Administrar proyectos de consultoría',
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                  ElevatedButton.icon(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isSmallScreen = constraints.maxWidth < 700;
+                  return isSmallScreen
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Gestión de Proyectos',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Administrar proyectos de consultoría',
+                              style: TextStyle(color: Colors.grey, fontSize: 14),
+                            ),
+                            SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  final nav = Navigator.of(context, rootNavigator: true);
+                                  final messenger = ScaffoldMessenger.of(context);
+
+                                  // 1) Open modal to create project
+                                  final dto = await showDialog<ProjectCreateData>(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    useRootNavigator: true,
+                                    builder: (_) => const CreateProjectDialog(),
+                                  );
+                                  if (dto == null) return;
+                                  if (!mounted) return;
+
+                                  // 2) Progress spinner while creating
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    useRootNavigator: true,
+                                    builder: (_) =>
+                                        const Center(child: CircularProgressIndicator()),
+                                  );
+
+                                  try {
+                                    final controller = ProjectController();
+                                    final projectId = await controller.createProject(
+                                      name: dto.name,
+                                      client: dto.client,
+                                      description: dto.description,
+                                      consultingType: dto.consultingType,
+                                      budgetUsd: dto.budgetUsd,
+                                      priority: dto.priority,
+                                      startDate: dto.startDate,
+                                      endDate: dto.endDate,
+                                    );
+                                    if (!mounted) return;
+                                    if (nav.canPop()) nav.pop();
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text('Proyecto creado con id: $projectId'),
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    if (!mounted) return;
+                                    if (nav.canPop()) nav.pop();
+                                    messenger.showSnackBar(
+                                      SnackBar(content: Text('Error al crear: $e')),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.add, size: 18, color: Colors.white),
+                                label: const Text(
+                                  'Nuevo Proyecto',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Gestión de Proyectos',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Administrar proyectos de consultoría',
+                                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Flexible(
+                              child: ElevatedButton.icon(
                     onPressed: () async {
                       final nav = Navigator.of(context, rootNavigator: true);
                       final messenger = ScaffoldMessenger.of(context);
@@ -190,18 +289,21 @@ class _ProjectsViewState extends State<ProjectsView> {
                         color: Colors.white,
                       ),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 14,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ],
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                },
               ),
               const SizedBox(height: 30),
 
@@ -230,73 +332,69 @@ class _ProjectsViewState extends State<ProjectsView> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Search
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (_) => setState(() {}),
-                            decoration: InputDecoration(
-                              prefixIcon: const Icon(Icons.search),
-                              hintText:
-                                  'Buscar por nombre de proyecto o cliente...',
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isSmallScreen = constraints.maxWidth < 800;
+                        final isMediumScreen = constraints.maxWidth < 1000;
+
+                        if (isSmallScreen) {
+                          return Column(
+                            children: [
+                              TextField(
+                                controller: _searchController,
+                                onChanged: (_) => setState(() {}),
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(Icons.search),
+                                  hintText:
+                                      'Buscar por nombre de proyecto o cliente...',
+                                  filled: true,
+                                  fillColor: Colors.grey[100],
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        // Status
-                        SizedBox(
-                          width: 220,
-                          height: 52,
-                          child: InputDecorator(
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 52,
+                                child: InputDecorator(
+                                  decoration: InputDecoration(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      isExpanded: true,
+                                      value: _selectedStatus,
+                                      items: const [
+                                        'Todos los estados',
+                                        'En Progreso',
+                                        'Planificación',
+                                        'Completado',
+                                      ].map((e) {
+                                        return DropdownMenuItem(
+                                          value: e,
+                                          child: Text(e),
+                                        );
+                                      }).toList(),
+                                      onChanged: (value) {
+                                        if (value == null) return;
+                                        setState(() => _selectedStatus = value);
+                                      },
+                                    ),
+                                  ),
+                                ),
                               ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                isExpanded: true,
-                                value: _selectedStatus,
-                                items:
-                                    const [
-                                      'Todos los estados',
-                                      'En Progreso',
-                                      'Planificación',
-                                      'Completado',
-                                      // 'Archivado'
-                                    ].map((e) {
-                                      return DropdownMenuItem(
-                                        value: e,
-                                        child: Text(e),
-                                      );
-                                    }).toList(),
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  setState(() => _selectedStatus = value);
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        // Type
-                        SizedBox(
-                          width: 260,
-                          height: 52,
-                          child: StreamBuilder<List<String>>(
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 52,
+                                child: StreamBuilder<List<String>>(
                             stream: _ctController.streamConsultingTypeNames(),
                             builder: (context, snap) {
                               if (snap.connectionState ==
@@ -323,21 +421,245 @@ class _ProjectsViewState extends State<ProjectsView> {
                                   ? _selectedType
                                   : 'Todos los tipos';
 
-                              return AppDropdown<String>(
-                                items: options,
-                                value: current,
-                                labelOf: (x) => x,
-                                hintText: 'Tipo de consultoría',
-                                onChanged: (val) {
-                                  if (val == null) return;
-                                  setState(() => _selectedType = val);
-                                },
-                                validator: (_) => null,
-                              );
-                            },
-                          ),
-                        ),
-                      ],
+                                    return AppDropdown<String>(
+                                      items: options,
+                                      value: current,
+                                      labelOf: (x) => x,
+                                      hintText: 'Tipo de consultoría',
+                                      onChanged: (val) {
+                                        if (val == null) return;
+                                        setState(() => _selectedType = val);
+                                      },
+                                      validator: (_) => null,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          );
+                        } else if (isMediumScreen) {
+                          return Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _searchController,
+                                      onChanged: (_) => setState(() {}),
+                                      decoration: InputDecoration(
+                                        prefixIcon: const Icon(Icons.search),
+                                        hintText:
+                                            'Buscar por nombre de proyecto o cliente...',
+                                        filled: true,
+                                        fillColor: Colors.grey[100],
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 52,
+                                      child: InputDecorator(
+                                        decoration: InputDecoration(
+                                          contentPadding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
+                                          ),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                        child: DropdownButtonHideUnderline(
+                                          child: DropdownButton<String>(
+                                            isExpanded: true,
+                                            value: _selectedStatus,
+                                            items: const [
+                                              'Todos los estados',
+                                              'En Progreso',
+                                              'Planificación',
+                                              'Completado',
+                                            ].map((e) {
+                                              return DropdownMenuItem(
+                                                value: e,
+                                                child: Text(e),
+                                              );
+                                            }).toList(),
+                                            onChanged: (value) {
+                                              if (value == null) return;
+                                              setState(() => _selectedStatus = value);
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 52,
+                                      child: StreamBuilder<List<String>>(
+                                        stream: _ctController.streamConsultingTypeNames(),
+                                        builder: (context, snap) {
+                                          if (snap.connectionState ==
+                                                  ConnectionState.waiting &&
+                                              !snap.hasData) {
+                                            return const Center(
+                                              child: CircularProgressIndicator(),
+                                            );
+                                          }
+                                          if (snap.hasError) {
+                                            return const Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                'Error cargando tipos',
+                                                style: TextStyle(color: Colors.red),
+                                              ),
+                                            );
+                                          }
+                                          final base = (snap.data ?? const <String>[])
+                                              .where((e) => e.trim().isNotEmpty)
+                                              .toList();
+                                          final options = ['Todos los tipos', ...base];
+                                          final current = options.contains(_selectedType)
+                                              ? _selectedType
+                                              : 'Todos los tipos';
+
+                                          return AppDropdown<String>(
+                                            items: options,
+                                            value: current,
+                                            labelOf: (x) => x,
+                                            hintText: 'Tipo de consultoría',
+                                            onChanged: (val) {
+                                              if (val == null) return;
+                                              setState(() => _selectedType = val);
+                                            },
+                                            validator: (_) => null,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchController,
+                                  onChanged: (_) => setState(() {}),
+                                  decoration: InputDecoration(
+                                    prefixIcon: const Icon(Icons.search),
+                                    hintText:
+                                        'Buscar por nombre de proyecto o cliente...',
+                                    filled: true,
+                                    fillColor: Colors.grey[100],
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Flexible(
+                                child: SizedBox(
+                                  height: 52,
+                                  child: InputDecorator(
+                                    decoration: InputDecoration(
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    child: DropdownButtonHideUnderline(
+                                      child: DropdownButton<String>(
+                                        isExpanded: true,
+                                        value: _selectedStatus,
+                                        items: const [
+                                          'Todos los estados',
+                                          'En Progreso',
+                                          'Planificación',
+                                          'Completado',
+                                        ].map((e) {
+                                          return DropdownMenuItem(
+                                            value: e,
+                                            child: Text(e),
+                                          );
+                                        }).toList(),
+                                        onChanged: (value) {
+                                          if (value == null) return;
+                                          setState(() => _selectedStatus = value);
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Flexible(
+                                child: SizedBox(
+                                  height: 52,
+                                  child: StreamBuilder<List<String>>(
+                                    stream: _ctController.streamConsultingTypeNames(),
+                                    builder: (context, snap) {
+                                      if (snap.connectionState ==
+                                              ConnectionState.waiting &&
+                                          !snap.hasData) {
+                                        return const Center(
+                                          child: CircularProgressIndicator(),
+                                        );
+                                      }
+                                      if (snap.hasError) {
+                                        return const Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            'Error cargando tipos',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        );
+                                      }
+                                      final base = (snap.data ?? const <String>[])
+                                          .where((e) => e.trim().isNotEmpty)
+                                          .toList();
+                                      final options = ['Todos los tipos', ...base];
+                                      final current = options.contains(_selectedType)
+                                          ? _selectedType
+                                          : 'Todos los tipos';
+
+                                      return AppDropdown<String>(
+                                        items: options,
+                                        value: current,
+                                        labelOf: (x) => x,
+                                        hintText: 'Tipo de consultoría',
+                                        onChanged: (val) {
+                                          if (val == null) return;
+                                          setState(() => _selectedType = val);
+                                        },
+                                        validator: (_) => null,
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                      },
                     ),
                   ],
                 ),
