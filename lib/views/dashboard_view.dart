@@ -97,149 +97,38 @@ class DashboardView extends StatelessWidget {
   }
 
   Widget _buildKPIsRow(BuildContext context, HomePageModel model) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isSmallScreen = constraints.maxWidth < 800;
-        final isMediumScreen = constraints.maxWidth < 1200;
-
-        if (isSmallScreen) {
-          // Stack vertically on very small screens
-          return Column(
-            children: [
-              _KPIWidget(
-                title: 'Proyectos Activos',
-                value: model.activeProjects.toString(),
-                icon: Icons.folder_open,
-                secondaryText: '+${model.expiringThisMonth} este mes',
-                secondaryColor: Colors.green,
-              ),
-              const SizedBox(height: 15),
-              _KPIWidget(
-                title: 'Tareas Pendientes',
-                value: model.pendingTasks.toString(),
-                icon: Icons.pending_actions,
-                secondaryText: '${model.dueSoon} vencen pronto',
-                secondaryColor: Colors.orange,
-              ),
-              const SizedBox(height: 15),
-              _KPIWidget(
-                title: 'Recursos Asignados',
-                value: '${model.resourceUtilization}%',
-                icon: Icons.people_alt,
-                secondaryText: 'Utilización actual',
-                secondaryColor: Colors.blue,
-              ),
-              const SizedBox(height: 15),
-              _KPIWidget(
-                title: 'Progreso General',
-                value: '${model.generalProgress}%',
-                icon: Icons.show_chart,
-                secondaryText: 'En tiempo',
-                secondaryColor: Colors.green,
-              ),
-            ],
-          );
-        } else if (isMediumScreen) {
-          // 2x2 grid on medium screens
-          return Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _KPIWidget(
-                      title: 'Proyectos Activos',
-                      value: model.activeProjects.toString(),
-                      icon: Icons.folder_open,
-                      secondaryText: '+${model.expiringThisMonth} este mes',
-                      secondaryColor: Colors.green,
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: _KPIWidget(
-                      title: 'Tareas Pendientes',
-                      value: model.pendingTasks.toString(),
-                      icon: Icons.pending_actions,
-                      secondaryText: '${model.dueSoon} vencen pronto',
-                      secondaryColor: Colors.orange,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
-              Row(
-                children: [
-                  Expanded(
-                    child: _KPIWidget(
-                      title: 'Recursos Asignados',
-                      value: '${model.resourceUtilization}%',
-                      icon: Icons.people_alt,
-                      secondaryText: 'Utilización actual',
-                      secondaryColor: Colors.blue,
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: _KPIWidget(
-                      title: 'Progreso General',
-                      value: '${model.generalProgress}%',
-                      icon: Icons.show_chart,
-                      secondaryText: 'En tiempo',
-                      secondaryColor: Colors.green,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          );
-        } else {
-          // Full row on large screens
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Expanded(
-                child: _KPIWidget(
-                  title: 'Proyectos Activos',
-                  value: model.activeProjects.toString(),
-                  icon: Icons.folder_open,
-                  secondaryText: '+${model.expiringThisMonth} este mes',
-                  secondaryColor: Colors.green,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _KPIWidget(
-                  title: 'Tareas Pendientes',
-                  value: model.pendingTasks.toString(),
-                  icon: Icons.pending_actions,
-                  secondaryText: '${model.dueSoon} vencen pronto',
-                  secondaryColor: Colors.orange,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _KPIWidget(
-                  title: 'Recursos Asignados',
-                  value: '${model.resourceUtilization}%',
-                  icon: Icons.people_alt,
-                  secondaryText: 'Utilización actual',
-                  secondaryColor: Colors.blue,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _KPIWidget(
-                  title: 'Progreso General',
-                  value: '${model.generalProgress}%',
-                  icon: Icons.show_chart,
-                  secondaryText: 'En tiempo',
-                  secondaryColor: Colors.green,
-                ),
-              ),
-            ],
-          );
-        }
-      },
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: <Widget>[
+        _KPIWidget(
+          title: 'Proyectos Activos',
+          value: model.activeProjects.toString(),
+          icon: Icons.folder_open,
+          secondaryText: '+${model.expiringThisMonth} este mes',
+          secondaryColor: Colors.green,
+        ),
+        _KPIWidget(
+          title: 'Tareas Pendientes',
+          value: model.pendingTasks.toString(),
+          icon: Icons.pending_actions,
+          secondaryText: '${model.dueSoon} vencen pronto',
+          secondaryColor: Colors.orange,
+        ),
+        _KPIWidget(
+          title: 'Recursos Asignados',
+          value: '${model.resourceUtilization}%',
+          icon: Icons.people_alt,
+          secondaryText: 'Utilización actual',
+          secondaryColor: Colors.blue,
+        ),
+        _KPIWidget(
+          title: 'Progreso General',
+          value: '${model.generalProgress}%',
+          icon: Icons.show_chart,
+          secondaryText: 'En tiempo',
+          secondaryColor: Colors.green,
+        ),
+      ],
     );
   }
 
@@ -248,175 +137,80 @@ class DashboardView extends StatelessWidget {
     HomePageController controller,
     bool isUserOnly,
   ) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isSmallScreen = constraints.maxWidth < 900;
-        final isMediumScreen = constraints.maxWidth < 1200;
+    // Restricted view for USER role: hide resources management
+    if (isUserOnly) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          // Expanded(
+          //   child: _ManagementCard(
+          //     icon: Icons.list_alt,
+          //     title: 'Gestión de Proyectos',
+          //     subtitle: 'Ver proyectos en los que participas',
+          //     primaryButtonText: 'Ver Proyectos',
+          //     primaryOnPressed: () => controller.goToAllProjects(context),
+          //     secondaryButtonText: 'Ver Detalles de Proyecto',
+          //     secondaryOnPressed: () => controller.goToAllProjects(context),
+          //   ),
+          // ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: _ManagementCard(
+              icon: Icons.calendar_today,
+              title: 'Gestión de Tareas',
+              subtitle: 'Ver y actualizar tus tareas pendientes',
+              primaryButtonText: 'Ver Todas las Tareas',
+              primaryOnPressed: () => controller.goToAllTasks(context),
+              secondaryButtonText: 'Crear Nueva Tarea',
+              secondaryOnPressed: () => controller.goToCreateTask(context),
+            ),
+          ),
+        ],
+      );
+    }
 
-        // Restricted view for USER role: hide resources management
-        if (isUserOnly) {
-          if (isSmallScreen) {
-            return Column(
-              children: [
-                _ManagementCard(
-                  icon: Icons.calendar_today,
-                  title: 'Gestión de Tareas',
-                  subtitle: 'Ver y actualizar tus tareas pendientes',
-                  primaryButtonText: 'Ver Todas las Tareas',
-                  primaryOnPressed: () => controller.goToAllTasks(context),
-                  secondaryButtonText: 'Crear Nueva Tarea',
-                  secondaryOnPressed: () => controller.goToCreateTask(context),
-                ),
-              ],
-            );
-          }
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Expanded(
-                child: _ManagementCard(
-                  icon: Icons.calendar_today,
-                  title: 'Gestión de Tareas',
-                  subtitle: 'Ver y actualizar tus tareas pendientes',
-                  primaryButtonText: 'Ver Todas las Tareas',
-                  primaryOnPressed: () => controller.goToAllTasks(context),
-                  secondaryButtonText: 'Crear Nueva Tarea',
-                  secondaryOnPressed: () => controller.goToCreateTask(context),
-                ),
-              ),
-            ],
-          );
-        }
-
-        // Full view for ADMIN / COORDINATOR
-        if (isSmallScreen) {
-          return Column(
-            children: [
-              _ManagementCard(
-                icon: Icons.list_alt,
-                title: 'Gestión de Proyectos',
-                subtitle: 'Crear, editar y monitorear proyectos de consultoría',
-                primaryButtonText: 'Ver Todos los Proyectos',
-                primaryOnPressed: () => controller.goToAllProjects(context),
-                secondaryButtonText: 'Crear Nuevo Proyecto',
-                secondaryOnPressed: () => controller.goToCreateProject(context),
-              ),
-              const SizedBox(height: 20),
-              _ManagementCard(
-                icon: Icons.calendar_today,
-                title: 'Gestión de Tareas',
-                subtitle: 'Asignar y monitorear tareas de proyectos',
-                primaryButtonText: 'Ver Todas las Tareas',
-                primaryOnPressed: () => controller.goToAllTasks(context),
-                secondaryButtonText: 'Crear Nueva Tarea',
-                secondaryOnPressed: () => controller.goToCreateTask(context),
-              ),
-              const SizedBox(height: 20),
-              _ManagementCard(
-                icon: Icons.people_alt,
-                title: 'Gestión de Recursos',
-                subtitle: 'Asignar personal y materiales a proyectos',
-                primaryButtonText: 'Ver Recursos Disponibles',
-                primaryOnPressed: () => context.go('/admin-resources'),
-                secondaryButtonText: 'Asignar Recursos',
-                secondaryOnPressed: () => context.go('/admin-resources/assign'),
-              ),
-            ],
-          );
-        } else if (isMediumScreen) {
-          return Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _ManagementCard(
-                      icon: Icons.list_alt,
-                      title: 'Gestión de Proyectos',
-                      subtitle: 'Crear, editar y monitorear proyectos de consultoría',
-                      primaryButtonText: 'Ver Todos los Proyectos',
-                      primaryOnPressed: () => controller.goToAllProjects(context),
-                      secondaryButtonText: 'Crear Nuevo Proyecto',
-                      secondaryOnPressed: () => controller.goToCreateProject(context),
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: _ManagementCard(
-                      icon: Icons.calendar_today,
-                      title: 'Gestión de Tareas',
-                      subtitle: 'Asignar y monitorear tareas de proyectos',
-                      primaryButtonText: 'Ver Todas las Tareas',
-                      primaryOnPressed: () => controller.goToAllTasks(context),
-                      secondaryButtonText: 'Crear Nueva Tarea',
-                      secondaryOnPressed: () => controller.goToCreateTask(context),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: _ManagementCard(
-                      icon: Icons.people_alt,
-                      title: 'Gestión de Recursos',
-                      subtitle: 'Asignar personal y materiales a proyectos',
-                      primaryButtonText: 'Ver Recursos Disponibles',
-                      primaryOnPressed: () => context.go('/admin-resources'),
-                      secondaryButtonText: 'Asignar Recursos',
-                      secondaryOnPressed: () => context.go('/admin-resources/assign'),
-                    ),
-                  ),
-                  const Spacer(),
-                ],
-              ),
-            ],
-          );
-        } else {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Expanded(
-                child: _ManagementCard(
-                  icon: Icons.list_alt,
-                  title: 'Gestión de Proyectos',
-                  subtitle: 'Crear, editar y monitorear proyectos de consultoría',
-                  primaryButtonText: 'Ver Todos los Proyectos',
-                  primaryOnPressed: () => controller.goToAllProjects(context),
-                  secondaryButtonText: 'Crear Nuevo Proyecto',
-                  secondaryOnPressed: () => controller.goToCreateProject(context),
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: _ManagementCard(
-                  icon: Icons.calendar_today,
-                  title: 'Gestión de Tareas',
-                  subtitle: 'Asignar y monitorear tareas de proyectos',
-                  primaryButtonText: 'Ver Todas las Tareas',
-                  primaryOnPressed: () => controller.goToAllTasks(context),
-                  secondaryButtonText: 'Crear Nueva Tarea',
-                  secondaryOnPressed: () => controller.goToCreateTask(context),
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: _ManagementCard(
-                  icon: Icons.people_alt,
-                  title: 'Gestión de Recursos',
-                  subtitle: 'Asignar personal y materiales a proyectos',
-                  primaryButtonText: 'Ver Recursos Disponibles',
-                  primaryOnPressed: () => context.go('/admin-resources'),
-                  secondaryButtonText: 'Asignar Recursos',
-                  secondaryOnPressed: () => context.go('/admin-resources/assign'),
-                ),
-              ),
-            ],
-          );
-        }
-      },
+    // Full view for ADMIN / COORDINATOR
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Expanded(
+          child: _ManagementCard(
+            icon: Icons.list_alt,
+            title: 'Gestión de Proyectos',
+            subtitle: 'Crear, editar y monitorear proyectos de consultoría',
+            primaryButtonText: 'Ver Todos los Proyectos',
+            primaryOnPressed: () => controller.goToAllProjects(context),
+            secondaryButtonText: 'Crear Nuevo Proyecto',
+            secondaryOnPressed: () => controller.goToCreateProject(context),
+          ),
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: _ManagementCard(
+            icon: Icons.calendar_today,
+            title: 'Gestión de Tareas',
+            subtitle: 'Asignar y monitorear tareas de proyectos',
+            primaryButtonText: 'Ver Todas las Tareas',
+            primaryOnPressed: () => controller.goToAllTasks(context),
+            secondaryButtonText: 'Crear Nueva Tarea',
+            secondaryOnPressed: () => controller.goToCreateTask(context),
+          ),
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: _ManagementCard(
+            icon: Icons.people_alt,
+            title: 'Gestión de Recursos',
+            subtitle: 'Asignar personal y materiales a proyectos',
+            primaryButtonText: 'Ver Recursos Disponibles',
+            primaryOnPressed: () => context.go('/admin-resources'),
+            secondaryButtonText: 'Asignar Recursos',
+            secondaryOnPressed: () => context.go('/admin-resources/assign'),
+          ),
+        ),
+      ],
     );
   }
 
@@ -428,6 +222,25 @@ class DashboardView extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[const Spacer()],
+    );
+  }
+}
+
+class _AppBarButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+
+  const _AppBarButton({required this.label, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      icon: Icon(icon, color: Colors.white, size: 18),
+      label: Text(label, style: const TextStyle(color: Colors.white)),
+      onPressed: () {
+        // ignore: avoid_print
+        print('Navegando a: $label');
+      },
     );
   }
 }
@@ -449,58 +262,52 @@ class _KPIWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 5),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.green.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Row(
-            children: [
-              Icon(icon, size: 16, color: Colors.grey),
-              const SizedBox(width: 5),
-              Flexible(
-                child: Text(
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 10),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.green.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: [
+                Icon(icon, size: 16, color: Colors.grey),
+                const SizedBox(width: 5),
+                Text(
                   title,
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
+              ],
             ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Flexible(
-            child: Text(
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
               secondaryText,
               style: TextStyle(fontSize: 12, color: secondaryColor),
-              overflow: TextOverflow.ellipsis,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -582,11 +389,7 @@ class _ManagementCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              child: Text(
-                primaryButtonText,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
+              child: Text(primaryButtonText),
             ),
           ),
           const SizedBox(height: 10),
@@ -605,20 +408,13 @@ class _ManagementCard extends StatelessWidget {
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   if (title.contains('Crear') ||
                       title.contains('Generar') ||
                       title.contains('Asignar'))
                     const Icon(Icons.add, size: 20),
                   const SizedBox(width: 5),
-                  Flexible(
-                    child: Text(
-                      secondaryButtonText,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+                  Text(secondaryButtonText),
                 ],
               ),
             ),
@@ -646,181 +442,89 @@ class _ProjectTile extends StatelessWidget {
       progressColor = Colors.orange.shade600;
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isSmallScreen = constraints.maxWidth < 700;
-
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-          margin: const EdgeInsets.only(bottom: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.green.shade200),
-          ),
-          child: isSmallScreen
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${project.title} - ${project.client}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
                   children: [
-                    Text(
-                      '${project.title} - ${project.client}',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _Tag(label: project.category, color: Colors.teal),
-                        _Tag(
-                          label: project.status,
-                          color: project.status == 'Completado'
-                              ? Colors.green
-                              : Colors.orange,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
-                        const SizedBox(width: 5),
-                        Text(project.dueDate, style: const TextStyle(color: Colors.grey)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 50,
-                          child: Text(
-                            '${project.progress}%',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: progressColor,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: LinearProgressIndicator(
-                            value: project.progress / 100,
-                            color: progressColor,
-                            backgroundColor: progressColor.withOpacity(0.2),
-                            minHeight: 8,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: onPressed,
-                        icon: const Icon(Icons.remove_red_eye, size: 18),
-                        label: const Text('Ver Detalles'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.black54,
-                          side: BorderSide(color: Colors.green.shade200),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${project.title} - ${project.client}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              _Tag(label: project.category, color: Colors.teal),
-                              const SizedBox(width: 8),
-                              _Tag(
-                                label: project.status,
-                                color: project.status == 'Completado'
-                                    ? Colors.green
-                                    : Colors.orange,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
-                        const SizedBox(width: 5),
-                        Text(project.dueDate, style: const TextStyle(color: Colors.grey)),
-                      ],
-                    ),
-                    const SizedBox(width: 15),
-                    SizedBox(
-                      width: 150,
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 40,
-                            child: Text(
-                              '${project.progress}%',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: progressColor,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: LinearProgressIndicator(
-                              value: project.progress / 100,
-                              color: progressColor,
-                              backgroundColor: progressColor.withOpacity(0.2),
-                              minHeight: 8,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    OutlinedButton.icon(
-                      onPressed: onPressed,
-                      icon: const Icon(Icons.remove_red_eye, size: 18),
-                      label: const Text('Ver Detalles'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.black54,
-                        side: BorderSide(color: Colors.green.shade200),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
+                    _Tag(label: project.category, color: Colors.teal),
+                    const SizedBox(width: 8),
+                    _Tag(
+                      label: project.status,
+                      color: project.status == 'Completado'
+                          ? Colors.green
+                          : Colors.orange,
                     ),
                   ],
                 ),
-        );
-      },
+              ],
+            ),
+          ),
+          const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+          const SizedBox(width: 5),
+          Text(project.dueDate, style: const TextStyle(color: Colors.grey)),
+          const SizedBox(width: 20),
+          SizedBox(
+            width: 150,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 40,
+                  child: Text(
+                    '${project.progress}%',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: progressColor,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: LinearProgressIndicator(
+                    value: project.progress / 100,
+                    color: progressColor,
+                    backgroundColor: progressColor.withOpacity(0.2),
+                    minHeight: 8,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 20),
+          OutlinedButton.icon(
+            onPressed: onPressed,
+            icon: const Icon(Icons.remove_red_eye, size: 18),
+            label: const Text('Ver Detalles'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.black54,
+              side: BorderSide(color: Colors.green.shade200),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
