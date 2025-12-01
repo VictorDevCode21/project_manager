@@ -359,34 +359,131 @@ class _ResourcesViewState extends State<ResourcesView> {
   }
 
   Widget _buildStatsRow(ResourceStats stats) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _buildStatCard(
-          title: 'Personal Disponible',
-          value: stats.availablePersonnel.toString(),
-          total: 'de ${stats.totalPersonnel} total',
-          color: Colors.green.shade600,
-        ),
-        _buildStatCard(
-          title: 'Equipos Disponibles',
-          value: stats.availableEquipment.toString(),
-          total: 'de ${stats.totalEquipment} total',
-          color: Colors.blue.shade600,
-        ),
-        _buildStatCard(
-          title: 'Utilización Promedio',
-          value: '${(stats.averageUtilization * 100).toStringAsFixed(0)}%',
-          total: 'capacidad utilizada',
-          color: Colors.black,
-        ),
-        _buildStatCard(
-          title: 'En Mantenimiento',
-          value: stats.inMaintenance.toString(),
-          total: 'equipos en servicio',
-          color: Colors.red.shade600,
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmallScreen = constraints.maxWidth < 800;
+        final isMediumScreen = constraints.maxWidth < 1200;
+
+        if (isSmallScreen) {
+          return Column(
+            children: [
+              _buildStatCard(
+                title: 'Personal Disponible',
+                value: stats.availablePersonnel.toString(),
+                total: 'de ${stats.totalPersonnel} total',
+                color: Colors.green.shade600,
+              ),
+              const SizedBox(height: 15),
+              _buildStatCard(
+                title: 'Equipos Disponibles',
+                value: stats.availableEquipment.toString(),
+                total: 'de ${stats.totalEquipment} total',
+                color: Colors.blue.shade600,
+              ),
+              const SizedBox(height: 15),
+              _buildStatCard(
+                title: 'Utilización Promedio',
+                value: '${(stats.averageUtilization * 100).toStringAsFixed(0)}%',
+                total: 'capacidad utilizada',
+                color: Colors.black,
+              ),
+              const SizedBox(height: 15),
+              _buildStatCard(
+                title: 'En Mantenimiento',
+                value: stats.inMaintenance.toString(),
+                total: 'equipos en servicio',
+                color: Colors.red.shade600,
+              ),
+            ],
+          );
+        } else if (isMediumScreen) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      title: 'Personal Disponible',
+                      value: stats.availablePersonnel.toString(),
+                      total: 'de ${stats.totalPersonnel} total',
+                      color: Colors.green.shade600,
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: _buildStatCard(
+                      title: 'Equipos Disponibles',
+                      value: stats.availableEquipment.toString(),
+                      total: 'de ${stats.totalEquipment} total',
+                      color: Colors.blue.shade600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      title: 'Utilización Promedio',
+                      value: '${(stats.averageUtilization * 100).toStringAsFixed(0)}%',
+                      total: 'capacidad utilizada',
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: _buildStatCard(
+                      title: 'En Mantenimiento',
+                      value: stats.inMaintenance.toString(),
+                      total: 'equipos en servicio',
+                      color: Colors.red.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        } else {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Personal Disponible',
+                  value: stats.availablePersonnel.toString(),
+                  total: 'de ${stats.totalPersonnel} total',
+                  color: Colors.green.shade600,
+                ),
+              ),
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Equipos Disponibles',
+                  value: stats.availableEquipment.toString(),
+                  total: 'de ${stats.totalEquipment} total',
+                  color: Colors.blue.shade600,
+                ),
+              ),
+              Expanded(
+                child: _buildStatCard(
+                  title: 'Utilización Promedio',
+                  value: '${(stats.averageUtilization * 100).toStringAsFixed(0)}%',
+                  total: 'capacidad utilizada',
+                  color: Colors.black,
+                ),
+              ),
+              Expanded(
+                child: _buildStatCard(
+                  title: 'En Mantenimiento',
+                  value: stats.inMaintenance.toString(),
+                  total: 'equipos en servicio',
+                  color: Colors.red.shade600,
+                ),
+              ),
+            ],
+          );
+        }
+      },
     );
   }
 
@@ -457,87 +554,185 @@ class ResourcesBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Gestión de Recursos',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: Theme.of(context).colorScheme.primary,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmallScreen = constraints.maxWidth < 900;
+        
+        if (isSmallScreen) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Gestión de Recursos',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
-                ),
-                Text('Administrar recursos humanos y materiales'),
-              ],
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            TextButton.icon(
-              onPressed: () {
-                context.go('/admin-resources/assign');
-              },
-              icon: Icon(
-                Icons.person_add_alt_1,
-                color: Theme.of(context).colorScheme.primary,
+                  Text('Administrar recursos humanos y materiales'),
+                ],
               ),
-              label: Text(
-                'Asignar Recursos',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontSize: 16,
-                ),
-              ),
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.primary,
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  TextButton.icon(
+                    onPressed: () {
+                      context.go('/admin-resources/assign');
+                    },
+                    icon: Icon(
+                      Icons.person_add_alt_1,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    label: Flexible(
+                      child: Text(
+                        'Asignar Recursos',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontSize: 16,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                    ),
                   ),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            FutureBuilder<String>(
-              future: _controller.getCurrentUserRole(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const SizedBox.shrink();
-                }
+                  FutureBuilder<String>(
+                    future: _controller.getCurrentUserRole(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return const SizedBox.shrink();
+                      }
 
-                return ElevatedButton.icon(
-                  onPressed: () => _showAddResourceModal(context),
-                  icon: const Icon(Icons.add_circle_outline),
-                  label: const Text('Agregar recurso'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                      return ElevatedButton.icon(
+                        onPressed: () => _showAddResourceModal(context),
+                        icon: const Icon(Icons.add_circle_outline),
+                        label: const Text('Agregar recurso'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
-          ],
-        ),
-      ],
+                ],
+              ),
+            ],
+          );
+        } else {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Gestión de Recursos',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    Text('Administrar recursos humanos y materiales'),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: TextButton.icon(
+                        onPressed: () {
+                          context.go('/admin-resources/assign');
+                        },
+                        icon: Icon(
+                          Icons.person_add_alt_1,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        label: Text(
+                          'Asignar Recursos',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 16,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    FutureBuilder<String>(
+                      future: _controller.getCurrentUserRole(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState != ConnectionState.done) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return Flexible(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _showAddResourceModal(context),
+                            icon: const Icon(Icons.add_circle_outline),
+                            label: const Text('Agregar recurso'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+      },
     );
   }
 }
@@ -645,19 +840,81 @@ class SearchBar1 extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isSmallScreen = constraints.maxWidth < 800;
+                
+                if (isSmallScreen) {
+                  return Column(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: TextField(
+                          controller: controller.searchC,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: Colors.grey,
+                            ),
+                            hintText:
+                                'Buscar recursos por nombre, rol, ubicación...',
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ValueListenableBuilder<String>(
+                        valueListenable: controller.selectedStateFilter,
+                        builder: (context, currentValue, child) {
+                          return DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            value: currentValue,
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 10,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                            items: stateFilterOptions
+                                .map(
+                                  (e) => DropdownMenuItem(value: e, child: Text(e)),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                controller.changeStateFilter(value);
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  );
+                } else {
+                  return Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
                           child: TextField(
                             controller: controller.searchC,
                             decoration: const InputDecoration(
@@ -675,45 +932,45 @@ class SearchBar1 extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 2,
-                  child: ValueListenableBuilder<String>(
-                    valueListenable: controller.selectedStateFilter,
-                    builder: (context, currentValue, child) {
-                      return DropdownButtonFormField<String>(
-                        initialValue: currentValue,
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 10,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 2,
+                        child: ValueListenableBuilder<String>(
+                          valueListenable: controller.selectedStateFilter,
+                          builder: (context, currentValue, child) {
+                            return DropdownButtonFormField<String>(
+                              value: currentValue,
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 10,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              items: stateFilterOptions
+                                  .map(
+                                    (e) => DropdownMenuItem(value: e, child: Text(e)),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  controller.changeStateFilter(value);
+                                }
+                              },
+                            );
+                          },
                         ),
-                        items: stateFilterOptions
-                            .map(
-                              (e) => DropdownMenuItem(value: e, child: Text(e)),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            controller.changeStateFilter(value);
-                          }
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
+                      ),
+                    ],
+                  );
+                }
+              },
             ),
           ],
         ),
@@ -731,32 +988,72 @@ class Selector1 extends StatelessWidget {
     return ValueListenableBuilder<String>(
       valueListenable: controller.resourceType,
       builder: (context, currentType, child) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildSelectorButton(
-                context,
-                icon: Icons.people_alt_outlined,
-                label: 'Recursos Humanos',
-                isSelected: currentType == 'Humanos',
-                onPressed: () {
-                  controller.changeResourceType('Humanos');
-                },
-              ),
-              const SizedBox(width: 20),
-              _buildSelectorButton(
-                context,
-                icon: Icons.build_outlined,
-                label: 'Recursos Materiales',
-                isSelected: currentType == 'Materiales',
-                onPressed: () {
-                  controller.changeResourceType('Materiales');
-                },
-              ),
-            ],
-          ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isSmallScreen = constraints.maxWidth < 600;
+            
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: isSmallScreen
+                  ? Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: _buildSelectorButton(
+                            context,
+                            icon: Icons.people_alt_outlined,
+                            label: 'Recursos Humanos',
+                            isSelected: currentType == 'Humanos',
+                            onPressed: () {
+                              controller.changeResourceType('Humanos');
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: _buildSelectorButton(
+                            context,
+                            icon: Icons.build_outlined,
+                            label: 'Recursos Materiales',
+                            isSelected: currentType == 'Materiales',
+                            onPressed: () {
+                              controller.changeResourceType('Materiales');
+                            },
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: _buildSelectorButton(
+                            context,
+                            icon: Icons.people_alt_outlined,
+                            label: 'Recursos Humanos',
+                            isSelected: currentType == 'Humanos',
+                            onPressed: () {
+                              controller.changeResourceType('Humanos');
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: _buildSelectorButton(
+                            context,
+                            icon: Icons.build_outlined,
+                            label: 'Recursos Materiales',
+                            isSelected: currentType == 'Materiales',
+                            onPressed: () {
+                              controller.changeResourceType('Materiales');
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+            );
+          },
         );
       },
     );
@@ -1235,20 +1532,29 @@ class ResourceList extends StatelessWidget {
               );
             }
 
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              itemCount: resources.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 15.0,
-                mainAxisSpacing: 15.0,
-                childAspectRatio: 0.75,
-              ),
-              itemBuilder: (context, index) {
-                final resource = resources[index];
-                return _buildResourceCard(context, resource);
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final isSmallScreen = constraints.maxWidth < 800;
+                final isMediumScreen = constraints.maxWidth < 1200;
+                
+                final crossAxisCount = isSmallScreen ? 1 : (isMediumScreen ? 2 : 2);
+                
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  itemCount: resources.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 15.0,
+                    mainAxisSpacing: 15.0,
+                    childAspectRatio: isSmallScreen ? 0.9 : 0.75,
+                  ),
+                  itemBuilder: (context, index) {
+                    final resource = resources[index];
+                    return _buildResourceCard(context, resource);
+                  },
+                );
               },
             );
           },
@@ -1257,62 +1563,6 @@ class ResourceList extends StatelessWidget {
     );
   }
 
-  Widget _buildResourceItem(BuildContext context, ResourcesModel resource) {
-    Color stateColor = Colors.grey;
-    switch (resource.state) {
-      case 'Disponible':
-        stateColor = Colors.green.shade700;
-        break;
-      case 'Ocupado':
-        stateColor = Colors.red.shade700;
-        break;
-      case 'Parcialmente Disponible':
-        stateColor = Colors.orange.shade700;
-        break;
-      case 'En Uso':
-        stateColor = Colors.blue.shade700;
-        break;
-      case 'Mantenimiento':
-        stateColor = Colors.purple.shade700;
-        break;
-    }
-
-    return Column(
-      children: [
-        ListTile(
-          leading: Icon(
-            resource is HumanResources
-                ? Icons.person_outline
-                : Icons.build_outlined,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          title: Text(resource.name),
-          subtitle: Text(resource.lab),
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: stateColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              resource.state,
-              style: TextStyle(
-                color: stateColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ),
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Ver detalles de ${resource.name}')),
-            );
-          },
-        ),
-        const Divider(height: 1, indent: 20, endIndent: 20),
-      ],
-    );
-  }
 }
 
 // ** Pantallas de Creación (Screen2 para Recursos humanos) **
